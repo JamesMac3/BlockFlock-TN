@@ -19,6 +19,54 @@ function getCountyColor(cameraCount) {
   return "var(--county-201-plus)";
 }
 
+function formatCalendarDate(date) {
+  const pad = (value) => String(value).padStart(2, "0");
+
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+}
+
+function getPlaceholderMeeting(countyName) {
+  const start = new Date();
+  start.setHours(15, 0, 0, 0);
+
+  const daysUntilSaturday = (6 - start.getDay() + 7) % 7;
+  start.setDate(start.getDate() + daysUntilSaturday);
+
+  if (start <= new Date()) {
+    start.setDate(start.getDate() + 7);
+  }
+
+  const end = new Date(start);
+  end.setHours(16, 0, 0, 0);
+
+  const location = "Local Library";
+  const calendar = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Flock Block Tennessee//Chapter Meeting//EN",
+    "BEGIN:VEVENT",
+    `UID:${countyName.toLowerCase().replace(/\s+/g, "-")}-${formatCalendarDate(start)}@flockblocktn.org`,
+    `DTSTART:${formatCalendarDate(start)}`,
+    `DTEND:${formatCalendarDate(end)}`,
+    `SUMMARY:${countyName} County Chapter Meeting`,
+    `LOCATION:${location}`,
+    "DESCRIPTION:Placeholder date and location for the next local chapter meeting.",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  return {
+    dateLabel: start.toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }),
+    location,
+    calendarHref: `data:text/calendar;charset=utf-8,${encodeURIComponent(calendar)}`,
+  };
+}
+
 export default function TennesseeCountyMap({
   countyData = {},
   initialCounty = "Rutherford",
@@ -32,6 +80,7 @@ export default function TennesseeCountyMap({
   const selectedCounty = selectedCountyProp ?? internalSelectedCounty;
   const activeCounty = hoveredCounty ?? selectedCounty;
   const activeCountyData = countyData[activeCounty] ?? {};
+  const placeholderMeeting = getPlaceholderMeeting(activeCounty);
 
   function handleCountySelect(countyName) {
     setInternalSelectedCounty(countyName);
@@ -1128,8 +1177,17 @@ export default function TennesseeCountyMap({
             <dd>{getDroneCount(activeCountyData) ?? "Unknown"}</dd>
           </div>
           <div>
-            <dt>Count basis</dt>
-            <dd>{activeCountyData.countBasis || "Not yet documented"}</dd>
+            <dt>Next meeting date and location</dt>
+            <dd className="county-meeting-details">
+              <span>{placeholderMeeting.dateLabel} at 3:00 PM</span>
+              <span>{placeholderMeeting.location}</span>
+              <a
+                href={placeholderMeeting.calendarHref}
+                download={`${activeCounty.toLowerCase().replace(/\s+/g, "-")}-chapter-meeting.ics`}
+              >
+                Add to calendar
+              </a>
+            </dd>
           </div>
           <div>
             <dt>Next contract renewal</dt>
