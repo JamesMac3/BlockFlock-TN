@@ -182,6 +182,10 @@ export default function TennesseeCountyMap({
       </section>
 
       <div className="tennessee-map-panel">
+        <div className="county-map-source-summary">
+          <span>Total camera count: <strong>2,502</strong></span>
+          <small>Camera counts pulled from DeFlock on July 31, 2026.</small>
+        </div>
         <svg
           className="tennessee-map"
           viewBox="0 0 91 34"
@@ -1247,9 +1251,6 @@ export default function TennesseeCountyMap({
           <span><i className="county-map-legend__126-250" />126–250</span>
           <span><i className="county-map-legend__251-plus" />251+</span>
         </div>
-        <p className="county-map-source-note">
-          Camera counts pulled from DeFlock on July 31, 2026.
-        </p>
             <div className="county-map-actions">
       <button
         type="button"

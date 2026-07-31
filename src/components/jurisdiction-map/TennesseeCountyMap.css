@@ -16,6 +16,7 @@
 }
 
 .tennessee-map-panel {
+  position: relative;
   min-width: 0;
   padding: 1rem;
   overflow: hidden;
@@ -64,11 +65,28 @@
 .county-map-legend__126-250 { background: var(--county-126-250); }
 .county-map-legend__251-plus { background: var(--county-251-plus); }
 
-.county-map-source-note {
-  margin: 0.7rem 0 0;
+.county-map-source-summary {
+  position: absolute;
+  top: 0.8rem;
+  left: 0.8rem;
+  z-index: 1;
+  display: grid;
+  gap: 0.1rem;
+  max-width: 15rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  background: rgb(7 17 31 / 88%);
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
+.county-map-source-summary strong {
+  font-size: 1rem;
+}
+
+.county-map-source-summary small {
   color: var(--text-muted);
-  font-size: 0.72rem;
-  text-align: center;
+  font-size: 0.65rem;
 }
 
 .county {
@@ -301,8 +319,8 @@
 }
 
 .county-map-actions button {
-  background: linear-gradient(180deg, #16d9ff 0%, #00b7e6 100%);
-  color: #ffffff;
+  background: var(--accent);
+  color: var(--text);
 
   border: none;
   border-radius: 10px;
@@ -319,13 +337,19 @@
     box-shadow 0.15s ease,
     background 0.2s ease;
 
-  box-shadow: 0 8px 24px rgba(0, 183, 230, 0.25);
+  box-shadow: 0 8px 24px rgb(216 45 45 / 24%);
 }
 
 .county-map-actions button:hover {
+  background: var(--accent-hover);
   transform: translateY(-2px);
 
-  box-shadow: 0 12px 30px rgba(0, 183, 230, 0.35);
+  box-shadow: 0 12px 30px rgb(216 45 45 / 34%);
+}
+
+.county-map-actions button:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 3px;
 }
 
 .county-map-actions button:active {
