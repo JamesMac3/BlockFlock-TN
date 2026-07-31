@@ -6,7 +6,6 @@ const navigation = [
   { label: "Home", path: "/" },
   { label: "Education", path: "/education" },
   { label: "Status", path: "/status" },
-  { label: "About", path: "/about" },
 ];
 
 export default function Header() {
