@@ -2,7 +2,7 @@ import Header from "../components/Header";
 import "./EducationPage.css";
 import EducationSidebar from "../components/education/EducationSidebar";
 import EducationSlideshow from "../components/education/EducationSlideshow";
-import flockSafety from "../data/education/flockSafety"; 
+import flockSafety from "../data/education/FlockSafety";
 import EducationTopic from "../components/education/EducationTopic";
 
 export default function EducationPage() {
