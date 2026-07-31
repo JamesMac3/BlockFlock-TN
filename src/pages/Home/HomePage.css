@@ -811,6 +811,7 @@ img {
 
   @media (max-width: 600px) {
     .site-header__inner {
+      align-items: center;
       gap: 0.45rem;
       padding-block: 0.65rem;
     }
