@@ -27,8 +27,7 @@ export default function ChapterClaimPage() {
           <h1>Volunteer to manage the {countyName} chapter</h1>
           <p>
             Chapter coordinators help neighbors stay informed and organize lawful,
-            evidence-based local advocacy. This page is informational and does not
-            automatically create an application, portal account, or chapter assignment.
+            evidence-based local advocacy.
           </p>
 
           <h2>Coordinator responsibilities</h2>
@@ -36,7 +35,6 @@ export default function ChapterClaimPage() {
             <li>Organize meeting dates and communicate public meeting information.</li>
             <li>Help document local surveillance policies, contracts, and public records.</li>
             <li>Coordinate respectful outreach to residents and public officials.</li>
-            <li>Protect volunteer and subscriber information from public disclosure.</li>
           </ul>
 
           <div className="chapter-claim-contact">
