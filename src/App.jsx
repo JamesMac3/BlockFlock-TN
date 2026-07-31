@@ -5,6 +5,7 @@ import { PortalAuthProvider } from "./auth/PortalAuthContext";
 import PortalDashboard from "./pages/PortalDashboard";
 import ProtectedPortalRoute from "./components/ProtectedPortalRoute";
 import PortalLogin from "./components/PortalLogin";
+import ChapterClaimPage from "./pages/ChapterClaimPage";
 
 
 function PlaceholderPage({ title }) {
@@ -53,6 +54,11 @@ export default function App() {
         <Route
           path="/portal/login"
           element={<PortalLogin />}
+        />
+
+        <Route
+          path="/chapters/claim"
+          element={<ChapterClaimPage />}
         />
 
         <Route

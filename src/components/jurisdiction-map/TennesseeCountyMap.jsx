@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import "./TennesseeCountyMap.css";
 function getCameraCount(county) {
   return county?.cameraCount ?? county?.camera_count ?? null;
@@ -25,21 +26,30 @@ function formatCalendarDate(date) {
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
 }
 
-function getPlaceholderMeeting(countyName) {
-  const start = new Date();
-  start.setHours(15, 0, 0, 0);
+function getMeeting(countyName, county) {
+  const storedStart = county?.next_meeting_at
+    ? new Date(county.next_meeting_at)
+    : null;
+  const start =
+    storedStart && !Number.isNaN(storedStart.getTime())
+      ? storedStart
+      : new Date();
 
-  const daysUntilSaturday = (6 - start.getDay() + 7) % 7;
-  start.setDate(start.getDate() + daysUntilSaturday);
+  if (!storedStart || Number.isNaN(storedStart.getTime())) {
+    start.setHours(15, 0, 0, 0);
 
-  if (start <= new Date()) {
-    start.setDate(start.getDate() + 7);
+    const daysUntilSaturday = (6 - start.getDay() + 7) % 7;
+    start.setDate(start.getDate() + daysUntilSaturday);
+
+    if (start <= new Date()) {
+      start.setDate(start.getDate() + 7);
+    }
   }
 
   const end = new Date(start);
   end.setHours(16, 0, 0, 0);
 
-  const location = "Local Library";
+  const location = county?.meeting_location || "Local Library";
   const calendar = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -62,6 +72,10 @@ function getPlaceholderMeeting(countyName) {
       day: "numeric",
       year: "numeric",
     }),
+    timeLabel: start.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
     location,
     calendarHref: `data:text/calendar;charset=utf-8,${encodeURIComponent(calendar)}`,
   };
@@ -76,19 +90,96 @@ export default function TennesseeCountyMap({
 }) {
   const [internalSelectedCounty, setInternalSelectedCounty] = useState(initialCounty);
   const [hoveredCounty, setHoveredCounty] = useState(null);
+  const [countySearch, setCountySearch] = useState("");
 
   const selectedCounty = selectedCountyProp ?? internalSelectedCounty;
   const activeCounty = hoveredCounty ?? selectedCounty;
   const activeCountyData = countyData[activeCounty] ?? {};
-  const placeholderMeeting = getPlaceholderMeeting(activeCounty);
+  const meeting = getMeeting(activeCounty, activeCountyData);
+  const normalizedSearch = countySearch.trim().toLowerCase().replace(/\s+/g, " ");
+  const countyEntries = Object.entries(countyData).sort(([, first], [, second]) =>
+    first.name.localeCompare(second.name)
+  );
+  const searchResults = countyEntries.flatMap(([countyKey, county]) => {
+    const normalizedName = county.name.toLowerCase().replace(/\s+/g, " ");
+    const normalizedSlug = county.slug.toLowerCase().replace(/-/g, " ");
+    const cities = Array.isArray(county.cities) ? county.cities : [];
+    const results = [];
+
+    if (
+      !normalizedSearch ||
+      normalizedName.includes(normalizedSearch) ||
+      normalizedSlug.includes(normalizedSearch)
+    ) {
+      results.push({
+        key: `county-${county.id}`,
+        countyKey,
+        label: county.name,
+        type: "County result",
+      });
+    }
+
+    if (normalizedSearch) {
+      cities
+        .filter((city) =>
+          city.toLowerCase().replace(/\s+/g, " ").includes(normalizedSearch)
+        )
+        .forEach((city) => {
+          results.push({
+            key: `city-${county.id}-${city}`,
+            countyKey,
+            label: city,
+            type: county.name,
+          });
+        });
+    }
+
+    return results;
+  });
 
   function handleCountySelect(countyName) {
     setInternalSelectedCounty(countyName);
     onCountySelect?.(countyName);
   }
 
+  const chapterClaimPath = `/chapters/claim?county=${encodeURIComponent(activeCountyData.slug || activeCounty.toLowerCase())}`;
+
   return (
     <section className="tennessee-map-section" aria-label="Tennessee county surveillance map">
+      <section className="mobile-county-finder" aria-labelledby="mobile-county-finder-title">
+        <label htmlFor="mobile-county-search" id="mobile-county-finder-title">
+          Find your county or community
+        </label>
+        <input
+          id="mobile-county-search"
+          type="search"
+          value={countySearch}
+          onChange={(event) => setCountySearch(event.target.value)}
+          placeholder="Try Murfreesboro, Smyrna, or Rutherford"
+          autoComplete="off"
+        />
+        {!normalizedSearch && (
+          <p>Search by county, city, or community, or choose a county below.</p>
+        )}
+        <div className="mobile-county-results" aria-live="polite">
+          {searchResults.length ? (
+            searchResults.map((result) => (
+              <button
+                key={result.key}
+                type="button"
+                className={result.countyKey === selectedCounty ? "is-selected" : ""}
+                onClick={() => handleCountySelect(result.countyKey)}
+              >
+                <strong>{result.label}</strong>
+                <span>{result.type}</span>
+              </button>
+            ))
+          ) : (
+            <p>No matching county or community found.</p>
+          )}
+        </div>
+      </section>
+
       <div className="tennessee-map-panel">
         <svg
           className="tennessee-map"
@@ -1179,25 +1270,43 @@ export default function TennesseeCountyMap({
           <div>
             <dt>Next meeting date and location</dt>
             <dd className="county-meeting-details">
-              <span>{placeholderMeeting.dateLabel} at 3:00 PM</span>
-              <span>{placeholderMeeting.location}</span>
+              <span>{meeting.dateLabel} at {meeting.timeLabel}</span>
+              <span>{meeting.location}</span>
               <a
-                href={placeholderMeeting.calendarHref}
+                href={meeting.calendarHref}
                 download={`${activeCounty.toLowerCase().replace(/\s+/g, "-")}-chapter-meeting.ics`}
               >
                 Add to calendar
               </a>
             </dd>
           </div>
-          <div>
-            <dt>Next contract renewal</dt>
-            <dd>{activeCountyData.nextRenewal || "Unknown"}</dd>
-          </div>
-          <div>
-            <dt>Chapter status</dt>
-            <dd>{activeCountyData.claimed ? "Claimed" : "Unclaimed"}</dd>
-          </div>
         </dl>
+
+        <section className="county-chapter-status" aria-labelledby="county-chapter-heading">
+          <p id="county-chapter-heading">Local chapter</p>
+          {activeCountyData.chapter_status === "claimed" ? (
+            <>
+              <strong>This county has an active chapter.</strong>
+              {activeCountyData.chapter_contact_email ? (
+                <span>
+                  Contact the chapter:{" "}
+                  <a href={`mailto:${activeCountyData.chapter_contact_email}`}>
+                    {activeCountyData.chapter_contact_email}
+                  </a>
+                </span>
+              ) : (
+                <span>Contact information coming soon.</span>
+              )}
+            </>
+          ) : (
+            <>
+              <strong>No chapter coordinator yet.</strong>
+              <Link className="county-chapter-volunteer" to={chapterClaimPath}>
+                Volunteer to manage →
+              </Link>
+            </>
+          )}
+        </section>
 
         {activeCountyData.href && (
           <a className="county-details-link" href={activeCountyData.href}>

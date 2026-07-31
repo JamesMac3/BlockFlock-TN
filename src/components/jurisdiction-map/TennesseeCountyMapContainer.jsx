@@ -23,7 +23,9 @@ export default function TennesseeCountyMapContainer({
 
       const { data, error } = await supabase
         .from("counties")
-        .select("id, name, slug, camera_count, drone_count")
+        .select(
+          "id, name, slug, cities, camera_count, drone_count, subscriber_count, next_meeting_at, meeting_location, chapter_status, chapter_contact_email"
+        )
         .order("name");
 
       if (!active) return;
@@ -54,8 +56,14 @@ export default function TennesseeCountyMapContainer({
         id: county.id,
         name: county.name,
         slug: county.slug,
-        camera_count: county.camera_count ?? 0,
-        drone_count: county.drone_count ?? 0,
+        cities: Array.isArray(county.cities) ? county.cities : [],
+        camera_count: county.camera_count,
+        drone_count: county.drone_count,
+        subscriber_count: county.subscriber_count,
+        next_meeting_at: county.next_meeting_at,
+        meeting_location: county.meeting_location,
+        chapter_status: county.chapter_status,
+        chapter_contact_email: county.chapter_contact_email,
       };
 
       return result;

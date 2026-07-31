@@ -1,0 +1,60 @@
+.chapter-claim-page {
+  min-height: calc(100vh - 4.75rem);
+  padding: 5rem 1rem;
+  background:
+    radial-gradient(circle at 20% 10%, rgb(216 45 45 / 12%), transparent 35%),
+    var(--background);
+}
+
+.chapter-claim-page > section {
+  width: min(100%, 760px);
+  margin-inline: auto;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.chapter-claim-eyebrow {
+  margin: 0 0 0.7rem;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.chapter-claim-page h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1.05;
+}
+
+.chapter-claim-page h2 {
+  margin-top: 2rem;
+}
+
+.chapter-claim-page > section > p:not(.chapter-claim-eyebrow),
+.chapter-claim-page li,
+.chapter-claim-contact span {
+  color: var(--text-muted);
+}
+
+.chapter-claim-contact {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 2rem;
+  padding: 1.2rem;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-muted);
+}
+
+.chapter-claim-contact a {
+  width: fit-content;
+  color: #55e1ff;
+  font-weight: 750;
+}
+
+.chapter-claim-contact a:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 3px;
+}

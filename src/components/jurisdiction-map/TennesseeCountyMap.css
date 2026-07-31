@@ -29,6 +29,10 @@
   height: auto;
 }
 
+.mobile-county-finder {
+  display: none;
+}
+
 .county {
   fill: var(--county-fill, var(--county-unknown));
   stroke: #2b2b2b;
@@ -118,6 +122,55 @@
   margin-top: 1.25rem;
 }
 
+.county-chapter-status {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1.25rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+}
+
+.county-chapter-status p {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.county-chapter-status span {
+  color: var(--text-muted);
+}
+
+.county-chapter-status span a {
+  color: #55e1ff;
+}
+
+.county-chapter-volunteer {
+  width: fit-content;
+  margin-top: 0.35rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.55rem;
+  background: var(--accent);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.county-chapter-volunteer:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.county-chapter-volunteer:focus-visible,
+.county-chapter-status a:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 3px;
+}
+
 @media (max-width: 768px) {
   .tennessee-map-section {
     display: block;
@@ -125,6 +178,82 @@
 
   .tennessee-map-panel {
     display: none;
+  }
+
+  .mobile-county-finder {
+    display: grid;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid rgb(255 255 255 / 12%);
+    background: rgb(255 255 255 / 4%);
+  }
+
+  .mobile-county-finder > label {
+    font-weight: 800;
+  }
+
+  .mobile-county-finder > input {
+    width: 100%;
+    min-height: 2.9rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid rgb(255 255 255 / 22%);
+    border-radius: 0.45rem;
+    background: var(--text);
+    color: var(--background);
+    font: inherit;
+  }
+
+  .mobile-county-finder > input:focus-visible {
+    outline: 3px solid #55e1ff;
+    outline-offset: 2px;
+  }
+
+  .mobile-county-finder > p,
+  .mobile-county-results > p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .mobile-county-results {
+    display: grid;
+    max-height: 18rem;
+    overflow-y: auto;
+    border-top: 1px solid rgb(255 255 255 / 10%);
+  }
+
+  .mobile-county-results button {
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.7rem 0.6rem;
+    border: 0;
+    border-bottom: 1px solid rgb(255 255 255 / 10%);
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .mobile-county-results button:hover,
+  .mobile-county-results button.is-selected {
+    background: var(--surface-muted);
+  }
+
+  .mobile-county-results button:focus-visible {
+    outline: 3px solid #55e1ff;
+    outline-offset: -3px;
+  }
+
+  .mobile-county-results span {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+  }
+
+  .county-chapter-volunteer {
+    width: 100%;
+    min-height: 2.8rem;
+    text-align: center;
   }
 }
 .county-map-actions {
