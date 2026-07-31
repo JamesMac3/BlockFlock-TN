@@ -1,12 +1,13 @@
 .tennessee-map-section {
   --county-unknown: #b8bcc2;
-  --county-zero: #edf4ee;
-  --county-1-10: #d9eadb;
-  --county-11-25: #b8d8bc;
-  --county-26-50: #8fc397;
-  --county-51-100: #61aa6d;
-  --county-101-200: #3d894a;
-  --county-201-plus: #246b32;
+  --county-zero: #747982;
+  --county-1-5: #f8d7da;
+  --county-6-15: #f1aeb5;
+  --county-16-30: #e9808b;
+  --county-31-60: #df5360;
+  --county-61-125: #c92e3b;
+  --county-126-250: #981b26;
+  --county-251-plus: #5f0d16;
 
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
@@ -33,6 +34,43 @@
   display: none;
 }
 
+.county-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem 0.8rem;
+  margin-top: 0.9rem;
+  font-size: 0.72rem;
+}
+
+.county-map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.county-map-legend i {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1px solid rgb(255 255 255 / 28%);
+}
+
+.county-map-legend__zero { background: var(--county-zero); }
+.county-map-legend__1-5 { background: var(--county-1-5); }
+.county-map-legend__6-15 { background: var(--county-6-15); }
+.county-map-legend__16-30 { background: var(--county-16-30); }
+.county-map-legend__31-60 { background: var(--county-31-60); }
+.county-map-legend__61-125 { background: var(--county-61-125); }
+.county-map-legend__126-250 { background: var(--county-126-250); }
+.county-map-legend__251-plus { background: var(--county-251-plus); }
+
+.county-map-source-note {
+  margin: 0.7rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
 .county {
   fill: var(--county-fill, var(--county-unknown));
   stroke: #2b2b2b;
@@ -43,15 +81,15 @@
 }
 
 .county:hover {
-  fill: #d8a24a;
-  stroke: #111;
+  fill: var(--county-fill, var(--county-unknown));
+  stroke: #f2efe7;
   stroke-width: 0.42;
   filter: brightness(1.08);
 }
 
 .county--selected {
-  fill: #4ad1d8;
-  stroke: #111;
+  fill: var(--county-fill, var(--county-unknown));
+  stroke: #55e1ff;
   stroke-width: 0.55;
   filter: brightness(1.08);
 }

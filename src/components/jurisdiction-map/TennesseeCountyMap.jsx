@@ -12,12 +12,13 @@ function getDroneCount(county) {
 function getCountyColor(cameraCount) {
   if (cameraCount === null || cameraCount === undefined) return "var(--county-unknown)";
   if (cameraCount === 0) return "var(--county-zero)";
-  if (cameraCount <= 10) return "var(--county-1-10)";
-  if (cameraCount <= 25) return "var(--county-11-25)";
-  if (cameraCount <= 50) return "var(--county-26-50)";
-  if (cameraCount <= 100) return "var(--county-51-100)";
-  if (cameraCount <= 200) return "var(--county-101-200)";
-  return "var(--county-201-plus)";
+  if (cameraCount <= 5) return "var(--county-1-5)";
+  if (cameraCount <= 15) return "var(--county-6-15)";
+  if (cameraCount <= 30) return "var(--county-16-30)";
+  if (cameraCount <= 60) return "var(--county-31-60)";
+  if (cameraCount <= 125) return "var(--county-61-125)";
+  if (cameraCount <= 250) return "var(--county-126-250)";
+  return "var(--county-251-plus)";
 }
 
 function formatCalendarDate(date) {
@@ -1236,6 +1237,19 @@ export default function TennesseeCountyMap({
             </path>
           </g>
         </svg>
+        <div className="county-map-legend" aria-label="Camera count color scale">
+          <span><i className="county-map-legend__zero" />0</span>
+          <span><i className="county-map-legend__1-5" />1–5</span>
+          <span><i className="county-map-legend__6-15" />6–15</span>
+          <span><i className="county-map-legend__16-30" />16–30</span>
+          <span><i className="county-map-legend__31-60" />31–60</span>
+          <span><i className="county-map-legend__61-125" />61–125</span>
+          <span><i className="county-map-legend__126-250" />126–250</span>
+          <span><i className="county-map-legend__251-plus" />251+</span>
+        </div>
+        <p className="county-map-source-note">
+          Camera counts pulled from DeFlock on July 31, 2026.
+        </p>
             <div className="county-map-actions">
       <button
         type="button"
