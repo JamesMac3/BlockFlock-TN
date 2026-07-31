@@ -7,6 +7,7 @@ import SectionHeading from "../../components/SectionHeading";
 import "./HomePage.css";
 import skyline from "../../assets/MTN_skyrise.jpg";
 import TennesseeCountyMapContainer from "../../components/jurisdiction-map/TennesseeCountyMapContainer";
+import IpAwarenessCard from "../../components/IpAwarenessCard";
 
 const investigations = [
   {
@@ -45,6 +46,7 @@ export default function HomePage() {
   return (
     <div className="site-shell">
       <Header />
+      <IpAwarenessCard />
 
       <main>
         <section className="hero">
