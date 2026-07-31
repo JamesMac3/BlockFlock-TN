@@ -35,6 +35,10 @@
   box-shadow: none;
 }
 
+.county-contact-backdrop {
+  display: none;
+}
+
 .county-contact-content {
   display: flex;
   flex-direction: column;
@@ -243,19 +247,79 @@
 }
 
 @media (max-width: 600px) {
-  .county-contact-form {
-    --contact-form-width: calc(100vw - 28px);
+  .county-contact-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 149;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: rgba(2, 8, 16, 0.68);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms ease;
+  }
 
-    padding: 22px 18px;
+  .county-contact-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .county-contact-form {
+    --contact-form-peek: 10px;
+    --contact-toggle-size: 44px;
+
+    top: auto;
+    right: auto;
+    bottom: 0;
+    left: 12px;
+    z-index: 150;
+    width: calc(100vw - 24px);
+    height: min(78dvh, 640px);
+    max-height: calc(100dvh - 70px);
+    padding: 24px 18px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-bottom: 0;
+    border-radius: 18px 18px 0 0;
+    background: linear-gradient(160deg, #102236, #07111f 72%);
+    box-shadow: 0 -18px 45px rgba(2, 12, 27, 0.42);
+    transform: translateY(0);
+  }
+
+  .county-contact-form.is-open {
+    transform: translateY(0);
+  }
+
+  .county-contact-form.is-closed {
+    transform: translateY(calc(100% - var(--contact-form-peek)));
   }
 
   .county-contact-toggle {
-    --contact-toggle-size: 44px;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .county-contact-toggle:hover {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+
+  .county-contact-toggle-arrow {
+    transform: rotate(-90deg);
+  }
+
+  .county-contact-toggle-arrow.is-open {
+    transform: rotate(90deg);
+  }
+
+  .county-contact-content {
+    padding-top: 0.75rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .county-contact-form,
+  .county-contact-backdrop,
   .county-contact-toggle,
   .toggle-arrow,
   .county-contact-privacy summary::after {

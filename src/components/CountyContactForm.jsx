@@ -113,6 +113,14 @@ export default function CountyContactForm({
   }
 
   return (
+    <>
+    <button
+      type="button"
+      className={`county-contact-backdrop ${isOpen ? "is-open" : ""}`}
+      onClick={() => onOpenChange?.(false)}
+      aria-label="Close contact form"
+      tabIndex={isOpen ? 0 : -1}
+    />
     <aside
       className={`county-contact-form ${
         isOpen ? "is-open" : "is-closed"
@@ -238,5 +246,6 @@ export default function CountyContactForm({
         )}
       </form>
     </aside>
+    </>
   );
 }
