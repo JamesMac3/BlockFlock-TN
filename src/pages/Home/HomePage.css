@@ -402,6 +402,17 @@ img {
   color: var(--dark);
 }
 
+.button--facebook {
+  border-color: #1877f2;
+  background: #1877f2;
+  color: #fff;
+}
+
+.button--facebook:hover {
+  border-color: #1267d6;
+  background: #1267d6;
+}
+
 /* Trust strip */
 
 .trust-strip {
@@ -731,6 +742,16 @@ img {
 .participation__actions {
   justify-content: center;
   margin-top: 0;
+}
+
+.participation .section-heading a {
+  color: #55e1ff;
+  font-weight: 700;
+}
+
+.participation .section-heading a:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 3px;
 }
 
 /* Footer */

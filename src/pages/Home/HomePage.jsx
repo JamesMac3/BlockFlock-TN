@@ -255,18 +255,41 @@ export default function HomePage() {
           <div className="container participation">
             <SectionHeading
               eyebrow="Participate"
-              title="Help build the public record"
-              description="Local chapters can collect sources, document public statements, meet with action teams to discuss the issues, educate themselves and get their local surveillance systems removed by legal means."
+              title="Support the Cause!"
+              description={
+                <>
+                  Join the local chapter emailer to know when to show up to meetings,
+                  either in person or online, and when to make public comments at your
+                  local city hall. Collect information for{" "}
+                  <a href="https://deflock.org/">DeFlock.org</a>, spread the word about
+                  FlockBlock TN, and educate others on the dangers of mass surveillance.
+                  Prepare for the consequences of mass surveillance by building the{" "}
+                  <a href="https://reticulum.network/">Reticulum network</a>.
+                </>
+              }
               align="center"
             />
 
             <div className="participation__actions">
-              <Link to="/about" className="button button--primary">
-                Learn about the project
-              </Link>
+              <a
+                href="https://www.facebook.com/groups/1458622071862905"
+                className="button button--facebook"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Join our Facebook
+              </a>
 
-              <Link to="/sources" className="button button--secondary-dark">
-                Review the sources
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={() => setContactFormOpen(true)}
+              >
+                Join the emailer
+              </button>
+
+              <Link to="/education" className="button button--light">
+                Learn about how it works
               </Link>
             </div>
           </div>
