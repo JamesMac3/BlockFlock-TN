@@ -1,0 +1,147 @@
+.tennessee-map-section {
+  --county-unknown: #b8bcc2;
+  --county-zero: #edf4ee;
+  --county-1-10: #d9eadb;
+  --county-11-25: #b8d8bc;
+  --county-26-50: #8fc397;
+  --county-51-100: #61aa6d;
+  --county-101-200: #3d894a;
+  --county-201-plus: #246b32;
+
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.tennessee-map-panel {
+  min-width: 0;
+  padding: 1rem;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 3%);
+}
+
+.tennessee-map {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.county {
+  fill: var(--county-fill, var(--county-unknown));
+  stroke: #2b2b2b;
+  stroke-width: 0.18;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  transition: fill 160ms ease, stroke 160ms ease, stroke-width 160ms ease, filter 160ms ease;
+}
+
+.county:hover {
+  fill: #d8a24a;
+  stroke: #111;
+  stroke-width: 0.42;
+  filter: brightness(1.08);
+}
+
+.county--selected {
+  fill: #4ad1d8;
+  stroke: #111;
+  stroke-width: 0.55;
+  filter: brightness(1.08);
+}
+
+.county-details-panel {
+  padding: 1.5rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.county-details-panel__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.county-details-panel h2 {
+  margin: 0 0 1.25rem;
+}
+
+.county-details-list {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+}
+
+.county-details-list div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.county-details-list dt {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.county-details-list dd {
+  margin: 0;
+}
+
+.county-details-link {
+  display: inline-block;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .tennessee-map-section {
+    display: block;
+  }
+
+  .tennessee-map-panel {
+    display: none;
+  }
+}
+.county-map-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.county-map-actions button {
+  background: linear-gradient(180deg, #16d9ff 0%, #00b7e6 100%);
+  color: #ffffff;
+
+  border: none;
+  border-radius: 10px;
+
+  padding: 0.9rem 2rem;
+
+  font-size: 1rem;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.2s ease;
+
+  box-shadow: 0 8px 24px rgba(0, 183, 230, 0.25);
+}
+
+.county-map-actions button:hover {
+  transform: translateY(-2px);
+
+  box-shadow: 0 12px 30px rgba(0, 183, 230, 0.35);
+}
+
+.county-map-actions button:active {
+  transform: translateY(0);
+}
