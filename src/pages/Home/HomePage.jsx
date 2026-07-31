@@ -218,7 +218,7 @@ export default function HomePage() {
                 <span>3</span>
                 <div>
                   <strong>Context</strong>
-                  <p>Why the evidence matters and what it does not prove.</p>
+                  <p>Providing counters to false claims of safety over liberty.</p>
                 </div>
               </div>
 
@@ -227,8 +227,8 @@ export default function HomePage() {
               <div className="evidence-step">
                 <span>4</span>
                 <div>
-                  <strong>Archive</strong>
-                  <p>Original, archived, and backup links when appropriate.</p>
+                  <strong>Document</strong>
+                  <p>Pooling evidence of abuses of indiscriminate surveillance activity, abuses and those responsible so they can be held accountable.</p>
                 </div>
               </div>
             </div>
