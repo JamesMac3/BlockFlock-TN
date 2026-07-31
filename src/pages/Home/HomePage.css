@@ -808,6 +808,33 @@ img {
   .jurisdiction-card__summary {
     min-height: auto;
   }
+
+  @media (max-width: 600px) {
+    .site-header__inner {
+      gap: 0.45rem;
+      padding-block: 0.65rem;
+    }
+
+    .brand img {
+      height: 46px;
+    }
+
+    .site-nav {
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      overflow-x: visible;
+      padding-bottom: 0;
+    }
+
+    .site-nav__link,
+    .site-nav__login,
+    .site-nav__logout {
+      min-height: 2.5rem;
+      margin-left: 0;
+      padding: 0.45rem 0.55rem;
+      font-size: 0.76rem;
+    }
+  }
 }
 
 @media (max-width: 680px) {
