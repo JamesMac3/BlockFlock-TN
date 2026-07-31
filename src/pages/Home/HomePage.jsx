@@ -271,15 +271,6 @@ export default function HomePage() {
             />
 
             <div className="participation__actions">
-              <a
-                href="https://www.facebook.com/groups/1458622071862905"
-                className="button button--facebook"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Join our Facebook
-              </a>
-
               <button
                 type="button"
                 className="button button--primary"
@@ -291,6 +282,15 @@ export default function HomePage() {
               <Link to="/education" className="button button--light">
                 Learn about how it works
               </Link>
+
+              <a
+                href="https://www.facebook.com/groups/1458622071862905"
+                className="button button--facebook"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Join our Facebook
+              </a>
             </div>
           </div>
         </section>
