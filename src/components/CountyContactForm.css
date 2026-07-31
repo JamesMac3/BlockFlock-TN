@@ -272,15 +272,15 @@
     top: auto;
     right: auto;
     bottom: 0;
-    left: 12px;
+    left: 0;
     z-index: 150;
-    width: calc(100vw - 24px);
-    height: min(78dvh, 640px);
-    max-height: calc(100dvh - 70px);
-    padding: 24px 18px 18px;
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    padding: clamp(2.9rem, 8dvh, 4rem) clamp(14px, 4vw, 20px) clamp(12px, 3dvh, 20px);
     border: 1px solid rgba(255, 255, 255, 0.24);
     border-bottom: 0;
-    border-radius: 18px 18px 0 0;
+    border-radius: 0;
     background: linear-gradient(160deg, #102236, #07111f 72%);
     box-shadow: 0 -18px 45px rgba(2, 12, 27, 0.42);
     transform: translateY(0);
@@ -300,8 +300,17 @@
     transform: translate(-50%, -50%);
   }
 
+  .county-contact-form.is-open .county-contact-toggle {
+    top: 10px;
+    transform: translate(-50%, 0);
+  }
+
   .county-contact-toggle:hover {
     transform: translate(-50%, -50%) scale(1.06);
+  }
+
+  .county-contact-form.is-open .county-contact-toggle:hover {
+    transform: translate(-50%, 0) scale(1.06);
   }
 
   .county-contact-toggle-arrow {
@@ -313,7 +322,59 @@
   }
 
   .county-contact-content {
-    padding-top: 0.75rem;
+    gap: clamp(0.5rem, 1.8dvh, 0.8rem);
+    padding-top: 0;
+    font-size: clamp(0.78rem, 2.8vw, 0.9rem);
+    overflow-y: auto;
+  }
+
+  .county-contact-header {
+    margin-bottom: 0;
+  }
+
+  .county-contact-header h2 {
+    margin-bottom: 0.25rem;
+    font-size: clamp(1.05rem, 4.5vw, 1.2rem);
+  }
+
+  .county-contact-header p {
+    line-height: 1.35;
+  }
+
+  .county-contact-privacy {
+    margin-top: clamp(0.35rem, 1.2dvh, 0.65rem);
+  }
+
+  .county-contact-privacy summary {
+    padding: clamp(0.4rem, 1.2dvh, 0.6rem) 0;
+    font-size: 0.85rem;
+  }
+
+  .county-contact-header .county-contact-privacy p {
+    padding-bottom: 0.55rem;
+    font-size: 0.8rem;
+  }
+
+  .county-contact-content > div {
+    gap: 0.25rem;
+  }
+
+  .county-contact-content label {
+    font-size: 0.82rem;
+  }
+
+  .county-contact-content input,
+  .county-contact-content select {
+    min-height: clamp(2.35rem, 7dvh, 2.75rem);
+    padding: clamp(0.5rem, 1.5dvh, 0.7rem) 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .county-contact-content button[type="submit"] {
+    min-height: clamp(2.4rem, 7dvh, 2.8rem);
+    margin-top: 0;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.85rem;
   }
 }
 
