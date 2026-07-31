@@ -3,7 +3,6 @@ import "./IpAwarenessCard.css";
 
 export default function IpAwarenessCard() {
   const [displayState, setDisplayState] = useState("waiting");
-  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const showTimer = window.setTimeout(() => {
@@ -16,16 +15,6 @@ export default function IpAwarenessCard() {
       window.clearTimeout(showTimer);
     };
   }, []);
-
-  useEffect(() => {
-    if (displayState !== "visible" || isHovered) return undefined;
-
-    const fadeTimer = window.setTimeout(() => {
-      setDisplayState("fading");
-    }, 2000);
-
-    return () => window.clearTimeout(fadeTimer);
-  }, [displayState, isHovered]);
 
   useEffect(() => {
     if (displayState !== "fading") return undefined;
@@ -47,10 +36,7 @@ export default function IpAwarenessCard() {
       className={`ip-awareness-card ${displayState === "fading" ? "is-fading" : ""}`}
       role="status"
       aria-labelledby="ip-awareness-title"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onFocus={() => setIsHovered(true)}
-      onBlur={() => setIsHovered(false)}
+      onMouseEnter={dismiss}
     >
       <button
         type="button"
