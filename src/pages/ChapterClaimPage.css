@@ -54,6 +54,24 @@
   font-weight: 750;
 }
 
+.chapter-claim-contact .chapter-claim-facebook {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.8rem;
+  margin: 0.45rem 0;
+  padding: 0.65rem 1rem;
+  border: 1px solid #1877f2;
+  background: #1877f2;
+  color: #fff;
+  text-decoration: none;
+}
+
+.chapter-claim-contact .chapter-claim-facebook:hover {
+  border-color: #1267d6;
+  background: #1267d6;
+}
+
 .chapter-claim-contact a:focus-visible {
   outline: 3px solid #55e1ff;
   outline-offset: 3px;

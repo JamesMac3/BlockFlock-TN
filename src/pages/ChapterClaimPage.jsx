@@ -39,7 +39,16 @@ export default function ChapterClaimPage() {
 
           <div className="chapter-claim-contact">
             <strong>Interested in volunteering?</strong>
-            <span>Contact the organization through our centralized address:</span>
+            <span>Join our Facebook group, then ask an administrator for chapter access.</span>
+            <a
+              className="chapter-claim-facebook"
+              href="https://www.facebook.com/groups/1458622071862905"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Join Facebook Page
+            </a>
+            <span>Ask the administrator for access:</span>
             <a href="mailto:admin@flockblocktn.org">admin@flockblocktn.org</a>
           </div>
         </section>
