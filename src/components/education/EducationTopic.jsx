@@ -1,3 +1,5 @@
+import SequencedExplainer from "./SequencedExplainer";
+
 function SourceLinks({ sources = [] }) {
   if (sources.length === 0) {
     return null;
@@ -29,6 +31,7 @@ export default function EducationTopic({ topic }) {
   const operation = topic.operation ?? [];
   const findings = topic.findings ?? [];
   const caseStudies = topic.caseStudies ?? [];
+  const sequencedExplainer = topic.sequencedExplainer;
 
   return (
     <article className="education-topic">
@@ -46,6 +49,8 @@ export default function EducationTopic({ topic }) {
           ))}
         </ul>
       </section>
+
+      {sequencedExplainer && <SequencedExplainer {...sequencedExplainer} />}
 
       <section className="education-section">
         <h3>System Operation</h3>

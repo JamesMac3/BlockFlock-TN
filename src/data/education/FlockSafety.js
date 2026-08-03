@@ -16,6 +16,82 @@ const flockSafety = {
     ],
   },
 
+  sequencedExplainer: {
+    title: "How a Flock Camera Works",
+    description:
+      "A single roadside observation can move through several technical stages before becoming a record that an authorized user can retrieve.",
+    stages: [
+      {
+        id: "capture",
+        number: "01",
+        verb: "Observe",
+        title: "Capture",
+        summary: "A passing vehicle triggers the roadside camera.",
+        explanation:
+          "The device photographs the vehicle and records the event at a specific camera, place, and time. Software can read the plate and classify visible vehicle characteristics.",
+        result: "Image plus observed vehicle data.",
+        icon: "camera",
+      },
+      {
+        id: "upload",
+        number: "02",
+        verb: "Transmit",
+        title: "Upload",
+        summary: "The event is sent from the camera to Flock’s cloud service.",
+        explanation:
+          "The roadside unit sends the captured event through a network connection. This changes a photograph captured at one location into data available to a remote system.",
+        result: "Remote data event.",
+        icon: "upload",
+      },
+      {
+        id: "store",
+        number: "03",
+        verb: "Organize",
+        title: "Store",
+        summary: "The event is indexed so it can be found again.",
+        explanation:
+          "The record can include the vehicle image, plate text, date and time, camera location and ID, and searchable vehicle attributes such as make, model, color, and other visible features.",
+        result: "Searchable record.",
+        icon: "database",
+      },
+      {
+        id: "retain",
+        number: "04",
+        verb: "Preserve",
+        title: "Retain",
+        summary: "The record remains available for the configured retention period.",
+        explanation:
+          "How long the record remains available depends on the agency’s configuration, policy, contract, and any copies or exports created through authorized workflows.",
+        result: "Stored history.",
+        icon: "clock",
+      },
+      {
+        id: "search",
+        number: "05",
+        verb: "Retrieve",
+        title: "Search",
+        summary: "Authorized users can query past observations.",
+        explanation:
+          "A user may search by plate, vehicle characteristics, location, or time window. Matching events can show when and where a vehicle was observed by participating cameras.",
+        result: "Matched observations.",
+        icon: "search",
+      },
+    ],
+    supportingData: {
+      title: "One Pass Can Become a Bundle of Linked Data",
+      items: [
+        "Vehicle image",
+        "Plate text",
+        "Date and time",
+        "Camera location",
+        "Camera ID",
+        "Vehicle attributes",
+      ],
+    },
+    scopeNote:
+      "This diagram explains the general data flow. Exact retention, access, sharing, and search configurations can vary by agency, policy, contract, and product settings.",
+  },
+
   operation: [
     {
       title: "Distributed Camera and Sensor Network",
