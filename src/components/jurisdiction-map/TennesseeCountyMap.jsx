@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import CountySelector from "../CountySelector";
+import { ACTIVE_CHAPTER_COUNTY_SLUGS } from "../../config/activeChapterCounties";
 import "./TennesseeCountyMap.css";
 function getCameraCount(county) {
   return county?.cameraCount ?? county?.camera_count ?? null;
@@ -19,6 +21,38 @@ function getCountyColor(cameraCount) {
   if (cameraCount <= 125) return "var(--county-61-125)";
   if (cameraCount <= 250) return "var(--county-126-250)";
   return "var(--county-251-plus)";
+}
+
+function CountyHoverLabel({ mapRef }) {
+  const [hoveredCountyName, setHoveredCountyName] = useState("");
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return undefined;
+
+    function handlePointerOver(event) {
+      const county = event.target.closest?.(".county");
+      setHoveredCountyName(county?.id ? `${county.id} County` : "");
+    }
+
+    function clearHoveredCounty() {
+      setHoveredCountyName("");
+    }
+
+    map.addEventListener("pointerover", handlePointerOver);
+    map.addEventListener("pointerleave", clearHoveredCounty);
+
+    return () => {
+      map.removeEventListener("pointerover", handlePointerOver);
+      map.removeEventListener("pointerleave", clearHoveredCounty);
+    };
+  }, [mapRef]);
+
+  return (
+    <div className="county-map-hover-label" aria-live="polite">
+      {hoveredCountyName || "Mouse over a county and click to select"}
+    </div>
+  );
 }
 
 function formatCalendarDate(date) {
@@ -84,116 +118,116 @@ function getMeeting(countyName, county) {
 
 export default function TennesseeCountyMap({
   countyData = {},
-  initialCounty = "Rutherford",
+  initialCounty = null,
   selectedCounty: selectedCountyProp,
   onCountySelect,
   onJoinEmailUpdates,
 }) {
   const [internalSelectedCounty, setInternalSelectedCounty] = useState(initialCounty);
-  const [hoveredCounty, setHoveredCounty] = useState(null);
-  const [countySearch, setCountySearch] = useState("");
+  const mapRef = useRef(null);
 
-  const selectedCounty = selectedCountyProp ?? internalSelectedCounty;
-  const activeCounty = hoveredCounty ?? selectedCounty;
+  const selectedCounty = selectedCountyProp !== undefined
+    ? selectedCountyProp
+    : internalSelectedCounty;
+  const activeCounty = selectedCounty;
   const activeCountyData = countyData[activeCounty] ?? {};
-  const meeting = getMeeting(activeCounty, activeCountyData);
-  const normalizedSearch = countySearch.trim().toLowerCase().replace(/\s+/g, " ");
+  const isStatewide = !activeCounty;
+  const meeting = getMeeting(activeCounty || "Tennessee", activeCountyData);
   const countyEntries = Object.entries(countyData).sort(([, first], [, second]) =>
     first.name.localeCompare(second.name)
   );
-  const searchResults = countyEntries.flatMap(([countyKey, county]) => {
-    const normalizedName = county.name.toLowerCase().replace(/\s+/g, " ");
-    const normalizedSlug = county.slug.toLowerCase().replace(/-/g, " ");
-    const cities = Array.isArray(county.cities) ? county.cities : [];
-    const results = [];
-
-    if (
-      !normalizedSearch ||
-      normalizedName.includes(normalizedSearch) ||
-      normalizedSlug.includes(normalizedSearch)
-    ) {
-      results.push({
-        key: `county-${county.id}`,
-        countyKey,
-        label: county.name,
-        type: "County result",
-      });
-    }
-
-    if (normalizedSearch) {
-      cities
-        .filter((city) =>
-          city.toLowerCase().replace(/\s+/g, " ").includes(normalizedSearch)
-        )
-        .forEach((city) => {
-          results.push({
-            key: `city-${county.id}-${city}`,
-            countyKey,
-            label: city,
-            type: county.name,
-          });
-        });
-    }
-
-    return results;
-  });
-
+  const counties = Object.values(countyData);
+  const claimedCountyCount = counties.filter((county) =>
+    ACTIVE_CHAPTER_COUNTY_SLUGS.has(county.slug)
+  ).length;
+  const statewideMetrics = {
+    claimed: claimedCountyCount,
+    unclaimed: Math.max(counties.length - claimedCountyCount, 0),
+    cameras: counties.reduce(
+      (sum, county) => sum + Number(county.camera_count ?? 0),
+      0
+    ),
+    drones: counties.reduce(
+      (sum, county) => sum + Number(county.drone_count ?? 0),
+      0
+    ),
+  };
   function handleCountySelect(countyName) {
     setInternalSelectedCounty(countyName);
     onCountySelect?.(countyName);
   }
 
-  const chapterClaimPath = `/chapters/claim?county=${encodeURIComponent(activeCountyData.slug || activeCounty.toLowerCase())}`;
+  // County hover is handled entirely by CSS so moving across the SVG does not
+  // rerender every county path. Kept as a no-op for the existing SVG handlers.
+  function setHoveredCounty() {}
+
+  function handleMapKeyDown(event) {
+    const countyKeys = countyEntries.map(([countyKey]) => countyKey);
+
+    if (event.key === "Home" || event.key === "Escape") {
+      event.preventDefault();
+      handleCountySelect(null);
+      return;
+    }
+
+    if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(event.key)) {
+      return;
+    }
+
+    event.preventDefault();
+    const currentIndex = countyKeys.indexOf(selectedCounty);
+    const direction = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+    const nextIndex = currentIndex < 0
+      ? direction > 0 ? 0 : countyKeys.length - 1
+      : (currentIndex + direction + countyKeys.length) % countyKeys.length;
+
+    handleCountySelect(countyKeys[nextIndex]);
+  }
+
+  const countyStatusPath = activeCountyData.slug
+    ? `/status/${activeCountyData.slug}`
+    : "/status";
+  const countyClaimPath = `/chapters/claim?county=${encodeURIComponent(
+    activeCountyData.slug || activeCounty?.toLowerCase() || ""
+  )}`;
+  const hasActiveChapter = ACTIVE_CHAPTER_COUNTY_SLUGS.has(activeCountyData.slug);
 
   return (
     <section className="tennessee-map-section" aria-label="Tennessee county surveillance map">
-      <section className="mobile-county-finder" aria-labelledby="mobile-county-finder-title">
-        <label htmlFor="mobile-county-search" id="mobile-county-finder-title">
-          Find your county or community
-        </label>
-        <input
-          id="mobile-county-search"
-          type="search"
-          value={countySearch}
-          onChange={(event) => setCountySearch(event.target.value)}
-          placeholder="Try Murfreesboro, Smyrna, or Rutherford"
-          autoComplete="off"
+      <section className="mobile-county-finder" aria-label="Find your county or community">
+        <button
+          className="statewide-overview-button"
+          type="button"
+          onClick={() => handleCountySelect(null)}
+        >
+          Statewide overview
+        </button>
+        <CountySelector
+          counties={countyEntries.map(([countyKey, county]) => ({ ...county, countyKey }))}
+          currentCountySlug={selectedCounty ? countyData[selectedCounty]?.slug : null}
+          onSelect={(county) => handleCountySelect(county.countyKey)}
+          showStatusLinks
         />
-        {!normalizedSearch && (
-          <p>Search by county, city, or community, or choose a county below.</p>
-        )}
-        <div className="mobile-county-results" aria-live="polite">
-          {searchResults.length ? (
-            searchResults.map((result) => (
-              <button
-                key={result.key}
-                type="button"
-                className={result.countyKey === selectedCounty ? "is-selected" : ""}
-                onClick={() => handleCountySelect(result.countyKey)}
-              >
-                <strong>{result.label}</strong>
-                <span>{result.type}</span>
-              </button>
-            ))
-          ) : (
-            <p>No matching county or community found.</p>
-          )}
-        </div>
       </section>
 
       <div className="tennessee-map-panel">
-        <div className="county-map-source-summary">
-          <span>Total camera count: <strong>2,502</strong></span>
-          <small>Camera counts pulled from DeFlock on July 31, 2026.</small>
-        </div>
+        <CountyHoverLabel mapRef={mapRef} />
         <svg
+          ref={mapRef}
           className="tennessee-map"
           viewBox="0 0 91 34"
           role="img"
           aria-label="Interactive map of Tennessee counties"
           preserveAspectRatio="xMidYMid meet"
         >
-          <g onMouseLeave={() => setHoveredCounty(null)}>
+          <g
+            className="county-map-counties"
+            tabIndex="0"
+            role="group"
+            aria-label="County selection. Use arrow keys to select a county; press Home or Escape for the statewide overview."
+            onKeyDown={handleMapKeyDown}
+            onMouseLeave={() => setHoveredCounty(null)}
+          >
             <path
               id="Sullivan"
               className={`county ${selectedCounty === "Sullivan" ? "county--selected" : ""}`}
@@ -1265,23 +1299,44 @@ export default function TennesseeCountyMap({
 
       <aside className="county-details-panel" aria-live="polite">
         <p className="county-details-panel__eyebrow">
-          {hoveredCounty ? "Viewing" : "Selected"}
+          {isStatewide ? "Statewide Overview" : "Selected county"}
         </p>
-        <h2>{activeCounty} County</h2>
+        <h2>{isStatewide ? "Tennessee" : `${activeCounty} County`}</h2>
+
+        {!isStatewide && selectedCounty && (
+          <button
+            className="statewide-overview-button statewide-overview-button--panel"
+            type="button"
+            onClick={() => handleCountySelect(null)}
+          >
+            Return to statewide overview
+          </button>
+        )}
 
         <dl className="county-details-list">
-          <div>
-            <dt>Cities</dt>
-            <dd>{activeCountyData.cities?.join(", ") || "Not yet documented"}</dd>
-          </div>
-          <div>
-            <dt>Camera count</dt>
-            <dd>{getCameraCount(activeCountyData) ?? "Unknown"}</dd>
-          </div>
-          <div>
-            <dt>Drone count</dt>
-            <dd>{getDroneCount(activeCountyData) ?? "Unknown"}</dd>
-          </div>
+          {isStatewide ? (
+            <div className="statewide-metrics">
+              <div><dt>Claimed counties</dt><dd>{statewideMetrics.claimed.toLocaleString()}</dd></div>
+              <div><dt>Unclaimed counties</dt><dd>{statewideMetrics.unclaimed.toLocaleString()}</dd></div>
+              <div><dt>Documented cameras</dt><dd>{statewideMetrics.cameras.toLocaleString()}</dd></div>
+              <div><dt>Documented drones</dt><dd>{statewideMetrics.drones.toLocaleString()}</dd></div>
+            </div>
+          ) : (
+            <>
+              <div>
+                <dt>Cities</dt>
+                <dd>{activeCountyData.cities?.join(", ") || "Not yet documented"}</dd>
+              </div>
+              <div>
+                <dt>Camera count</dt>
+                <dd>{getCameraCount(activeCountyData) ?? "Unknown"}</dd>
+              </div>
+              <div>
+                <dt>Drone count</dt>
+                <dd>{getDroneCount(activeCountyData) ?? "Unknown"}</dd>
+              </div>
+            </>
+          )}
           <div>
             <dt>Next meeting date and location</dt>
             <dd className="county-meeting-details">
@@ -1289,7 +1344,7 @@ export default function TennesseeCountyMap({
               <span>{meeting.location}</span>
               <a
                 href={meeting.calendarHref}
-                download={`${activeCounty.toLowerCase().replace(/\s+/g, "-")}-chapter-meeting.ics`}
+                download={`${(activeCounty || "Tennessee").toLowerCase().replace(/\s+/g, "-")}-chapter-meeting.ics`}
               >
                 Add to calendar
               </a>
@@ -1297,37 +1352,18 @@ export default function TennesseeCountyMap({
           </div>
         </dl>
 
-        <section className="county-chapter-status" aria-labelledby="county-chapter-heading">
-          <p id="county-chapter-heading">Local chapter</p>
-          {activeCountyData.chapter_status === "claimed" ? (
-            <>
-              <strong>This county has an active chapter.</strong>
-              {activeCountyData.chapter_contact_email ? (
-                <span>
-                  Contact the chapter:{" "}
-                  <a href={`mailto:${activeCountyData.chapter_contact_email}`}>
-                    {activeCountyData.chapter_contact_email}
-                  </a>
-                </span>
-              ) : (
-                <span>Contact information coming soon.</span>
-              )}
-            </>
+        {!isStatewide && <div className="county-detail-actions">
+          <Link className="county-status-button" to={countyStatusPath}>
+            View status
+          </Link>
+          {hasActiveChapter ? (
+            <span className="county-active-chapter">Active chapter</span>
           ) : (
-            <>
-              <strong>No chapter coordinator yet.</strong>
-              <Link className="county-chapter-volunteer" to={chapterClaimPath}>
-                Volunteer to manage →
-              </Link>
-            </>
+            <Link className="county-claim-button" to={countyClaimPath}>
+              Claim chapter
+            </Link>
           )}
-        </section>
-
-        {activeCountyData.href && (
-          <a className="county-details-link" href={activeCountyData.href}>
-            View county page
-          </a>
-        )}
+        </div>}
       </aside>
     <div className="county-map-actions">
 

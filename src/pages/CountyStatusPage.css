@@ -1,0 +1,392 @@
+.county-status-page {
+  min-height: calc(100vh - 4.75rem);
+  padding: 4rem 1rem 6rem;
+  background: var(--background);
+}
+
+.county-status-page__inner {
+  width: min(100%, 1120px);
+  margin-inline: auto;
+}
+
+.county-status-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.25rem 2rem;
+  margin-bottom: 2rem;
+  padding: clamp(1.4rem, 4vw, 2.5rem);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+}
+
+.county-status-header__title > p {
+  margin: 0 0 0.35rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.county-status-header h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 7vw, 4.5rem);
+  line-height: 0.98;
+}
+
+.county-status-header__title > span {
+  display: inline-flex;
+  margin-top: 0.9rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.county-status-header__title > span.is-active {
+  border-color: var(--accent);
+  color: #f1aeb5;
+}
+
+.county-status-header__intro {
+  max-width: 34rem;
+  margin: 0;
+  align-self: end;
+  color: var(--text-muted);
+}
+
+.county-status-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.county-status-stats > div {
+  min-width: 9rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.county-status-stats dt {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.county-status-stats dd {
+  margin: 0.15rem 0 0;
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.county-status-header__choose,
+.county-status-message a {
+  align-self: end;
+  justify-self: end;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  font-weight: 750;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.county-status-header__choose:hover,
+.county-status-message a:hover {
+  border-color: var(--accent);
+  background: var(--surface-muted);
+}
+
+.county-status-header__choose:focus-visible,
+.county-status-message a:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 3px;
+}
+
+.county-status-notice {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.county-status-claim {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.county-status-claim h2,
+.county-status-claim p {
+  margin: 0;
+}
+
+.county-status-claim h2 {
+  font-size: 1.15rem;
+}
+
+.county-status-claim p {
+  margin-top: 0.3rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.county-status-claim > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.county-status-claim > a:hover {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+}
+
+.county-status-claim > a:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 3px;
+}
+
+.status-post-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.status-post-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.status-post-card--pinned {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  border-color: rgb(216 45 45 / 60%);
+}
+
+.status-post-image {
+  aspect-ratio: 16 / 9;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.status-post-card--pinned .status-post-image {
+  height: 100%;
+  min-height: 18rem;
+  aspect-ratio: auto;
+}
+
+.status-post-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.status-post-image--fallback {
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgb(216 45 45 / 10%), transparent 60%),
+    var(--surface-muted);
+}
+
+.status-post-image--fallback span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.status-post-card__content {
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+}
+
+.status-post-card__labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.status-post-card__labels span,
+.status-post-card__labels strong {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.status-post-card__labels strong {
+  border-color: var(--accent);
+  color: #f1aeb5;
+}
+
+.status-post-card h2 {
+  margin: 0.85rem 0 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  line-height: 1.08;
+}
+
+.status-post-card__summary {
+  margin: 0.75rem 0 0;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.status-post-card__body {
+  margin-top: 0.8rem;
+  color: var(--text-muted);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.status-post-meeting {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+  padding: 0.85rem;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-muted);
+}
+
+.status-post-meeting div {
+  min-width: 0;
+}
+
+.status-post-meeting dt {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-post-meeting dd {
+  margin: 0.1rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.status-post-card__date {
+  margin: 1rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.county-status-message {
+  display: grid;
+  justify-items: start;
+  gap: 0.7rem;
+  max-width: 680px;
+  margin: 4rem auto;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+}
+
+.county-status-message h1,
+.county-status-message p {
+  margin: 0;
+}
+
+.county-status-message p {
+  color: var(--text-muted);
+}
+
+.county-status-message a {
+  justify-self: start;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 860px) {
+  .status-post-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-post-card--pinned {
+    grid-column: auto;
+    display: block;
+  }
+
+  .status-post-card--pinned .status-post-image {
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 680px) {
+  .county-status-page {
+    padding: 2rem 0.75rem 4rem;
+  }
+
+  .county-status-header {
+    grid-template-columns: 1fr;
+  }
+
+  .county-status-header__choose {
+    width: 100%;
+    justify-self: stretch;
+    text-align: center;
+  }
+
+  .county-status-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .county-status-claim {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .county-status-claim > a {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .county-status-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-post-card,
+  .county-status-header__choose {
+    transition: none;
+  }
+}

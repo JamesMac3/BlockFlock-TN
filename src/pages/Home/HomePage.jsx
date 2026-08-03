@@ -127,7 +127,7 @@ export default function HomePage() {
         <section className="section">
           <div className="container">
             <SectionHeading
-              eyebrow="What Are We Fighting:"
+              eyebrow="What Are We Fighting?"
               title="The complete surveillance system"
               description="The visible camera is only one part of a larger network. We examine the technology, infrastructure, governance, and records that establish how the system operates. To fully dismantle the surveillance state, we must understand how it works and ensure no loopholes are created to allow the system to continue operating."
             />

@@ -8,6 +8,7 @@
   --county-61-125: #c92e3b;
   --county-126-250: #981b26;
   --county-251-plus: #5f0d16;
+  --county-selected: #7ec8e3;
 
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
@@ -65,7 +66,7 @@
 .county-map-legend__126-250 { background: var(--county-126-250); }
 .county-map-legend__251-plus { background: var(--county-251-plus); }
 
-.county-map-source-summary {
+.county-map-hover-label {
   position: absolute;
   top: 0.8rem;
   left: 0.8rem;
@@ -77,16 +78,8 @@
   border: 1px solid rgb(255 255 255 / 14%);
   background: rgb(7 17 31 / 88%);
   font-size: 0.76rem;
+  font-weight: 750;
   line-height: 1.3;
-}
-
-.county-map-source-summary strong {
-  font-size: 1rem;
-}
-
-.county-map-source-summary small {
-  color: var(--text-muted);
-  font-size: 0.65rem;
 }
 
 .county {
@@ -106,10 +99,19 @@
 }
 
 .county--selected {
-  fill: var(--county-fill, var(--county-unknown));
-  stroke: #55e1ff;
+  fill: var(--county-selected);
+  stroke: #e8f8ff;
   stroke-width: 0.55;
-  filter: brightness(1.08);
+  filter: none;
+}
+
+.county--selected:hover {
+  fill: var(--county-selected);
+}
+
+.county-map-counties:focus,
+.county-map-counties:focus-visible {
+  outline: none;
 }
 
 .county-details-panel {
@@ -130,6 +132,31 @@
 
 .county-details-panel h2 {
   margin: 0 0 1.25rem;
+}
+
+.statewide-overview-button {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgb(126 200 227 / 70%);
+  background: transparent;
+  color: #bdeaff;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.statewide-overview-button--panel {
+  width: 100%;
+  margin: -0.55rem 0 1rem;
+}
+
+.statewide-overview-button:hover {
+  background: rgb(126 200 227 / 10%);
+}
+
+.statewide-overview-button:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 3px;
 }
 
 .county-details-list {
@@ -154,6 +181,25 @@
   margin: 0;
 }
 
+.county-details-list .statewide-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.statewide-metrics > div {
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  background: rgb(255 255 255 / 4%);
+}
+
+.statewide-metrics dd {
+  margin-top: 0.2rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
 .county-meeting-details {
   display: grid;
   gap: 0.2rem;
@@ -173,56 +219,60 @@
   outline-offset: 3px;
 }
 
-.county-details-link {
-  display: inline-block;
+.county-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
   margin-top: 1.25rem;
 }
 
-.county-chapter-status {
-  display: grid;
-  gap: 0.55rem;
-  margin-top: 1.25rem;
-  padding-top: 1.1rem;
-  border-top: 1px solid rgb(255 255 255 / 12%);
-}
-
-.county-chapter-status p {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 750;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.65;
-}
-
-.county-chapter-status span {
-  color: var(--text-muted);
-}
-
-.county-chapter-status span a {
-  color: #55e1ff;
-}
-
-.county-chapter-volunteer {
-  width: fit-content;
-  margin-top: 0.35rem;
+.county-status-button,
+.county-claim-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
   padding: 0.7rem 0.9rem;
-  border: 1px solid var(--accent);
-  border-radius: 0.55rem;
-  background: var(--accent);
-  color: var(--text);
   font-size: 0.88rem;
   font-weight: 800;
   text-decoration: none;
 }
 
-.county-chapter-volunteer:hover {
+.county-status-button {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--text);
+}
+
+.county-status-button:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
 }
 
-.county-chapter-volunteer:focus-visible,
-.county-chapter-status a:focus-visible {
+.county-claim-button {
+  border: 1px solid #f1aeb5;
+  background: transparent;
+  color: #fff;
+}
+
+.county-claim-button:hover {
+  border-color: var(--accent);
+  background: rgb(216 45 45 / 14%);
+}
+
+.county-active-chapter {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--accent);
+  color: #f1aeb5;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.county-status-button:focus-visible,
+.county-claim-button:focus-visible {
   outline: 3px solid #55e1ff;
   outline-offset: 3px;
 }
@@ -243,6 +293,10 @@
     padding: 1rem;
     border: 1px solid rgb(255 255 255 / 12%);
     background: rgb(255 255 255 / 4%);
+  }
+
+  .mobile-county-finder > .statewide-overview-button {
+    width: 100%;
   }
 
   .mobile-county-finder > label {
@@ -279,37 +333,63 @@
     border-top: 1px solid rgb(255 255 255 / 10%);
   }
 
-  .mobile-county-results button {
+  .mobile-county-result {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    border-bottom: 1px solid rgb(255 255 255 / 10%);
+  }
+
+  .mobile-county-result > button {
     display: grid;
     gap: 0.1rem;
     padding: 0.7rem 0.6rem;
     border: 0;
-    border-bottom: 1px solid rgb(255 255 255 / 10%);
     background: transparent;
     color: var(--text);
     text-align: left;
     cursor: pointer;
   }
 
-  .mobile-county-results button:hover,
-  .mobile-county-results button.is-selected {
+  .mobile-county-result > button:hover,
+  .mobile-county-result > button.is-selected {
     background: var(--surface-muted);
   }
 
-  .mobile-county-results button:focus-visible {
+  .mobile-county-result > button:focus-visible,
+  .mobile-county-result > a:focus-visible {
     outline: 3px solid #55e1ff;
     outline-offset: -3px;
   }
 
-  .mobile-county-results span {
+  .mobile-county-result span {
     color: var(--text-muted);
     font-size: 0.78rem;
   }
 
-  .county-chapter-volunteer {
+  .mobile-county-result > a {
+    align-self: center;
+    padding: 0.7rem 0.6rem;
+    color: #55e1ff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .county-detail-actions {
+    display: grid;
+  }
+
+  .county-status-button,
+  .county-claim-button {
     width: 100%;
     min-height: 2.8rem;
     text-align: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .county-details-list .statewide-metrics {
+    grid-template-columns: 1fr;
   }
 }
 .county-map-actions {

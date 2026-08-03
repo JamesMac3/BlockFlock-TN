@@ -6,6 +6,8 @@ import PortalDashboard from "./pages/PortalDashboard";
 import ProtectedPortalRoute from "./components/ProtectedPortalRoute";
 import PortalLogin from "./components/PortalLogin";
 import ChapterClaimPage from "./pages/ChapterClaimPage";
+import CountyStatusPage from "./pages/CountyStatusPage";
+import StatewideStatusPage from "./pages/StatewideStatusPage";
 
 
 function PlaceholderPage({ title }) {
@@ -33,7 +35,12 @@ export default function App() {
 
         <Route
           path="/status"
-          element={<PlaceholderPage title="Status" />}
+          element={<StatewideStatusPage />}
+        />
+
+        <Route
+          path="/status/:countySlug"
+          element={<CountyStatusPage />}
         />
 
         <Route

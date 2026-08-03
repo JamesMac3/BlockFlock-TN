@@ -1,0 +1,79 @@
+.county-selector {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.county-selector > label {
+  font-weight: 800;
+}
+
+.county-selector > input {
+  width: 100%;
+  min-height: 2.9rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgb(255 255 255 / 22%);
+  background: var(--text);
+  color: var(--background);
+  font: inherit;
+}
+
+.county-selector > input:focus-visible,
+.county-selector__result > button:focus-visible,
+.county-selector__result > a:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: -3px;
+}
+
+.county-selector > p,
+.county-selector__results > p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.county-selector__results {
+  display: grid;
+  max-height: 18rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid rgb(255 255 255 / 10%);
+}
+
+.county-selector__result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+}
+
+.county-selector__result > button {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.7rem 0.6rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.county-selector__result > button:hover,
+.county-selector__result > button.is-current {
+  background: var(--surface-muted);
+}
+
+.county-selector__result span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.county-selector__result > a {
+  align-self: center;
+  padding: 0.7rem 0.6rem;
+  color: #55e1ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}

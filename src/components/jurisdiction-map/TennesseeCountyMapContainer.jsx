@@ -9,8 +9,7 @@ export default function TennesseeCountyMapContainer({
   onContactFormOpenChange,
 }) {
   const [counties, setCounties] = useState([]);
-  const [selectedCountyName, setSelectedCountyName] =
-    useState("Rutherford");
+  const [selectedCountyName, setSelectedCountyName] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -78,8 +77,6 @@ export default function TennesseeCountyMapContainer({
   }
 
   function handleOpenContactForm() {
-    if (!selectedCounty) return;
-
     onContactFormOpenChange(true);
   }
 
@@ -90,7 +87,7 @@ export default function TennesseeCountyMapContainer({
   if (errorMessage) {
     return (
       <p role="alert">
-        County data could not be loaded: {errorMessage}
+        County data could not be loaded right now. Please try again later.
       </p>
     );
   }
@@ -99,21 +96,18 @@ export default function TennesseeCountyMapContainer({
     <section className="county-map-container">
       <TennesseeCountyMap
         countyData={countyData}
-        initialCounty="Rutherford"
         selectedCounty={selectedCountyName}
         onCountySelect={handleCountySelect}
         onJoinEmailUpdates={handleOpenContactForm}
       />
 
-      {selectedCounty && (
-        <CountyContactForm
-          key={selectedCounty.id}
-          initialCountyId={selectedCounty.id}
-          initialCountyName={selectedCounty.name}
-          isOpen={contactFormOpen}
-          onOpenChange={onContactFormOpenChange}
-        />
-      )}
+      <CountyContactForm
+        key={selectedCounty?.id ?? "statewide"}
+        initialCountyId={selectedCounty?.id ?? ""}
+        initialCountyName={selectedCounty?.name ?? ""}
+        isOpen={contactFormOpen}
+        onOpenChange={onContactFormOpenChange}
+      />
     </section>
   );
 }
