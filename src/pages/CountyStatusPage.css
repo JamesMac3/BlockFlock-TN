@@ -192,6 +192,35 @@
   border-color: rgb(216 45 45 / 60%);
 }
 
+.status-post-card--video-primary {
+  grid-column: 1 / -1;
+  display: block;
+  width: 100%;
+  max-width: 68.75rem;
+  margin-inline: auto;
+}
+
+.status-post-card__primary-video {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+}
+
+.status-post-card__primary-video .post-media-renderer,
+.status-post-card__primary-video .youtube-embed {
+  width: 100%;
+  height: 100%;
+}
+
+.status-post-card__secondary-media {
+  width: 100%;
+  max-width: 100%;
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
+
 .status-post-image {
   aspect-ratio: 16 / 9;
   background: var(--surface-muted);
@@ -202,6 +231,10 @@
   height: 100%;
   min-height: 18rem;
   aspect-ratio: auto;
+}
+
+.status-post-card--pinned > .status-post-card__content:only-child {
+  grid-column: 1 / -1;
 }
 
 .status-post-image img {
@@ -375,6 +408,10 @@
 
   .county-status-claim > a {
     width: 100%;
+  }
+
+  .status-post-card--video-primary .status-post-card__content {
+    padding: 1.25rem;
   }
 }
 

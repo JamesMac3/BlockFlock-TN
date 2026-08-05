@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { getPostMediaLayout } from "../../utils/postMediaLayout";
+
+const PostMediaRenderer = lazy(() => import("../post-composer/PostMediaRenderer"));
+const RichTextRenderer = lazy(() => import("../post-composer/RichTextRenderer"));
 
 const TYPE_LABELS = {
   announcement: "Announcement",
@@ -28,11 +32,7 @@ function StatusPostImage({ post, eager }) {
     : null;
 
   if (!imageUrl || failed) {
-    return (
-      <div className="status-post-image status-post-image--fallback" aria-hidden="true">
-        <span>Public update</span>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -70,24 +70,40 @@ function MeetingDetails({ post }) {
 export default function StatusPostCard({ post, countyName, eager = false }) {
   const publishedDate = formatDate(post.approved_at ?? post.created_at);
   const isStatewide = post.scope === "global";
+  const mediaLayout = getPostMediaLayout(post.post_media);
+  const cardClasses = [
+    "status-post-card",
+    post.is_pinned && "status-post-card--pinned",
+    mediaLayout.isVideoPrimary && "status-post-card--video-primary",
+  ].filter(Boolean).join(" ");
+
+  const writtenContent = <div className="status-post-card__content">
+    <div className="status-post-card__labels">
+      <span>{TYPE_LABELS[post.content_type] ?? "Update"}</span>
+      <span>{isStatewide ? "Statewide" : countyName}</span>
+      {post.is_pinned && <strong>Pinned</strong>}
+    </div>
+    <h2>{post.title}</h2>
+    {post.summary && <p className="status-post-card__summary">{post.summary}</p>}
+    {(post.body_rich || post.body) && <div className="status-post-card__body"><Suspense fallback={<p>{post.body}</p>}><RichTextRenderer bodyRich={post.body_rich} body={post.body} /></Suspense></div>}
+    <MeetingDetails post={post} />
+    {publishedDate && <p className="status-post-card__date">Published {publishedDate}</p>}
+  </div>;
 
   return (
-    <article className={`status-post-card ${post.is_pinned ? "status-post-card--pinned" : ""}`}>
-      <StatusPostImage post={post} eager={eager} />
-      <div className="status-post-card__content">
-        <div className="status-post-card__labels">
-          <span>{TYPE_LABELS[post.content_type] ?? "Update"}</span>
-          <span>{isStatewide ? "Statewide" : countyName}</span>
-          {post.is_pinned && <strong>Pinned</strong>}
+    <article className={cardClasses}>
+      {mediaLayout.isVideoPrimary ? <>
+        <div className="status-post-card__primary-video">
+          <Suspense fallback={<div className="status-post-image status-post-image--fallback" aria-hidden="true" />}><PostMediaRenderer media={[mediaLayout.primaryMedia]} postTitle={post.title} /></Suspense>
         </div>
-        <h2>{post.title}</h2>
-        {post.summary && <p className="status-post-card__summary">{post.summary}</p>}
-        {post.body && <div className="status-post-card__body">{post.body}</div>}
-        <MeetingDetails post={post} />
-        {publishedDate && (
-          <p className="status-post-card__date">Published {publishedDate}</p>
-        )}
-      </div>
+        {writtenContent}
+        {mediaLayout.remainingMedia.length > 0 && <div className="status-post-card__secondary-media"><Suspense fallback={null}><PostMediaRenderer media={mediaLayout.remainingMedia} postTitle={post.title} preserveOrder /></Suspense></div>}
+      </> : <>
+        {post.post_media?.length ? (
+        <Suspense fallback={<div className="status-post-image status-post-image--fallback" aria-hidden="true" />}><PostMediaRenderer media={post.post_media} postTitle={post.title} /></Suspense>
+        ) : <StatusPostImage post={post} eager={eager} />}
+        {writtenContent}
+      </>}
     </article>
   );
 }

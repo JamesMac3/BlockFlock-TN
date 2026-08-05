@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { usePortalAuth } from "../auth/portalAuth";
 import Header from "../components/Header";
+import AdminPostDashboard from "../components/admin/AdminPostDashboard";
 
 const chapterCards = [
   ["Posts", "Chapter publishing tools are coming next."],
@@ -16,7 +17,7 @@ const adminCards = [
   ["Email jobs", "Administrative email tools are coming next."],
 ];
 
-export default function PortalDashboard({ mode }) {
+export default function PortalDashboard({ mode, initialEditPostId = null }) {
   const navigate = useNavigate();
   const { user, account, assignedCounty, signOut } = usePortalAuth();
   const isAdmin = mode === "admin";
@@ -25,6 +26,19 @@ export default function PortalDashboard({ mode }) {
   async function handleSignOut() {
     await signOut();
     navigate("/portal/login", { replace: true });
+  }
+
+  if (isAdmin) {
+    return (
+      <div className="site-shell">
+        <Header />
+        <main className="portal-dashboard">
+          <section className="portal-dashboard__shell">
+            <AdminPostDashboard user={user} onSignOut={handleSignOut} initialEditPostId={initialEditPostId} />
+          </section>
+        </main>
+      </div>
+    );
   }
 
   return (

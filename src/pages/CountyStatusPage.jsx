@@ -52,9 +52,10 @@ export default function CountyStatusPage() {
       const { data: posts, error: postsError } = await supabase
         .from("posts")
         .select(
-          "id, county_id, title, body, status, is_pinned, created_at, updated_at, approved_at, scope, content_type, summary, cover_image_path, cover_image_alt, event_start, event_location, event_address"
+          "id, county_id, title, body, body_rich, status, is_pinned, created_at, updated_at, approved_at, scope, content_type, summary, cover_image_path, cover_image_alt, event_start, event_location, event_address, show_in_status_feed, post_media(id, media_type, position, is_primary, storage_path, external_url, provider, provider_media_id, component_key, configuration, alt_text, caption, credit, source_url)"
         )
         .eq("status", "approved")
+        .eq("show_in_status_feed", true)
         .or(`scope.eq.global,county_id.eq.${county.id}`);
 
       if (!active) return;

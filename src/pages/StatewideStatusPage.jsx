@@ -12,6 +12,7 @@ const PUBLIC_POST_FIELDS = [
   "county_id",
   "title",
   "body",
+  "body_rich",
   "status",
   "is_pinned",
   "created_at",
@@ -25,6 +26,8 @@ const PUBLIC_POST_FIELDS = [
   "event_start",
   "event_location",
   "event_address",
+  "show_in_status_feed",
+  "post_media(id, media_type, position, is_primary, storage_path, external_url, provider, provider_media_id, component_key, configuration, alt_text, caption, credit, source_url)",
 ].join(", ");
 
 export default function StatewideStatusPage() {
@@ -38,6 +41,7 @@ export default function StatewideStatusPage() {
         .from("posts")
         .select(PUBLIC_POST_FIELDS)
         .eq("status", "approved")
+        .eq("show_in_status_feed", true)
         .eq("scope", "global");
 
       if (!active) return;

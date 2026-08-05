@@ -1,13 +1,21 @@
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { HashRouter, Route, Routes, useParams } from "react-router-dom";
 import HomePage from "./pages/Home/HomePage";
 import EducationPage from "./pages/EducationPage";
 import { PortalAuthProvider } from "./auth/PortalAuthContext";
-import PortalDashboard from "./pages/PortalDashboard";
 import ProtectedPortalRoute from "./components/ProtectedPortalRoute";
 import PortalLogin from "./components/PortalLogin";
 import ChapterClaimPage from "./pages/ChapterClaimPage";
 import CountyStatusPage from "./pages/CountyStatusPage";
 import StatewideStatusPage from "./pages/StatewideStatusPage";
+import AdminPostPreview from "./pages/AdminPostPreview";
+
+const PortalDashboard = lazy(() => import("./pages/PortalDashboard"));
+
+function AdminPostEditRoute() {
+  const { postId } = useParams();
+  return <PortalDashboard mode="admin" initialEditPostId={postId} />;
+}
 
 
 function PlaceholderPage({ title }) {
@@ -72,7 +80,29 @@ export default function App() {
           path="/portal/admin"
           element={
             <ProtectedPortalRoute role="admin">
-              <PortalDashboard mode="admin" />
+              <Suspense fallback={<p className="portal-route-status">Loading administration...</p>}>
+                <PortalDashboard mode="admin" />
+              </Suspense>
+            </ProtectedPortalRoute>
+          }
+        />
+
+        <Route
+          path="/portal/admin/posts/:postId/preview"
+          element={
+            <ProtectedPortalRoute role="admin">
+              <AdminPostPreview />
+            </ProtectedPortalRoute>
+          }
+        />
+
+        <Route
+          path="/portal/admin/posts/:postId/edit"
+          element={
+            <ProtectedPortalRoute role="admin">
+              <Suspense fallback={<p className="portal-route-status">Loading editor...</p>}>
+                <AdminPostEditRoute />
+              </Suspense>
             </ProtectedPortalRoute>
           }
         />
@@ -81,7 +111,9 @@ export default function App() {
           path="/portal/chapter"
           element={
             <ProtectedPortalRoute role="chapter_master">
-              <PortalDashboard mode="chapter" />
+              <Suspense fallback={<p className="portal-route-status">Loading chapter portal...</p>}>
+                <PortalDashboard mode="chapter" />
+              </Suspense>
             </ProtectedPortalRoute>
           }
         />

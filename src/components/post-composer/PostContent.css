@@ -1,0 +1,28 @@
+.rich-text-renderer > :first-child { margin-top: 0; }
+.rich-text-renderer > :last-child { margin-bottom: 0; }
+.rich-text-renderer h2 { font-size: 1.45rem; }
+.rich-text-renderer h3 { font-size: 1.15rem; }
+.rich-text-renderer blockquote { margin-inline: 0; padding-left: 1rem; border-left: 3px solid var(--accent); }
+.rich-text-renderer a { color: #55e1ff; }
+.rich-text-renderer__fallback { margin: 0; white-space: pre-line; }
+
+.post-image-gallery { margin: 0; background: #07111f; }
+.post-image-gallery img { display: block; width: 100%; height: min(28rem, 52vw); object-fit: contain; }
+.post-image-gallery figcaption { padding: 0.55rem 0.8rem; color: var(--text-muted); font-size: 0.8rem; }
+.post-image-gallery__controls { display: flex; align-items: center; justify-content: center; gap: 0.8rem; padding: 0.6rem; }
+.post-image-gallery__controls button { min-height: 2.75rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.post-external-link-card { color: #55e1ff; }
+.youtube-embed { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden; }
+.youtube-embed iframe { display: block; width: 100%; height: 100%; border: 0; }
+.post-external-link-card { display: block; padding: 1rem; border: 1px solid var(--border); overflow-wrap: anywhere; }
+
+.external-link-warning__backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 1rem; background: rgb(0 0 0 / 72%); }
+.external-link-warning { width: min(100%, 32rem); padding: 1.5rem; border: 1px solid var(--border); background: var(--surface); }
+.external-link-warning h2 { margin-top: 0; }
+.external-link-warning > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.7rem; }
+.external-link-warning button { min-height: 2.75rem; padding: 0.6rem 0.8rem; border: 1px solid var(--accent); background: var(--accent); color: var(--text); cursor: pointer; }
+
+@media (max-width: 480px) {
+  .post-image-gallery img { height: 70vw; }
+  .external-link-warning > div { display: grid; }
+}

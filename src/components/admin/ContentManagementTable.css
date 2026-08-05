@@ -1,0 +1,61 @@
+.content-management { min-width: 0; }
+.management-toolbar { display: grid; grid-template-columns: minmax(12rem, 1.4fr) repeat(3, minmax(9rem, 0.7fr)); gap: 0.6rem; margin-bottom: 0.8rem; padding: 0.7rem; border: 1px solid var(--border); background: var(--surface-muted); }
+.management-toolbar label { display: grid; gap: 0.25rem; min-width: 0; color: var(--text-muted); font-size: 0.7rem; font-weight: 750; text-transform: uppercase; }
+.management-toolbar input,
+.management-toolbar select { width: 100%; min-width: 0; min-height: 2.75rem; padding: 0.55rem; border: 1px solid var(--border); background: #f2efe7; color: #07111f; font: inherit; }
+.management-clear-search { align-self: end; min-height: 2.75rem; }
+.management-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.management-table th { padding: 0.55rem 0.65rem; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.68rem; letter-spacing: 0.06em; text-align: left; text-transform: uppercase; }
+.management-table td { padding: 0.65rem; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 0.82rem; overflow-wrap: anywhere; }
+.management-table tbody tr:hover { background: rgb(85 225 255 / 4%); }
+.management-table th:first-child { width: 30%; }
+.management-table th:last-child { width: 9rem; }
+.management-title { display: table-cell; }
+.management-title > strong,
+.management-title > span { display: block; }
+.management-title > span:not(.management-badges) { margin-top: 0.2rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.management-badges { display: flex !important; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.35rem; }
+.management-badges small { padding: 0.15rem 0.3rem; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.58rem; }
+.management-table time,
+.management-table td > small { display: block; }
+.management-table td > small { margin-top: 0.15rem; color: var(--text-muted); }
+.management-actions { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.management-actions a,
+.management-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem; padding: 0.4rem 0.55rem !important; border: 1px solid var(--border) !important; background: transparent !important; color: var(--text) !important; font-size: 0.72rem !important; font-weight: 750; text-decoration: none; }
+.management-actions a:focus-visible,
+.management-actions button:focus-visible,
+.management-toolbar input:focus-visible,
+.management-toolbar select:focus-visible { outline: 3px solid #55e1ff; outline-offset: 2px; }
+.management-mobile-list { display: none; }
+.management-state { padding: 1rem; border: 1px dashed var(--border); color: var(--text-muted); }
+.management-state p { margin-top: 0; }
+.management-pagination { display: flex; align-items: center; justify-content: center; gap: 0.8rem; margin-top: 1rem; }
+
+@media (max-width: 1000px) {
+  .management-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .management-title > span:not(.management-badges) { display: none; }
+  .management-table th:nth-child(4),
+  .management-table td:nth-child(4),
+  .management-table th:nth-child(6),
+  .management-table td:nth-child(6) { display: none; }
+}
+
+@media (max-width: 700px) {
+  .management-table { display: none; }
+  .management-mobile-list { display: grid; gap: 0.6rem; }
+  .management-mobile-record { display: grid; gap: 0.35rem; min-width: 0; padding: 0.8rem; border: 1px solid var(--border); background: var(--surface); }
+  .management-mobile-record > span,
+  .management-mobile-record > time { color: var(--text-muted); font-size: 0.78rem; }
+  .management-mobile-record details { padding-top: 0.3rem; border-top: 1px solid var(--border); }
+  .management-mobile-record summary { min-height: 2.75rem; padding-block: 0.7rem; cursor: pointer; }
+  .management-mobile-record dl { display: grid; gap: 0.45rem; margin: 0; }
+  .management-mobile-record dt { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; }
+  .management-mobile-record dd { margin: 0.1rem 0 0; }
+  .management-actions a,
+  .management-actions button { min-height: 2.75rem; }
+}
+
+@media (max-width: 420px) {
+  .management-toolbar { grid-template-columns: 1fr; }
+  .management-pagination { align-items: stretch; flex-direction: column; text-align: center; }
+}
