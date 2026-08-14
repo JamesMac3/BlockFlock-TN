@@ -1,0 +1,607 @@
+/* Records Request Goals Manager */
+
+.rrg-manager {
+  padding: 1.5rem;
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.rrg-manager__header {
+  margin-bottom: 2rem;
+}
+
+.rrg-manager__header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1f2937;
+}
+
+.rrg-manager__subtitle {
+  margin: 0.5rem 0 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.rrg-manager__status,
+.rrg-manager__error {
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+.rrg-manager__status {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.rrg-manager__error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rrg-manager__error h3 {
+  margin-top: 0;
+}
+
+.rrg-manager__error button {
+  margin-top: 1rem;
+}
+
+/* Section Headers */
+
+.rrg-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.rrg-section-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Forms */
+
+.rrg-form {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.rrg-form-group {
+  margin-bottom: 1rem;
+}
+
+.rrg-form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.rrg-form-group input[type="text"],
+.rrg-form-group input[type="number"],
+.rrg-form-group textarea,
+.rrg-form-group select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.rrg-form-group input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+.rrg-form-group label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.rrg-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.rrg-form-group select:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Buttons */
+
+.rrg-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rrg-btn:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.rrg-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.rrg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rrg-btn--primary {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.rrg-btn--primary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.rrg-btn--small {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Badges */
+
+.rrg-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.rrg-badge--active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rrg-badge--inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rrg-badge--public {
+  background: #cffafe;
+  color: #164e63;
+}
+
+/* Template Grid */
+
+.rrg-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.rrg-template-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.rrg-template-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.rrg-template-card--editing {
+  background: #f9fafb;
+  border-color: #2563eb;
+}
+
+.rrg-template-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.rrg-template-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #1f2937;
+  flex: 1;
+}
+
+.rrg-template-summary {
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rrg-template-meta {
+  margin: 0.75rem 0;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.rrg-template-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Goals List */
+
+.rrg-goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rrg-goal-row {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: white;
+}
+
+.rrg-goal-info {
+  margin-bottom: 0.75rem;
+}
+
+.rrg-goal-info h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.rrg-goal-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rrg-goal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Edit Form */
+
+.rrg-edit-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.rrg-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Error Messages */
+
+.rrg-error-message {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Empty State */
+
+.rrg-empty,
+.rrg-empty-small {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px dashed #d1d5db;
+}
+
+.rrg-empty-small {
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+/* Template Cloning */
+
+.rrg-clone-form {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.rrg-clone-form h4 {
+  margin-top: 0;
+  color: #166534;
+}
+
+.rrg-clone-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Template Footer */
+
+.rrg-template-footer {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  justify-content: space-between;
+}
+
+/* Admin Goals Manager */
+
+.rrg-admin-goals {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Goal Row Styling */
+
+.rrg-goal-row {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: white;
+  margin-bottom: 1rem;
+}
+
+.rrg-goal-row--editing {
+  background: #f9fafb;
+  border-color: #2563eb;
+}
+
+.rrg-goal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.rrg-goal-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #1f2937;
+  flex: 1;
+}
+
+.rrg-goal-summary {
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.rrg-goal-details {
+  display: flex;
+  gap: 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.rrg-goal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+/* Links Manager */
+
+.rrg-links-manager {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.rrg-links-manager h5 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.rrg-link-form {
+  background: white;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.rrg-link-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.rrg-links-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rrg-link-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.rrg-link-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+/* Status Messages */
+
+.rrg-status {
+  padding: 1rem;
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+  color: #6b7280;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+/* Button Variants */
+
+.rrg-btn--danger {
+  background: #fecaca;
+  color: #7f1d1d;
+  border-color: #fca5a5;
+}
+
+.rrg-btn--danger:hover {
+  background: #fca5a5;
+  border-color: #f87171;
+}
+
+/* Error Message */
+
+.rrg-error-message {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Badge Status Variants */
+
+.rrg-badge--draft {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.rrg-badge--profile_needed {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.rrg-badge--ready {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rrg-badge--requested {
+  background: #cffafe;
+  color: #164e63;
+}
+
+.rrg-badge--received {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.rrg-badge--published {
+  background: #d8b4fe;
+  color: #6b21a8;
+}
+
+.rrg-badge--unavailable {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rrg-badge--retired {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.rrg-badge--small {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Responsive Design */
+
+@media (max-width: 768px) {
+  .rrg-template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rrg-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rrg-section-header h3 {
+    min-width: auto;
+  }
+
+  .rrg-goal-actions {
+    justify-content: flex-start;
+  }
+
+  .rrg-goal-header {
+    flex-direction: column;
+  }
+
+  .rrg-template-footer {
+    flex-direction: column;
+  }
+
+  .rrg-link-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

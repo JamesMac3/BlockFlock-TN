@@ -7,6 +7,7 @@ import ProtectedPortalRoute from "./components/ProtectedPortalRoute";
 import PortalLogin from "./components/PortalLogin";
 import ChapterClaimPage from "./pages/ChapterClaimPage";
 import CountyStatusPage from "./pages/CountyStatusPage";
+import RecordsRequestGoalsPage from "./pages/RecordsRequestGoalsPage";
 import StatewideStatusPage from "./pages/StatewideStatusPage";
 import AdminPostPreview from "./pages/AdminPostPreview";
 
@@ -49,6 +50,11 @@ export default function App() {
         <Route
           path="/status/:countySlug"
           element={<CountyStatusPage />}
+        />
+
+        <Route
+          path="/status/:countySlug/records-request-goals"
+          element={<RecordsRequestGoalsPage />}
         />
 
         <Route

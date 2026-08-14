@@ -1,0 +1,78 @@
+.privacy-ticker {
+  position: relative;
+  z-index: 90;
+  width: 100%;
+  max-height: 2.75rem;
+  border-bottom: 1px solid rgb(242 239 231 / 18%);
+  background: #07111f;
+  color: #fff;
+  opacity: 1;
+  transform: translateY(0);
+  transition: max-height 180ms ease, opacity 150ms ease, transform 180ms ease;
+  overflow: hidden;
+}
+
+.privacy-ticker.is-collapsed {
+  max-height: 0;
+  border-bottom-width: 0;
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+.privacy-ticker__viewport {
+  width: 100%;
+  min-height: 2.35rem;
+  overflow: hidden;
+}
+
+.privacy-ticker__track {
+  display: flex;
+  width: max-content;
+  min-height: 2.35rem;
+  align-items: center;
+  white-space: nowrap;
+  animation: privacy-ticker-scroll 34s linear infinite;
+  will-change: transform;
+}
+
+.privacy-ticker:hover .privacy-ticker__track,
+.privacy-ticker:focus-within .privacy-ticker__track {
+  animation-play-state: paused;
+}
+
+.privacy-ticker__message {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-right: 4rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.015em;
+}
+
+.privacy-ticker__message strong {
+  color: #f1aeb5;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+@keyframes privacy-ticker-scroll {
+  to { transform: translateX(-50%); }
+}
+
+@media (max-width: 600px) {
+  .privacy-ticker { max-height: 2.5rem; }
+  .privacy-ticker__viewport,
+  .privacy-ticker__track { min-height: 2.25rem; }
+  .privacy-ticker__message { font-size: 0.75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .privacy-ticker { max-height: none; transition: none; }
+  .privacy-ticker.is-collapsed { max-height: 0; }
+  .privacy-ticker__viewport { padding: 0.55rem 1rem; }
+  .privacy-ticker__track { display: block; min-height: 0; white-space: normal; animation: none; will-change: auto; }
+  .privacy-ticker__message { display: inline; padding: 0; line-height: 1.4; }
+  .privacy-ticker__message strong { margin-right: 0.45rem; }
+  .privacy-ticker__message + .privacy-ticker__message { display: none; }
+}

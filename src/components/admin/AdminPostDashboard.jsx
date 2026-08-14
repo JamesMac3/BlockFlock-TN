@@ -31,7 +31,7 @@ async function loadEditablePost(postId) {
     .single();
 }
 
-export default function AdminPostDashboard({ user, onSignOut, initialEditPostId = null }) {
+export default function AdminPostDashboard({ user, onSignOut, initialEditPostId = null, activeSection = null, onSectionChange = null }) {
   const [activeView, setActiveView] = useState("pending");
   const [posts, setPosts] = useState([]);
   const [counties, setCounties] = useState([]);

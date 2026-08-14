@@ -51,6 +51,38 @@
   color: #f1aeb5;
 }
 
+.county-status-nav {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1rem 0 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.county-status-nav-link {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.county-status-nav-link:hover {
+  border-color: var(--accent);
+  background: var(--surface-muted);
+}
+
+.county-status-nav-link--active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
 .county-status-header__intro {
   max-width: 34rem;
   margin: 0;

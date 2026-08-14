@@ -185,6 +185,15 @@ function CountyStatusHeader({ county }) {
         </span>
       </div>
 
+      <nav className="county-status-nav" aria-label="County information sections">
+        <Link to={`/status/${county.slug}`} className="county-status-nav-link county-status-nav-link--active">
+          Status Updates
+        </Link>
+        <Link to={`/status/${county.slug}/records-request-goals`} className="county-status-nav-link">
+          Records Request Roadmap
+        </Link>
+      </nav>
+
       <p className="county-status-header__intro">
         This feed combines approved statewide notices with public updates specific to {county.name}.
       </p>

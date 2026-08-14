@@ -1,27 +1,30 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePortalAuth } from "../auth/portalAuth";
 import Header from "../components/Header";
 import AdminPostDashboard from "../components/admin/AdminPostDashboard";
+import RecordsRequestGoalsManager from "../components/records-request-goals/RecordsRequestGoalsManager";
 
-const chapterCards = [
-  ["Posts", "Chapter publishing tools are coming next."],
-  ["Documents", "Chapter document tools are coming next."],
+const chapterMenuItems = [
+  ["Posts", "Chapter publishing tools"],
+  ["Records Request Goals", "records-request-goals"],
   ["County statistics", "Expanded county reporting is coming next."],
   ["Chapter contacts", "Private chapter contact tools are coming next."],
 ];
 
-const adminCards = [
+const adminMenuItems = [
+  ["Posts", "admin-posts"],
+  ["Records Request Goals", "records-request-goals"],
   ["Pending approvals", "Approval workflows are coming next."],
   ["Chapter accounts", "Chapter account management is coming next."],
-  ["County management", "County administration tools are coming next."],
-  ["Email jobs", "Administrative email tools are coming next."],
 ];
 
 export default function PortalDashboard({ mode, initialEditPostId = null }) {
   const navigate = useNavigate();
   const { user, account, assignedCounty, signOut } = usePortalAuth();
   const isAdmin = mode === "admin";
-  const cards = isAdmin ? adminCards : chapterCards;
+  const [activeSection, setActiveSection] = useState(isAdmin ? "admin-posts" : null);
+  const menuItems = isAdmin ? adminMenuItems : chapterMenuItems;
 
   async function handleSignOut() {
     await signOut();
@@ -34,7 +37,18 @@ export default function PortalDashboard({ mode, initialEditPostId = null }) {
         <Header />
         <main className="portal-dashboard">
           <section className="portal-dashboard__shell">
-            <AdminPostDashboard user={user} onSignOut={handleSignOut} initialEditPostId={initialEditPostId} />
+            <AdminPostDashboard 
+              user={user} 
+              onSignOut={handleSignOut} 
+              initialEditPostId={initialEditPostId}
+              activeSection={activeSection}
+              onSectionChange={setActiveSection}
+            />
+            {activeSection === "records-request-goals" && (
+              <div style={{ marginTop: "2rem" }}>
+                <RecordsRequestGoalsManager />
+              </div>
+            )}
           </section>
         </main>
       </div>
@@ -94,15 +108,41 @@ export default function PortalDashboard({ mode, initialEditPostId = null }) {
             </div>
           </dl>
 
-          <div className="portal-placeholder-grid">
-            {cards.map(([title, description]) => (
-              <article key={title}>
-                <span>Placeholder</span>
-                <h2>{title}</h2>
-                <p>{description}</p>
-              </article>
-            ))}
-          </div>
+          <nav className="portal-dashboard__nav" aria-label="Portal sections">
+            <div className="portal-dashboard__nav-title">Portal Sections</div>
+            <div className="portal-dashboard__nav-items">
+              {menuItems.map(([title, id]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`portal-dashboard__nav-item ${
+                    activeSection === id ? "portal-dashboard__nav-item--active" : ""
+                  }`}
+                  onClick={() => setActiveSection(activeSection === id ? null : id)}
+                >
+                  {title}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {activeSection === "records-request-goals" ? (
+            <div style={{ marginTop: "2rem" }}>
+              <RecordsRequestGoalsManager />
+            </div>
+          ) : (
+            <div className="portal-placeholder-grid">
+              {menuItems.map(([title, id]) => (
+                <article key={id}>
+                  <span>Placeholder</span>
+                  <h2>{title}</h2>
+                  <p>
+                    Click the navigation button above to access this section.
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>
