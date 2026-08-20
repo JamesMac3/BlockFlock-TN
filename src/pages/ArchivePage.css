@@ -1,0 +1,78 @@
+/* Public Records Archive Page */
+
+.archive-page {
+  padding: 2rem 1.5rem;
+  background: #f9f9f9;
+}
+
+.archive-page__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.archive-header {
+  margin-bottom: 3rem;
+}
+
+.archive-header h1 {
+  font-size: 2rem;
+  margin: 0.5rem 0 1rem;
+  color: #1a1a1a;
+}
+
+.archive-intro {
+  color: #666;
+  max-width: 700px;
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.archive-message {
+  padding: 6rem 0 4rem;
+}
+
+.archive-empty {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+}
+
+.archive-jurisdiction {
+  margin-bottom: 2.5rem;
+}
+
+.archive-jurisdiction__header {
+  font-size: 1.35rem;
+  color: #1a1a1a;
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.archive-jurisdiction__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .archive-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .archive-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .archive-intro {
+    font-size: 1rem;
+  }
+
+  .archive-jurisdiction__header {
+    font-size: 1.15rem;
+  }
+}

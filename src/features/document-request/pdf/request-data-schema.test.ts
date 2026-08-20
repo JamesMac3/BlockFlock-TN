@@ -62,3 +62,30 @@ describe("no-PII request document contract", () => {
     }
   });
 });
+
+describe("delivery method allowlist", () => {
+  it.each(["electronic", "inspection", "onsite_pickup", "usps_mail"])("accepts %s", (deliveryMethod) => {
+    const result = requestDocumentDataSchema.safeParse({
+      ...input,
+      request: { ...input.request, delivery_method: deliveryMethod },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an ambiguous collapsed value such as 'paper'", () => {
+    const result = requestDocumentDataSchema.safeParse({
+      ...input,
+      request: { ...input.request, delivery_method: "paper" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("supports live positive bigint government-entity IDs, not only UUIDs", () => {
+    const result = requestDocumentDataSchema.safeParse({
+      ...input,
+      government_entity: { ...input.government_entity, id: "4" },
+      profile: { ...input.profile, government_entity_id: "4" },
+    });
+    expect(result.success).toBe(true);
+  });
+});

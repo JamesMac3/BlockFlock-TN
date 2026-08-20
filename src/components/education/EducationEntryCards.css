@@ -1,0 +1,74 @@
+/* ==========================================================
+   EDUCATION ENTRY CARDS
+========================================================== */
+
+.education-entry-cards {
+  width: min(1300px, calc(100% - 4rem));
+  margin: 2rem auto 3rem;
+}
+
+.education-entry-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.education-entry-card {
+  padding: 1.75rem;
+  background: #181818;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.education-entry-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: white;
+}
+
+.education-entry-card p {
+  margin: 0;
+  color: #b8b8b8;
+  line-height: 1.6;
+}
+
+.education-entry-card__empty {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #7fb9ff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.education-entry-card__resources {
+  margin: 1.25rem 0 0;
+  padding: 1rem 0 0;
+  list-style: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.education-entry-card__resources a {
+  color: #7fb9ff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.education-entry-card__resources a:hover,
+.education-entry-card__resources a:focus-visible {
+  color: white;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+@media (max-width: 900px) {
+  .education-entry-cards {
+    width: calc(100% - 2rem);
+  }
+
+  .education-entry-cards__grid {
+    grid-template-columns: 1fr;
+  }
+}

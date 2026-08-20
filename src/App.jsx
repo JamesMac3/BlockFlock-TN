@@ -9,6 +9,7 @@ import ChapterClaimPage from "./pages/ChapterClaimPage";
 import CountyStatusPage from "./pages/CountyStatusPage";
 import RecordsRequestGoalsPage from "./pages/RecordsRequestGoalsPage";
 import StatewideStatusPage from "./pages/StatewideStatusPage";
+import ArchivePage from "./pages/ArchivePage";
 import AdminPostPreview from "./pages/AdminPostPreview";
 
 const PortalDashboard = lazy(() => import("./pages/PortalDashboard"));
@@ -55,6 +56,11 @@ export default function App() {
         <Route
           path="/status/:countySlug/records-request-goals"
           element={<RecordsRequestGoalsPage />}
+        />
+
+        <Route
+          path="/archive"
+          element={<ArchivePage />}
         />
 
         <Route

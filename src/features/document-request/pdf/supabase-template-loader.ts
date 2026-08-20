@@ -1,4 +1,4 @@
-type TemplateSource = {
+export type TemplateSource = {
   bucket_id: string;
   object_path: string;
   mime_type: string;
@@ -6,7 +6,7 @@ type TemplateSource = {
   sha256_hex: string;
 };
 
-type SupabaseTemplateClient = {
+export type SupabaseTemplateClient = {
   rpc(
     functionName: string,
     parameters: { evidence_id: string },

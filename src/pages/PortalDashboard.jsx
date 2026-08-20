@@ -8,6 +8,7 @@ import RecordsRequestGoalsManager from "../components/records-request-goals/Reco
 const chapterMenuItems = [
   ["Posts", "Chapter publishing tools"],
   ["Records Request Goals", "records-request-goals"],
+  ["Archive documents", "Uploading county archive documents is coming next."],
   ["County statistics", "Expanded county reporting is coming next."],
   ["Chapter contacts", "Private chapter contact tools are coming next."],
 ];
@@ -15,6 +16,7 @@ const chapterMenuItems = [
 const adminMenuItems = [
   ["Posts", "admin-posts"],
   ["Records Request Goals", "records-request-goals"],
+  ["Archive documents", "Managing archive documents for all jurisdictions is coming next."],
   ["Pending approvals", "Approval workflows are coming next."],
   ["Chapter accounts", "Chapter account management is coming next."],
 ];

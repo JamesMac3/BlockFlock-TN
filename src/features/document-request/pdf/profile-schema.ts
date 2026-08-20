@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { allowedPlaceholderPaths } from "./request-data-schema";
+import { entityIdSchema } from "./entity-id";
 
 const schemaVersion = z.literal(1);
 const placeholderPath = z.enum(allowedPlaceholderPaths);
@@ -128,7 +129,7 @@ export const outputOptionsSchema = z
 export const requestProfileSchema = z
   .object({
     id: z.string().uuid(),
-    government_entity_id: z.string().uuid(),
+    government_entity_id: entityIdSchema,
     version: z.number().int().min(1),
     schema_version: schemaVersion,
     status: z.enum(["draft", "in_review", "verified", "retired"]),

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { entityIdSchema } from "./entity-id";
 
 const optionalTrimmed = (maximum: number) =>
   z.preprocess(
@@ -10,7 +11,7 @@ export const requestDocumentDataSchema = z
   .object({
     government_entity: z
       .object({
-        id: z.string().uuid(),
+        id: entityIdSchema,
         legal_name: z.string().trim().min(1).max(250),
         display_name: z.string().trim().min(1).max(250),
         coordinator_name: optionalTrimmed(150),
@@ -29,7 +30,7 @@ export const requestDocumentDataSchema = z
         record_category_label: optionalTrimmed(200),
         date_from: z.iso.date().optional(),
         date_to: z.iso.date().optional(),
-        delivery_method: z.enum(["electronic", "inspection", "paper"]),
+        delivery_method: z.enum(["electronic", "inspection", "onsite_pickup", "usps_mail"]),
       })
       .strict()
       .superRefine((request, context) => {
@@ -45,7 +46,7 @@ export const requestDocumentDataSchema = z
       .object({
         id: z.string().uuid(),
         version: z.number().int().min(1),
-        government_entity_id: z.string().uuid(),
+        government_entity_id: entityIdSchema,
       })
       .strict(),
   })

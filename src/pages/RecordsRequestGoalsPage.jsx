@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import CountyStatusChooser from "../components/CountyStatusChooser";
-import RecordsRequestGoalsTimeline from "../components/records-request-goals/RecordsRequestGoalsTimeline";
+import RecordsRequestGoalsTiers from "../components/records-request-goals/RecordsRequestGoalsTiers";
+import { formatCountyLabel } from "../features/document-request/countyLabel";
 import { supabase } from "../lib/supabase";
 import "./RecordsRequestGoalsPage.css";
 
@@ -28,7 +29,7 @@ export default function RecordsRequestGoalsPage() {
 
       const { data: county, error: countyError } = await supabase
         .from("counties")
-        .select("id, name, slug")
+        .select("id, name, slug, chapter_contact_email")
         .eq("slug", countySlug)
         .maybeSingle();
 
@@ -57,6 +58,10 @@ export default function RecordsRequestGoalsPage() {
           public_summary,
           status,
           position,
+          tier,
+          locked,
+          locked_reason,
+          fill_payload,
           request_profile_id,
           government_entity_id,
           records_request_goal_links(
@@ -73,6 +78,7 @@ export default function RecordsRequestGoalsPage() {
         .eq("is_public", true)
         .neq("status", "draft")
         .neq("status", "retired")
+        .order("tier", { ascending: true })
         .order("position", { ascending: true })
         .order("id", { ascending: true });
 
@@ -129,6 +135,7 @@ export default function RecordsRequestGoalsPage() {
       />
     );
   } else {
+    const countyLabel = formatCountyLabel(state.county.name);
     content = (
       <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
         <header className="records-goals-header">
@@ -136,7 +143,7 @@ export default function RecordsRequestGoalsPage() {
             <CountyStatusChooser currentSlug={state.county.slug} />
             <h1>Records Request Roadmap</h1>
             <p className="records-goals-intro">
-              View the status of records requests for {state.county.name} County.
+              View the status of records requests for {countyLabel}.
               These goals represent efforts to make important public records more
               accessible through transparent request timelines.
             </p>
@@ -144,11 +151,11 @@ export default function RecordsRequestGoalsPage() {
         </header>
 
         {state.goals && state.goals.length > 0 ? (
-          <RecordsRequestGoalsTimeline goals={state.goals} county={state.county} />
+          <RecordsRequestGoalsTiers goals={state.goals} county={state.county} />
         ) : (
           <div className="records-goals-empty">
             <p>
-              There are no public records-request goals for {state.county.name} County
+              There are no public records-request goals for {countyLabel}
               at this time.
             </p>
           </div>
