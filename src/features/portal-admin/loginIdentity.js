@@ -8,11 +8,16 @@
 
 const IDENTITY_DOMAIN = "flockblocktn.org";
 const USERNAME_PATTERN = /^[a-z0-9._-]+$/;
+export const MAX_LOGIN_FIELD_LENGTH = 120;
 
 export function normalizeLoginIdentity(rawInput) {
   const trimmed = (rawInput ?? "").trim().toLowerCase();
 
   if (!trimmed) {
+    return { ok: false };
+  }
+
+  if (trimmed.length > MAX_LOGIN_FIELD_LENGTH) {
     return { ok: false };
   }
 

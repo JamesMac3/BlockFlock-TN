@@ -1,0 +1,77 @@
+.county-statistics-panel {
+  max-width: 28rem;
+}
+
+.county-statistics-panel__summary {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border, rgba(242, 239, 231, 0.14));
+  border-radius: 0.4rem;
+  background: var(--surface, #0b1828);
+  color: var(--text, #f2efe7);
+}
+
+.county-statistics-panel__summary dt {
+  font-size: 0.75rem;
+  color: var(--text-muted, #b8b4aa);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.county-statistics-panel__summary dd {
+  margin: 0;
+  color: var(--text, #f2efe7);
+  font-weight: 600;
+}
+
+.county-statistics-panel__form {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 20rem;
+}
+
+.county-statistics-panel__form label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.county-statistics-panel__form input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.35rem;
+  font: inherit;
+}
+
+.county-statistics-panel__form button[type="submit"] {
+  justify-self: start;
+  padding: 0.55rem 1rem;
+  background: #374151;
+  color: #fff;
+  border: none;
+  border-radius: 0.35rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.county-statistics-panel__form button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.county-statistics-panel__error {
+  color: #f87171;
+  font-size: 0.85rem;
+}
+
+.county-statistics-panel__success {
+  color: #4ade80;
+  font-size: 0.85rem;
+}
+
+.county-statistics-panel input:focus-visible,
+.county-statistics-panel button:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 2px;
+}

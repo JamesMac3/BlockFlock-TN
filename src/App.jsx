@@ -13,6 +13,7 @@ import ArchivePage from "./pages/ArchivePage";
 import ArchiveGoalPage from "./pages/ArchiveGoalPage";
 import DocumentPage from "./pages/DocumentPage";
 import ArchiveDocumentViewer from "./pages/ArchiveDocumentViewer";
+import PortalDocumentViewer from "./pages/PortalDocumentViewer";
 import AdminPostPreview from "./pages/AdminPostPreview";
 import AccessRevokedPage from "./pages/AccessRevokedPage";
 
@@ -83,6 +84,11 @@ export default function App() {
         />
 
         <Route
+          path="/portal/documents/:evidenceId"
+          element={<PortalDocumentViewer />}
+        />
+
+        <Route
           path="/portal/access-revoked"
           element={<AccessRevokedPage />}
         />
@@ -92,10 +98,6 @@ export default function App() {
           element={<PlaceholderPage title="Paths to Positive Outcomes" />}
         />
 
-        <Route
-          path="/sources"
-          element={<PlaceholderPage title="Sources" />}
-        />
 
         <Route
           path="/about"

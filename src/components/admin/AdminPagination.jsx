@@ -1,6 +1,6 @@
 const PAGE_SIZE_CHOICES = [25, 50, 100];
 
-export default function AdminPagination({ page, pageSize, totalCount, onPageChange, onPageSizeChange }) {
+export default function AdminPagination({ page, pageSize, totalCount, onPageChange, onPageSizeChange, pageSizeChoices = PAGE_SIZE_CHOICES }) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
@@ -8,7 +8,7 @@ export default function AdminPagination({ page, pageSize, totalCount, onPageChan
       <label>
         Per page
         <select value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
-          {PAGE_SIZE_CHOICES.map((choice) => <option key={choice} value={choice}>{choice}</option>)}
+          {pageSizeChoices.map((choice) => <option key={choice} value={choice}>{choice}</option>)}
         </select>
       </label>
       <button type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>

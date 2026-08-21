@@ -8,6 +8,7 @@ import "./HomePage.css";
 import skyline from "../../assets/MTN_skyrise.jpg";
 import TennesseeCountyMapContainer from "../../components/jurisdiction-map/TennesseeCountyMapContainer";
 import PrivacyTicker from "../../components/PrivacyTicker";
+import NextMeetingBanner from "../../components/NextMeetingBanner";
 
 const investigations = [
   {
@@ -106,6 +107,10 @@ export default function HomePage() {
             </aside>
           </div>
         </section>
+
+        <div className="container">
+          <NextMeetingBanner countyId={null} />
+        </div>
 
         <section className="trust-strip">
           <div className="container trust-strip__inner">

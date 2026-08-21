@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // eslint-disable-next-line import/no-unresolved -- Vite/Vitest ?raw import
-import migrationSql from "../../../supabase/migrations/20260821090000_decentralize_request_profile_authority.sql?raw";
+import migrationSql from "../../../supabase/migrations/20260821233037_decentralize_request_profile_authority.sql?raw";
 
 /**
  * Static assertions against the unapplied request-profile-authority

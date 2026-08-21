@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import CountySelector from "../CountySelector";
 import { ACTIVE_CHAPTER_COUNTY_SLUGS } from "../../config/activeChapterCounties";
+import { supabase } from "../../lib/supabase";
+import { fetchNextMeeting, formatMeetingBanner } from "../../features/portal-admin/nextMeeting";
 import "./TennesseeCountyMap.css";
 function getCameraCount(county) {
   return county?.cameraCount ?? county?.camera_count ?? null;
@@ -58,60 +60,48 @@ function CountyHoverLabel({ mapRef }) {
 function formatCalendarDate(date) {
   const pad = (value) => String(value).padStart(2, "0");
 
-  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}00Z`;
 }
 
-function getMeeting(countyName, county) {
-  const storedStart = county?.next_meeting_at
-    ? new Date(county.next_meeting_at)
-    : null;
-  const start =
-    storedStart && !Number.isNaN(storedStart.getTime())
-      ? storedStart
-      : new Date();
+// Real meeting data only — sourced from rrg_get_next_meeting_for_county via
+// the same shared selector every public meeting surface uses. Returns null
+// when there is no scheduled meeting, so the caller can render nothing
+// rather than a fabricated placeholder date.
+function useCountyMeeting(countyId) {
+  const [meeting, setMeeting] = useState(null);
 
-  if (!storedStart || Number.isNaN(storedStart.getTime())) {
-    start.setHours(15, 0, 0, 0);
-
-    const daysUntilSaturday = (6 - start.getDay() + 7) % 7;
-    start.setDate(start.getDate() + daysUntilSaturday);
-
-    if (start <= new Date()) {
-      start.setDate(start.getDate() + 7);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      const row = await fetchNextMeeting(supabase, countyId ?? null);
+      if (active) setMeeting(row);
     }
-  }
+    load();
+    return () => { active = false; };
+  }, [countyId]);
 
-  const end = new Date(start);
-  end.setHours(16, 0, 0, 0);
+  if (!meeting) return null;
 
-  const location = county?.meeting_location || "Local Library";
+  const banner = formatMeetingBanner(meeting);
+  const start = new Date(meeting.starts_at);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
   const calendar = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//Flock Block Tennessee//Chapter Meeting//EN",
     "BEGIN:VEVENT",
-    `UID:${countyName.toLowerCase().replace(/\s+/g, "-")}-${formatCalendarDate(start)}@flockblocktn.org`,
+    `UID:${meeting.id}@flockblocktn.org`,
     `DTSTART:${formatCalendarDate(start)}`,
     `DTEND:${formatCalendarDate(end)}`,
-    `SUMMARY:${countyName} County Chapter Meeting`,
-    `LOCATION:${location}`,
-    "DESCRIPTION:Placeholder date and location for the next local chapter meeting.",
+    `SUMMARY:${meeting.title}`,
+    `LOCATION:${banner.locationText}`,
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
 
   return {
-    dateLabel: start.toLocaleDateString(undefined, {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    }),
-    timeLabel: start.toLocaleTimeString(undefined, {
-      hour: "numeric",
-      minute: "2-digit",
-    }),
-    location,
+    dateTimeLabel: banner.dateTimeText,
+    location: banner.locationText,
     calendarHref: `data:text/calendar;charset=utf-8,${encodeURIComponent(calendar)}`,
   };
 }
@@ -132,7 +122,7 @@ export default function TennesseeCountyMap({
   const activeCounty = selectedCounty;
   const activeCountyData = countyData[activeCounty] ?? {};
   const isStatewide = !activeCounty;
-  const meeting = getMeeting(activeCounty || "Tennessee", activeCountyData);
+  const meeting = useCountyMeeting(activeCountyData.id ?? null);
   const countyEntries = Object.entries(countyData).sort(([, first], [, second]) =>
     first.name.localeCompare(second.name)
   );
@@ -1337,19 +1327,21 @@ export default function TennesseeCountyMap({
               </div>
             </>
           )}
-          <div>
-            <dt>Next meeting date and location</dt>
-            <dd className="county-meeting-details">
-              <span>{meeting.dateLabel} at {meeting.timeLabel}</span>
-              <span>{meeting.location}</span>
-              <a
-                href={meeting.calendarHref}
-                download={`${(activeCounty || "Tennessee").toLowerCase().replace(/\s+/g, "-")}-chapter-meeting.ics`}
-              >
-                Add to calendar
-              </a>
-            </dd>
-          </div>
+          {meeting && (
+            <div>
+              <dt>Next meeting date and location</dt>
+              <dd className="county-meeting-details">
+                <span>{meeting.dateTimeLabel}</span>
+                <span>{meeting.location}</span>
+                <a
+                  href={meeting.calendarHref}
+                  download={`${(activeCounty || "Tennessee").toLowerCase().replace(/\s+/g, "-")}-chapter-meeting.ics`}
+                >
+                  Add to calendar
+                </a>
+              </dd>
+            </div>
+          )}
         </dl>
 
         {!isStatewide && <div className="county-detail-actions">

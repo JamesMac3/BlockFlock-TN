@@ -3,6 +3,9 @@ import TabNav from "./TabNav";
 const ADMIN_WORKSPACES = [
   { id: "posts", label: "Post Composer" },
   { id: "goals", label: "Goal Management" },
+  { id: "documents", label: "Documents" },
+  { id: "statistics", label: "County Statistics" },
+  { id: "meetings", label: "Meetings" },
   { id: "chapter-accounts", label: "Chapter Master Management" },
   { id: "contacts", label: "Contact Emails / Phone Numbers" },
 ];

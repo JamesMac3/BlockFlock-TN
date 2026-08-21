@@ -7,6 +7,14 @@ import deliveryPanelSource from "../../components/records-request-goals/RequestD
 import headerSource from "../../components/Header.jsx?raw";
 // eslint-disable-next-line import/no-unresolved -- Vite/Vitest ?raw import
 import roadmapPageSource from "../../pages/RecordsRequestGoalsPage.jsx?raw";
+// eslint-disable-next-line import/no-unresolved -- Vite/Vitest ?raw import
+import footerSource from "../../components/Footer.jsx?raw";
+// eslint-disable-next-line import/no-unresolved -- Vite/Vitest ?raw import
+import portalDashboardSource from "../../pages/PortalDashboard.jsx?raw";
+// eslint-disable-next-line import/no-unresolved -- Vite/Vitest ?raw import
+import portalLoginSource from "../../components/PortalLogin.jsx?raw";
+// eslint-disable-next-line import/no-unresolved -- Vite/Vitest ?raw import
+import countyStatusPageSource from "../../pages/CountyStatusPage.jsx?raw";
 
 // RequestDeliveryPanel.css's own assertions live in
 // tests/requestDeliveryPanelHeaderOffset.test.js (plain Node, not this
@@ -86,5 +94,88 @@ describe("Records Request Roadmap page: the top-right 'Choose another county' bu
   it("the chooser is still available on the loading/not-found/failed states, so a visitor is never stranded with no way to navigate", () => {
     const statusMessageBlock = roadmapPageSource.match(/function StatusMessage\([\s\S]*?\n\}/)?.[0] ?? "";
     expect(statusMessageBlock).toMatch(/<CountyStatusChooser currentCountySlug=\{currentCountySlug\} \/>/);
+  });
+});
+
+describe("Footer: Source Library link removed, Public Records Archive kept", () => {
+  it("no longer links to /sources", () => {
+    expect(footerSource).not.toMatch(/\/sources/);
+    expect(footerSource).not.toMatch(/Source Library/);
+  });
+
+  it("still links to the public records archive", () => {
+    expect(footerSource).toMatch(/<Link to="\/archive">Public Records Archive<\/Link>/);
+  });
+});
+
+describe("Chapter dashboard heading: county role name only, h2-sized, eyebrow preserved", () => {
+  it("no longer renders 'Signed in as'", () => {
+    expect(portalDashboardSource).not.toMatch(/Signed in as/);
+  });
+
+  it("renders the county name and role as an h2, not an h1", () => {
+    expect(portalDashboardSource).toMatch(/<h2>\{assignedCounty\.name\} Chapter Master<\/h2>/);
+  });
+
+  it("keeps the 'Authenticated portal' eyebrow", () => {
+    expect(portalDashboardSource).toMatch(/Authenticated portal/);
+  });
+});
+
+describe("Resource trash icon: compact icon button, not visible text, disassociation only", () => {
+  it("LinkItem no longer renders the 'Remove archive link' text button", () => {
+    expect(goalsManagerSource).not.toMatch(/Remove archive link/);
+  });
+
+  it("the trash button has an accessible label and a tooltip, both describing removal from the goal (not deletion)", () => {
+    const linkItemBlock = goalsManagerSource.match(/function LinkItem\([\s\S]*?\n\}/)?.[0] ?? "";
+    expect(linkItemBlock).toMatch(/aria-label="Remove document from this goal"/);
+    expect(linkItemBlock).toMatch(/title="Remove document from this goal"/);
+  });
+
+  it("a confirmation still gates the disassociation, and the underlying evidence object/Storage file is never deleted", () => {
+    const linkItemBlock = goalsManagerSource.match(/function LinkItem\([\s\S]*?\n\}/)?.[0] ?? "";
+    expect(linkItemBlock).toMatch(/confirm\(/);
+    expect(linkItemBlock).toMatch(/\.from\("records_request_goal_links"\)\.delete\(\)/);
+    expect(linkItemBlock).not.toMatch(/\.from\("evidence_objects"\)/);
+    expect(linkItemBlock).not.toMatch(/storage\.from/);
+  });
+
+  it("the button relies on the shared .rrg-btn focus-visible style rather than defining its own", () => {
+    const linkItemBlock = goalsManagerSource.match(/function LinkItem\([\s\S]*?\n\}/)?.[0] ?? "";
+    expect(linkItemBlock).toMatch(/className="rrg-btn rrg-btn--icon rrg-btn--danger"/);
+  });
+});
+
+describe("Login length limits: 120-character maxLength on both fields", () => {
+  it("both the identity and password inputs carry maxLength={MAX_LOGIN_FIELD_LENGTH}", () => {
+    const matches = portalLoginSource.match(/maxLength=\{MAX_LOGIN_FIELD_LENGTH\}/g) ?? [];
+    expect(matches.length).toBe(2);
+  });
+
+  it("an over-limit value is rejected before calling supabase.auth.signInWithPassword, not truncated", () => {
+    const handleSubmitBlock = portalLoginSource.match(/async function handleSubmit\([\s\S]*?\n  \}/)?.[0] ?? "";
+    const lengthGuardIndex = handleSubmitBlock.search(/identity\.length > MAX_LOGIN_FIELD_LENGTH/);
+    const authCallIndex = handleSubmitBlock.search(/signInWithPassword/);
+    expect(lengthGuardIndex).toBeGreaterThan(-1);
+    expect(authCallIndex).toBeGreaterThan(-1);
+    expect(lengthGuardIndex).toBeLessThan(authCallIndex);
+  });
+
+  it("shows the existing generic error message, never a length-specific one that could hint at validation internals", () => {
+    expect(portalLoginSource).toMatch(/setErrorMessage\(GENERIC_LOGIN_ERROR\);/);
+  });
+});
+
+describe("County Status Updates: county-only feed, statewide posts excluded from this view", () => {
+  it("the posts query filters strictly by county_id, with no scope.eq.global branch", () => {
+    expect(countyStatusPageSource).toMatch(/\.eq\("county_id", county\.id\)/);
+    expect(countyStatusPageSource).not.toMatch(/scope\.eq\.global/);
+  });
+
+  it("keeps a next-meeting banner and the existing chapter-claim callout, and still links to Records Request Roadmap", () => {
+    expect(countyStatusPageSource).toMatch(/<NextMeetingBanner countyId=\{state\.county\.id\} \/>/);
+    expect(countyStatusPageSource).toMatch(/ChapterClaimCallout/);
+    expect(countyStatusPageSource).toMatch(/records-request-goals/);
   });
 });

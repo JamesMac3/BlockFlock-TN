@@ -6,16 +6,23 @@ import AdminPostDashboard from "../components/admin/AdminPostDashboard";
 import AdminWorkspaceSwitcher from "../components/admin/AdminWorkspaceSwitcher";
 import ChapterMasterManagementTable from "../components/admin/ChapterMasterManagementTable";
 import CountyContactsManager from "../components/admin/CountyContactsManager";
+import DocumentsManagementTable from "../components/admin/DocumentsManagementTable";
+import AdminCountyStatisticsWorkspace from "../components/admin/AdminCountyStatisticsWorkspace";
+import MeetingsManagementTable from "../components/admin/MeetingsManagementTable";
 import TabNav from "../components/admin/TabNav";
 import RecordsRequestGoalsManager from "../components/records-request-goals/RecordsRequestGoalsManager";
 import ChapterAccountSettings from "../components/portal/ChapterAccountSettings";
 import ChapterPostsView from "../components/portal/ChapterPostsView";
+import CountyStatisticsPanel from "../components/portal/CountyStatisticsPanel";
+
+const KNOWN_SECTION_IDS = ["records-request-goals", "posts", "account-settings", "documents", "statistics", "meetings"];
 
 const chapterMenuItems = [
   ["Posts", "posts"],
   ["Records Request Goals", "records-request-goals"],
-  ["Archive documents", "Uploading county archive documents is coming next."],
-  ["County statistics", "Expanded county reporting is coming next."],
+  ["Archive documents", "documents"],
+  ["County statistics", "statistics"],
+  ["Meetings", "meetings"],
   ["Account Settings", "account-settings"],
 ];
 
@@ -44,6 +51,9 @@ export default function PortalDashboard({ mode, initialEditPostId = null }) {
               <AdminPostDashboard user={user} initialEditPostId={initialEditPostId} />
             )}
             {activeSection === "goals" && <RecordsRequestGoalsManager />}
+            {activeSection === "documents" && <DocumentsManagementTable />}
+            {activeSection === "statistics" && <AdminCountyStatisticsWorkspace />}
+            {activeSection === "meetings" && <MeetingsManagementTable />}
             {activeSection === "chapter-accounts" && <ChapterMasterManagementTable />}
             {activeSection === "contacts" && <CountyContactsManager />}
           </section>
@@ -60,7 +70,7 @@ export default function PortalDashboard({ mode, initialEditPostId = null }) {
           <header className="portal-dashboard__header">
             <div>
               <p className="portal-login-eyebrow">Authenticated portal</p>
-              <h1>Signed in as {assignedCounty.name} Chapter Master</h1>
+              <h2>{assignedCounty.name} Chapter Master</h2>
             </div>
             <button type="button" onClick={handleSignOut}>
               Sign Out
@@ -108,10 +118,25 @@ export default function PortalDashboard({ mode, initialEditPostId = null }) {
               <ChapterAccountSettings user={user} account={account} onSignOut={handleSignOut} />
             </div>
           )}
-          {!["records-request-goals", "posts", "account-settings"].includes(activeSection) && (
+          {activeSection === "documents" && (
+            <div style={{ marginTop: "2rem" }}>
+              <DocumentsManagementTable />
+            </div>
+          )}
+          {activeSection === "statistics" && (
+            <div style={{ marginTop: "2rem" }}>
+              <CountyStatisticsPanel countyId={assignedCounty?.id} countyName={assignedCounty?.name} />
+            </div>
+          )}
+          {activeSection === "meetings" && (
+            <div style={{ marginTop: "2rem" }}>
+              <MeetingsManagementTable />
+            </div>
+          )}
+          {!KNOWN_SECTION_IDS.includes(activeSection) && (
             <div className="portal-placeholder-grid">
               {menuItems
-                .filter(([, id]) => !["records-request-goals", "posts", "account-settings"].includes(id))
+                .filter(([, id]) => !KNOWN_SECTION_IDS.includes(id))
                 .map(([title, id]) => (
                   <article key={id}>
                     <span>Placeholder</span>

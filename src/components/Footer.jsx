@@ -16,7 +16,6 @@ export default function Footer() {
           <Link to="/education">Education</Link>
           <Link to="/status">Jurisdiction Status</Link>
           <Link to="/archive">Public Records Archive</Link>
-          <Link to="/sources">Source Library</Link>
         </div>
       </div>
     </footer>

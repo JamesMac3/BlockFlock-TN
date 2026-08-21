@@ -7,7 +7,8 @@ import { listDocumentsByCategory } from "../config/documentManifest";
 import { classifyRpcError, RPC_ERROR_MESSAGES } from "../features/portal-admin/rpcErrors";
 import "./ArchivePage.css";
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE_CHOICES = [5, 10, 25];
+const DEFAULT_PAGE_SIZE = 5;
 const GOAL_SORT_OPTIONS = [
   ["updated_at", "Updated date"],
   ["title", "Goal title"],
@@ -31,6 +32,7 @@ export default function ArchivePage() {
   const [sortKey, setSortKey] = useState("updated_at");
   const [sortDirection, setSortDirection] = useState("desc");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   useEffect(() => {
     let active = true;
@@ -77,15 +79,20 @@ export default function ArchivePage() {
     });
   }, [goalRows, search, county, sortKey, sortDirection]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pageRows = filteredSorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = filteredSorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   function updateFilter(setter) {
     return (value) => {
       setter(value);
       setPage(1);
     };
+  }
+
+  function handlePageSizeChange(nextPageSize) {
+    setPageSize(nextPageSize);
+    setPage(1);
   }
 
   return (
@@ -150,6 +157,12 @@ export default function ArchivePage() {
                         <option value="asc">Ascending</option>
                       </select>
                     </label>
+                    <label>
+                      Per page
+                      <select value={pageSize} onChange={(event) => handlePageSizeChange(Number(event.target.value))}>
+                        {PAGE_SIZE_CHOICES.map((choice) => <option key={choice} value={choice}>{choice}</option>)}
+                      </select>
+                    </label>
                   </div>
 
                   {pageRows.length === 0 ? (
@@ -162,6 +175,7 @@ export default function ArchivePage() {
                             <th>Goal title</th>
                             <th>County</th>
                             <th>Government entity</th>
+                            <th>Tier</th>
                             <th>State</th>
                             <th>Records and Sources</th>
                             <th>Updated</th>
@@ -186,6 +200,7 @@ export default function ArchivePage() {
                               <td>{row.title}</td>
                               <td>{row.county}</td>
                               <td>{row.government_entity}</td>
+                              <td>{row.tier ?? "—"}</td>
                               <td>
                                 <span className={`archive-table__badge archive-table__badge--${row.completion_state.toLowerCase()}`}>
                                   {row.completion_state}

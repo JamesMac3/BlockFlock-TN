@@ -1,0 +1,83 @@
+.documents-management-table__view-toggle {
+  gap: 0.5rem;
+}
+
+.documents-management-table__view-toggle button {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.documents-management-table__view-toggle button.is-active {
+  background: rgb(255 255 255 / 10%);
+}
+
+.documents-management-table__row--orphaned {
+  background: rgb(239 68 68 / 10%);
+  color: #f87171;
+}
+
+.documents-management-table__editor {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.documents-management-table__editor form {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 26rem;
+}
+
+.documents-management-table__editor label {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.documents-management-table__editor input,
+.documents-management-table__editor select,
+.documents-management-table__editor textarea {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  background: #f2efe7;
+  color: #07111f;
+  font: inherit;
+}
+
+.documents-management-table__editor button {
+  justify-self: start;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.documents-management-table__editor button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.documents-management-table__editor-section {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 26rem;
+}
+
+.documents-management-table__danger {
+  color: #f87171;
+  border-color: rgb(239 68 68 / 45%);
+}
+
+.documents-management-table__confirm {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.documents-management-table__error {
+  color: #f87171;
+  font-size: 0.85rem;
+}

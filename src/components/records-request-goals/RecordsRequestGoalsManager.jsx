@@ -1639,7 +1639,7 @@ function GoalManagePanel({ goal, county, entities, isAdmin, onUpdate, onClose })
 const PROFILE_LIFECYCLE_LABELS = {
   draft: "Draft",
   in_review: "In review",
-  verified: "Active / Verified",
+  verified: "VERIFIED",
   retired: "Retired",
 };
 
@@ -1717,7 +1717,7 @@ function RequestProfileLifecycle({ requestProfileId, previewSucceededProfileId }
   if (loadState === "loading") {
     return (
       <section className="rrg-goal-manage-panel__section">
-        <h4>Request Profile Lifecycle</h4>
+        <h4>Request Profile Verification</h4>
         <p className="rrg-status">Loading profile status…</p>
       </section>
     );
@@ -1725,7 +1725,7 @@ function RequestProfileLifecycle({ requestProfileId, previewSucceededProfileId }
   if (loadState === "error" || !profile) {
     return (
       <section className="rrg-goal-manage-panel__section">
-        <h4>Request Profile Lifecycle</h4>
+        <h4>Request Profile Verification</h4>
         <p className="rrg-error-message">The linked request profile could not be loaded.</p>
       </section>
     );
@@ -1735,26 +1735,34 @@ function RequestProfileLifecycle({ requestProfileId, previewSucceededProfileId }
 
   return (
     <section className="rrg-goal-manage-panel__section">
-      <h4>Request Profile Lifecycle</h4>
+      <h4>Request Profile Verification</h4>
       <p>
         Version {profile.version} — <span className={`rrg-badge rrg-badge--${profile.status}`}>{PROFILE_LIFECYCLE_LABELS[profile.status] ?? profile.status}</span>
       </p>
       {error && <div className="rrg-error-message">{error}</div>}
-      <div className="rrg-goal-actions">
-        {profile.status === "draft" && (
-          <button type="button" className="rrg-btn rrg-btn--primary" disabled={busy || !canActivate} onClick={handleActivate}>
-            Activate Profile
-          </button>
-        )}
-        {profile.status === "verified" && (
+      {profile.status === "verified" ? (
+        <p className="rrg-fill-payload__hint">
+          Verifying this profile makes the prefilled request form available through the public-facing records request roadmap. After verification, changes require creating a new profile version.
+        </p>
+      ) : (
+        <div className="rrg-goal-actions">
+          {profile.status === "draft" && (
+            <button type="button" className="rrg-btn rrg-btn--primary" disabled={busy || !canActivate} onClick={handleActivate}>
+              {busy ? "Verifying…" : "Verify Profile"}
+            </button>
+          )}
+        </div>
+      )}
+      {profile.status === "verified" && (
+        <div className="rrg-goal-actions">
           <button type="button" className="rrg-btn rrg-btn--danger" disabled={busy} onClick={handleRetire}>
             Retire Profile
           </button>
-        )}
-      </div>
+        </div>
+      )}
       {profile.status === "draft" && !canActivate && (
         <small className="rrg-fill-payload__hint">
-          Run "Preview Draft Request Form" above and confirm it succeeds before this profile can be activated.
+          Run "Preview Draft Request Form" above and confirm it succeeds before this profile can be verified.
         </small>
       )}
     </section>
@@ -1965,11 +1973,18 @@ function LinkItem({ link, onDelete }) {
       </div>
       <button
         type="button"
-        className="rrg-btn rrg-btn--small rrg-btn--danger"
+        className="rrg-btn rrg-btn--icon rrg-btn--danger"
         onClick={handleDelete}
         disabled={deleting}
+        aria-label="Remove document from this goal"
+        title="Remove document from this goal"
       >
-        Remove archive link
+        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false">
+          <path
+            fill="currentColor"
+            d="M8 2a1 1 0 0 0-1 1v1H4a1 1 0 1 0 0 2h.5l.7 10.1A2 2 0 0 0 7.2 18h5.6a2 2 0 0 0 2-1.9L15.5 6H16a1 1 0 1 0 0-2h-3V3a1 1 0 0 0-1-1H8Zm0 2h4V3H8v1ZM7 8a1 1 0 0 1 2 0v6a1 1 0 1 1-2 0V8Zm4-1a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Z"
+          />
+        </svg>
       </button>
     </li>
   );

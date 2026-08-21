@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { usePortalAuth } from "../auth/portalAuth";
 import { supabase } from "../lib/supabase";
-import { normalizeLoginIdentity } from "../features/portal-admin/loginIdentity";
+import { normalizeLoginIdentity, MAX_LOGIN_FIELD_LENGTH } from "../features/portal-admin/loginIdentity";
 import { resolvePostLoginDestination } from "../features/portal-admin/loginRouting";
 import Header from "./Header";
 import "./PortalLogin.css";
@@ -30,6 +30,12 @@ export default function PortalLogin() {
   async function handleSubmit(event) {
     event.preventDefault();
     setErrorMessage("");
+
+    if (identity.length > MAX_LOGIN_FIELD_LENGTH || password.length > MAX_LOGIN_FIELD_LENGTH) {
+      setPassword("");
+      setErrorMessage(GENERIC_LOGIN_ERROR);
+      return;
+    }
 
     const normalized = normalizeLoginIdentity(identity);
 
@@ -110,6 +116,7 @@ export default function PortalLogin() {
                 autoComplete="username"
                 autoFocus
                 disabled={signingIn}
+                maxLength={MAX_LOGIN_FIELD_LENGTH}
                 required
               />
             </label>
@@ -123,6 +130,7 @@ export default function PortalLogin() {
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete="current-password"
                   disabled={signingIn}
+                  maxLength={MAX_LOGIN_FIELD_LENGTH}
                   required
                 />
                 <button

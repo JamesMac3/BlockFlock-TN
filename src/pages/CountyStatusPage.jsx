@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import CountyStatusChooser from "../components/CountyStatusChooser";
+import NextMeetingBanner from "../components/NextMeetingBanner";
 import StatusPostCard from "../components/status/StatusPostCard";
 import { ACTIVE_CHAPTER_COUNTY_SLUGS } from "../config/activeChapterCounties";
 import { supabase } from "../lib/supabase";
@@ -61,7 +62,7 @@ export default function CountyStatusPage() {
         )
         .eq("status", "approved")
         .eq("show_in_status_feed", true)
-        .or(`scope.eq.global,county_id.eq.${county.id}`);
+        .eq("county_id", county.id);
 
       if (!active) return;
 
@@ -87,10 +88,6 @@ export default function CountyStatusPage() {
     };
   }, [countySlug]);
 
-  const hasLocalPosts = useMemo(
-    () => state.posts.some((post) => Number(post.county_id) === Number(state.county?.id)),
-    [state.posts, state.county?.id]
-  );
   const routeIsLoading = state.slug !== countySlug || state.phase === "county";
 
   let content;
@@ -102,20 +99,15 @@ export default function CountyStatusPage() {
   } else if (state.failed) {
     content = <StatusMessage title="Status feed unavailable" message="The public status feed could not be loaded. Please try again later." currentCountySlug={state.county?.slug ?? countySlug} />;
   } else if (state.phase === "posts") {
-    content = <StatusMessage title="Loading updates" message={`Loading statewide and ${state.county.name} updates…`} currentCountySlug={state.county.slug} />;
+    content = <StatusMessage title="Loading updates" message={`Loading ${state.county.name} updates…`} currentCountySlug={state.county.slug} />;
   } else {
     content = (
       <>
         <CountyStatusHeader county={state.county} />
+        <NextMeetingBanner countyId={state.county.id} />
 
         {!ACTIVE_CHAPTER_COUNTY_SLUGS.has(state.county.slug) && (
           <ChapterClaimCallout county={state.county} />
-        )}
-
-        {!hasLocalPosts && (
-          <p className="county-status-notice">
-            No local updates have been published yet. Approved statewide notices are shown below.
-          </p>
         )}
 
         {state.posts.length ? (
@@ -132,7 +124,7 @@ export default function CountyStatusPage() {
         ) : (
           <StatusMessage
             title="No approved updates"
-            message="No statewide or local updates have been published for this county yet."
+            message="No approved updates have been published for this county yet."
             currentCountySlug={state.county.slug}
           />
         )}

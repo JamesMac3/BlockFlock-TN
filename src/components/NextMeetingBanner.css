@@ -1,0 +1,39 @@
+.next-meeting-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.75rem;
+  padding: 0.85rem 1.1rem;
+  margin: 1rem 0;
+  border: 1px solid rgba(85, 225, 255, 0.35);
+  border-radius: 0.4rem;
+  background: rgba(85, 225, 255, 0.08);
+  color: var(--text, #f2efe7);
+}
+
+.next-meeting-banner__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #55e1ff;
+  font-weight: 700;
+  width: 100%;
+}
+
+.next-meeting-banner__title {
+  font-size: 1.05rem;
+}
+
+.next-meeting-banner__when,
+.next-meeting-banner__where {
+  color: var(--text-muted, #b8b4aa);
+  font-size: 0.9rem;
+}
+
+.next-meeting-banner__when::before {
+  content: "· ";
+}
+
+.next-meeting-banner__where::before {
+  content: "· ";
+}
