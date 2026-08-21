@@ -2,7 +2,10 @@
 
 .records-goals-page {
   padding: 2rem 1.5rem;
-  background: #f9f9f9;
+  /* Translucent, not opaque — lets the global fixed background image show
+     through the page margins; the empty-state/content cards below stay
+     fully opaque. */
+  background: rgba(249, 249, 249, 0.9);
 }
 
 .records-goals-content {

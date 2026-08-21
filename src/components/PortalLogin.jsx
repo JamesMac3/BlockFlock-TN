@@ -1,64 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { usePortalAuth } from "../auth/portalAuth";
 import { supabase } from "../lib/supabase";
+import { normalizeLoginIdentity } from "../features/portal-admin/loginIdentity";
+import { resolvePostLoginDestination } from "../features/portal-admin/loginRouting";
 import Header from "./Header";
 import "./PortalLogin.css";
 
-const ADMIN_EMAIL = "admin@flockblocktn.org";
 const GENERIC_LOGIN_ERROR =
-  "The selected account and password could not be verified.";
+  "The account and password could not be verified.";
 
 export default function PortalLogin() {
   const navigate = useNavigate();
   const { account, acceptSession, loading: sessionLoading, signOut } =
     usePortalAuth();
-  const [loginMode, setLoginMode] = useState("chapter");
-  const [counties, setCounties] = useState([]);
-  const [selectedCountyId, setSelectedCountyId] = useState("");
+  const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loadingCounties, setLoadingCounties] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const selectedCounty = useMemo(
-    () => counties.find((county) => String(county.id) === selectedCountyId),
-    [counties, selectedCountyId]
-  );
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadCounties() {
-      const { data, error } = await supabase
-        .from("counties")
-        .select("id, name, slug")
-        .order("name");
-
-      if (!active) return;
-
-      if (error) {
-        setErrorMessage("The county list is temporarily unavailable.");
-      } else {
-        setCounties(data ?? []);
-      }
-
-      setLoadingCounties(false);
-    }
-
-    loadCounties();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  function changeMode(mode) {
-    setLoginMode(mode);
-    setPassword("");
-    setShowPassword(false);
-    setErrorMessage("");
-  }
 
   async function failLogin() {
     await signOut();
@@ -71,17 +31,9 @@ export default function PortalLogin() {
     event.preventDefault();
     setErrorMessage("");
 
-    const normalizedSlug = selectedCounty?.slug
-      ?.replace(/-county$/i, "")
-      .toLowerCase();
-    const email =
-      loginMode === "chapter"
-        ? normalizedSlug
-          ? `${normalizedSlug}@flockblocktn.org`
-          : ""
-        : ADMIN_EMAIL;
+    const normalized = normalizeLoginIdentity(identity);
 
-    if (!email || !password) {
+    if (!normalized.ok || !password) {
       setPassword("");
       setErrorMessage(GENERIC_LOGIN_ERROR);
       return;
@@ -90,7 +42,10 @@ export default function PortalLogin() {
     setSigningIn(true);
 
     const { data: authData, error: authError } =
-      await supabase.auth.signInWithPassword({ email, password });
+      await supabase.auth.signInWithPassword({
+        email: normalized.email,
+        password,
+      });
 
     if (authError || !authData.user || !authData.session) {
       await failLogin();
@@ -98,28 +53,22 @@ export default function PortalLogin() {
     }
 
     const profile = await acceptSession(authData.session);
+    const destination = resolvePostLoginDestination({ profile });
 
-    if (!profile) {
+    if (destination === "access-revoked") {
       setPassword("");
       setSigningIn(false);
-      setErrorMessage(GENERIC_LOGIN_ERROR);
+      navigate("/portal/access-revoked", { replace: true });
       return;
     }
 
-    const portalAccount = profile.account;
-    const validChapter =
-      loginMode === "chapter" &&
-      portalAccount.role === "chapter_master" &&
-      String(portalAccount.county_id) === selectedCountyId;
-    const validAdmin =
-      loginMode === "admin" && portalAccount.role === "admin";
-
-    if (!validChapter && !validAdmin) {
+    if (destination === "failed") {
       await failLogin();
       return;
     }
 
-    navigate(validAdmin ? "/portal/admin" : "/portal/chapter", {
+    setPassword("");
+    navigate(destination === "admin" ? "/portal/admin" : "/portal/chapter", {
       replace: true,
     });
   }
@@ -148,52 +97,22 @@ export default function PortalLogin() {
           <p className="portal-login-eyebrow">Secure portal</p>
           <h1 id="portal-login-title">Portal login</h1>
           <p className="portal-login-intro">
-            Select your access type and enter the credentials assigned to you.
+            Enter the username or email and password assigned to you.
           </p>
 
-          <div className="portal-login-modes" aria-label="Login type">
-            <button
-              type="button"
-              className={loginMode === "chapter" ? "is-active" : ""}
-              onClick={() => changeMode("chapter")}
-              aria-pressed={loginMode === "chapter"}
-            >
-              Chapter Login
-            </button>
-            <button
-              type="button"
-              className={loginMode === "admin" ? "is-active" : ""}
-              onClick={() => changeMode("admin")}
-              aria-pressed={loginMode === "admin"}
-            >
-              Admin Login
-            </button>
-          </div>
-
           <form onSubmit={handleSubmit}>
-            {loginMode === "chapter" && (
-              <label>
-                County
-                <select
-                  value={selectedCountyId}
-                  onChange={(event) => setSelectedCountyId(event.target.value)}
-                  disabled={loadingCounties || signingIn}
-                  autoFocus
-                  required
-                >
-                  <option value="">
-                    {loadingCounties
-                      ? "Loading counties..."
-                      : "Select your county"}
-                  </option>
-                  {counties.map((county) => (
-                    <option key={county.id} value={county.id}>
-                      {county.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            <label>
+              Username or email
+              <input
+                type="text"
+                value={identity}
+                onChange={(event) => setIdentity(event.target.value)}
+                autoComplete="username"
+                autoFocus
+                disabled={signingIn}
+                required
+              />
+            </label>
 
             <label>
               Password
@@ -203,7 +122,6 @@ export default function PortalLogin() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete="current-password"
-                  autoFocus={loginMode === "admin"}
                   disabled={signingIn}
                   required
                 />
@@ -227,21 +145,17 @@ export default function PortalLogin() {
             <button
               type="submit"
               className="portal-login-submit"
-              disabled={
-                signingIn || (loginMode === "chapter" && loadingCounties)
-              }
+              disabled={signingIn}
             >
               {signingIn ? "Signing in..." : "Sign In"}
             </button>
 
-            {loginMode === "chapter" && (
-              <a
-                className="portal-admin-contact"
-                href="mailto:admin@flockblocktn.org"
-              >
-                Contact an administrator
-              </a>
-            )}
+            <a
+              className="portal-admin-contact"
+              href="mailto:admin@flockblocktn.org"
+            >
+              Contact an administrator
+            </a>
           </form>
         </section>
       </main>

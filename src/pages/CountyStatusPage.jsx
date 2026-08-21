@@ -7,6 +7,7 @@ import StatusPostCard from "../components/status/StatusPostCard";
 import { ACTIVE_CHAPTER_COUNTY_SLUGS } from "../config/activeChapterCounties";
 import { supabase } from "../lib/supabase";
 import { sortStatusPosts } from "../utils/statusPostUtils";
+import { setStoredCountySlug } from "../utils/countyPreference";
 import "./CountyStatusPage.css";
 
 const INITIAL_STATE = {
@@ -48,6 +49,10 @@ export default function CountyStatusPage() {
       }
 
       setState((current) => ({ ...current, county, phase: "posts" }));
+      // Arriving at a real county's page (however the visitor got here —
+      // a supported selection path, a bookmark, or a direct link) is
+      // itself a valid "county selected" signal for navigation purposes.
+      setStoredCountySlug(county.slug);
 
       const { data: posts, error: postsError } = await supabase
         .from("posts")

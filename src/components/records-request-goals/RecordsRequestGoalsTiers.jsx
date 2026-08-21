@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import RequestDeliveryPanel from "./RequestDeliveryPanel";
+import OperatorDraftPreviewButton from "./OperatorDraftPreviewButton";
 import "./RecordsRequestGoalsTiers.css";
 
 const TIER_ORDER = [1, 2, 3, 4];
@@ -172,6 +174,7 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
                 <GoalCard
                   key={goal.id}
                   goal={goal}
+                  county={county}
                   profile={goal.request_profile_id ? profilesById[goal.request_profile_id] : null}
                   readiness={readinessByGoalId[goal.id]}
                   onPrepared={(generated, readyResult) =>
@@ -205,7 +208,7 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
   );
 }
 
-function GoalCard({ goal, profile, readiness, onPrepared }) {
+function GoalCard({ goal, county, profile, readiness, onPrepared }) {
   const [generationState, setGenerationState] = useState({ status: "idle" });
 
   const links = [...(goal.records_request_goal_links || [])].sort(
@@ -224,12 +227,10 @@ function GoalCard({ goal, profile, readiness, onPrepared }) {
         "../../features/document-request/pdf/generate-request-document"
       );
       const generated = await generateRequestDocument(readiness.result.profile, readiness.result.data, { supabase });
-      const generatedWithUrl = {
-        ...generated,
-        pdfUrl: URL.createObjectURL(generated.blob),
-      };
+      // No object URL is created here — RequestDeliveryPanel owns that
+      // lifecycle entirely, from generated.blob.
       setGenerationState({ status: "idle" });
-      onPrepared(generatedWithUrl, readiness.result);
+      onPrepared(generated, readiness.result);
     } catch (error) {
       console.error("Failed to generate request document:", error);
       setGenerationState({
@@ -290,6 +291,8 @@ function GoalCard({ goal, profile, readiness, onPrepared }) {
         </div>
       )}
 
+      <OperatorDraftPreviewButton goal={goal} county={county} />
+
       {links.length > 0 && (
         <details className="goal-card__links">
           <summary>
@@ -298,7 +301,9 @@ function GoalCard({ goal, profile, readiness, onPrepared }) {
           <ul>
             {links.map((link) => (
               <li key={link.id}>
-                {link.external_url ? (
+                {link.evidence_object_id ? (
+                  <Link to={`/archive/documents/${link.evidence_object_id}`}>{link.label}</Link>
+                ) : link.external_url ? (
                   <a href={link.external_url} target="_blank" rel="noopener noreferrer">
                     {link.label}
                   </a>

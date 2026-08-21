@@ -1,0 +1,29 @@
+/* Dark surface matching this panel's sibling forms (.rrg-form,
+   .rrg-goal-edit-form) — this card previously stayed a light #f9fafb
+   surface while its labels used the shared dark-theme's near-white
+   var(--text), making "File", "Document type", "Public title", "Public
+   description", and (in ExternalSourceForm, which reuses this same class)
+   "Label"/"HTTPS URL" effectively invisible. */
+.goal-completion-upload {
+  max-width: 32rem;
+  margin: 0.75rem 0;
+  padding: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.4rem;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.goal-completion-upload h5 {
+  margin-top: 0;
+  color: var(--text);
+}
+
+.goal-completion-upload__note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.goal-completion-upload input[type="file"] {
+  color: var(--text);
+}

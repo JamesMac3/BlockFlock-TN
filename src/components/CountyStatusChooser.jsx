@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import CountySelector from "./CountySelector";
+import { setStoredCountySlug } from "../utils/countyPreference";
 import "./CountyStatusChooser.css";
 
 export default function CountyStatusChooser({ currentCountySlug }) {
@@ -90,6 +91,8 @@ export default function CountyStatusChooser({ currentCountySlug }) {
   }
 
   function handleCountySelect(county) {
+    setStoredCountySlug(county.slug);
+
     if (county.slug === currentCountySlug) {
       closeChooser(true);
       return;
@@ -142,7 +145,6 @@ export default function CountyStatusChooser({ currentCountySlug }) {
               counties={counties}
               currentCountySlug={currentCountySlug}
               onSelect={handleCountySelect}
-              includeCities={false}
               autoFocus
             />
           )}

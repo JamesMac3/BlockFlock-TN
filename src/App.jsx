@@ -10,7 +10,11 @@ import CountyStatusPage from "./pages/CountyStatusPage";
 import RecordsRequestGoalsPage from "./pages/RecordsRequestGoalsPage";
 import StatewideStatusPage from "./pages/StatewideStatusPage";
 import ArchivePage from "./pages/ArchivePage";
+import ArchiveGoalPage from "./pages/ArchiveGoalPage";
+import DocumentPage from "./pages/DocumentPage";
+import ArchiveDocumentViewer from "./pages/ArchiveDocumentViewer";
 import AdminPostPreview from "./pages/AdminPostPreview";
+import AccessRevokedPage from "./pages/AccessRevokedPage";
 
 const PortalDashboard = lazy(() => import("./pages/PortalDashboard"));
 
@@ -61,6 +65,26 @@ export default function App() {
         <Route
           path="/archive"
           element={<ArchivePage />}
+        />
+
+        <Route
+          path="/documents/:documentSlug"
+          element={<DocumentPage />}
+        />
+
+        <Route
+          path="/archive/goals/:goalId"
+          element={<ArchiveGoalPage />}
+        />
+
+        <Route
+          path="/archive/documents/:evidenceId"
+          element={<ArchiveDocumentViewer />}
+        />
+
+        <Route
+          path="/portal/access-revoked"
+          element={<AccessRevokedPage />}
         />
 
         <Route

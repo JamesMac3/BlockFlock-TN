@@ -3,9 +3,12 @@
   display: grid;
   place-items: center;
   padding: 3rem 1rem;
+  /* Translucent, not opaque — lets the global fixed background image show
+     through; .portal-login-card keeps its own opaque background so the
+     login form itself stays fully readable. */
   background:
     radial-gradient(circle at 50% 15%, rgba(216, 45, 45, 0.12), transparent 35%),
-    #07111f;
+    rgba(7, 17, 31, 0.7);
 }
 
 .portal-login-card {
@@ -35,32 +38,6 @@
 .portal-login-intro {
   margin: 0.5rem 0 1.4rem;
   color: #b8b4aa;
-}
-
-.portal-login-modes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  margin-bottom: 1.4rem;
-  padding: 0.25rem;
-  border: 1px solid rgba(242, 239, 231, 0.14);
-  border-radius: 0.65rem;
-  background: #07111f;
-}
-
-.portal-login-modes button {
-  padding: 0.65rem;
-  border: 0;
-  border-radius: 0.45rem;
-  background: transparent;
-  color: #b8b4aa;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.portal-login-modes button.is-active {
-  background: #162b40;
-  color: #f2efe7;
 }
 
 .portal-login-card form,
@@ -163,14 +140,19 @@
   place-items: center;
   margin: 0;
   padding: 1rem;
-  background: #07111f;
+  /* Translucent, not opaque — lets the global fixed background image show
+     through this transitional (loading/auth-check) full-page state. */
+  background: rgba(7, 17, 31, 0.6);
   color: #f2efe7;
 }
 
 .portal-dashboard {
   min-height: calc(100vh - 4.75rem);
   padding: 3rem 1rem 5rem;
-  background: #07111f;
+  /* Translucent, not opaque — lets the global fixed background image show
+     through; dashboard content cards (.portal-account-summary, .rrg-manager,
+     etc.) keep their own opaque surface background for readability. */
+  background: rgba(7, 17, 31, 0.55);
 }
 
 .portal-dashboard__shell {

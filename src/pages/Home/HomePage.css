@@ -49,7 +49,12 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background: var(--background);
+  /* Deliberately not opaque here — index.css's fixed body::before layer
+     provides the global background image, and this file's own
+     .site-shell/main rule below (and each page's own container) supply
+     translucent surfaces over it. An opaque body background would hide
+     the image on every page regardless of what any page does. */
+  background: transparent;
   color: var(--text);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -159,24 +164,30 @@ img {
   text-decoration: none;
 }
 
+/* Matches the neighboring nav links rather than reading as a large red
+   call-to-action — transparent background with a light outline border, red
+   (var(--accent)) stays reserved for destructive/primary-publishing
+   actions elsewhere in the app. */
 .site-nav__login {
+  display: inline-flex;
+  align-items: center;
   min-height: 2.4rem;
   margin-left: 0.35rem;
-  padding: 0.5rem 0.8rem;
-  border: 1px solid var(--accent);
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--border);
   border-radius: 0.45rem;
-  background: var(--accent);
+  background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 0.84rem;
-  font-weight: 750;
+  font-size: 0.87rem;
+  font-weight: 650;
   cursor: pointer;
   text-decoration: none;
 }
 
 .site-nav__login:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  border-color: var(--text);
+  background: var(--surface-muted);
 }
 
 .site-nav__login:focus-visible,
@@ -841,20 +852,30 @@ img {
       height: 46px;
     }
 
+    /* Centered as a group (not left-aligned/ragged), so the Login button
+       never stands apart from the other nav pills. */
     .site-nav {
       flex-wrap: wrap;
-      gap: 0.3rem;
+      justify-content: center;
+      gap: 0.4rem;
       overflow-x: visible;
       padding-bottom: 0;
+      width: 100%;
     }
 
     .site-nav__link,
     .site-nav__login,
     .site-nav__logout {
-      min-height: 2.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 5.5rem;
+      /* ~44px tap target */
+      min-height: 2.75rem;
       margin-left: 0;
-      padding: 0.45rem 0.55rem;
-      font-size: 0.76rem;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.78rem;
+      text-align: center;
     }
   }
 }
@@ -909,9 +930,15 @@ img {
 
 /* Banner-aligned colour system overrides */
 
+/* .site-shell is the outermost wrapper on every page (Header + main +
+   Footer) and previously painted an opaque rectangle over the full fixed
+   background image on every route. It stays transparent so the image
+   shows through by default; individual page containers below (and each
+   page's own CSS) supply their own translucent surface where needed for
+   text contrast, rather than one blanket opaque layer hiding the image
+   everywhere. */
 .site-shell,
 main {
-  background: var(--background);
   color: var(--text);
 }
 
@@ -944,9 +971,12 @@ main {
 }
 
 .hero {
+  /* Translucent, not opaque — the h1's existing text-shadow (below) was
+     already designed for a busy backdrop; this lets the global fixed
+     background image show through instead of being fully hidden. */
   background:
     radial-gradient(circle at 70% 25%, rgba(216, 138, 45, 0.12), transparent 35%),
-    linear-gradient(180deg, var(--surface-muted) 0%, var(--background) 100%);
+    linear-gradient(180deg, rgba(16, 34, 54, 0.55) 0%, rgba(7, 17, 31, 0.72) 100%);
   color: var(--text);
 }
 
@@ -1045,7 +1075,10 @@ main {
 }
 
 .section {
-  background: var(--background);
+  /* Translucent, not opaque — lets the global fixed background image show
+     through the base section bands; .section--muted keeps its own opaque
+     var(--surface) as the alternating solid band, unchanged. */
+  background: rgba(7, 17, 31, 0.55);
   color: var(--text);
 }
 

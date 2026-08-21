@@ -1,0 +1,96 @@
+.chapter-account-settings {
+  max-width: 34rem;
+}
+
+/* Explicit dark-surface colors throughout — never inherited from the
+   surrounding portal page, since this card was previously a near-white
+   surface that inherited the dashboard's light near-white text color,
+   making values effectively invisible. */
+.chapter-account-settings__summary {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border, rgba(242, 239, 231, 0.14));
+  border-radius: 0.4rem;
+  background: var(--surface, #0b1828);
+  color: var(--text, #f2efe7);
+}
+
+.chapter-account-settings__summary dt {
+  font-size: 0.75rem;
+  color: var(--text-muted, #b8b4aa);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chapter-account-settings__summary dd {
+  margin: 0;
+  color: var(--text, #f2efe7);
+  font-weight: 600;
+}
+
+.chapter-account-settings__section {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.chapter-account-settings__section form {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 24rem;
+}
+
+.chapter-account-settings__section label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.chapter-account-settings__section input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.35rem;
+  font: inherit;
+}
+
+.chapter-account-settings__section button[type="submit"] {
+  justify-self: start;
+  padding: 0.55rem 1rem;
+  background: #374151;
+  color: #fff;
+  border: none;
+  border-radius: 0.35rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chapter-account-settings__section button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chapter-account-settings__error {
+  color: #991b1b;
+  font-size: 0.85rem;
+}
+
+.chapter-account-settings__success {
+  color: #166534;
+  font-size: 0.85rem;
+}
+
+.chapter-account-settings__sign-out {
+  padding: 0.6rem 1.1rem;
+  background: transparent;
+  color: var(--text, #f2efe7);
+  border: 1px solid var(--border, rgba(242, 239, 231, 0.14));
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.chapter-account-settings input:focus-visible,
+.chapter-account-settings button:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 2px;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { matchCounties } from "../utils/countySearch";
 import "./CountySelector.css";
 
 export default function CountySelector({
@@ -18,38 +19,10 @@ export default function CountySelector({
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
-  const results = useMemo(() => {
-    return [...counties]
-      .sort((first, second) => first.name.localeCompare(second.name))
-      .flatMap((county) => {
-        const normalizedName = county.name.toLowerCase().replace(/\s+/g, " ");
-        const normalizedSlug = county.slug.toLowerCase().replace(/-/g, " ");
-        const matchesCounty =
-          !normalizedSearch ||
-          normalizedName.includes(normalizedSearch) ||
-          normalizedSlug.includes(normalizedSearch);
-        const matches = matchesCounty
-          ? [{ key: `county-${county.id}`, county, label: county.name, type: "County result" }]
-          : [];
-
-        if (includeCities && normalizedSearch) {
-          (Array.isArray(county.cities) ? county.cities : [])
-            .filter((city) =>
-              city.toLowerCase().replace(/\s+/g, " ").includes(normalizedSearch)
-            )
-            .forEach((city) => {
-              matches.push({
-                key: `city-${county.id}-${city}`,
-                county,
-                label: city,
-                type: county.name,
-              });
-            });
-        }
-
-        return matches;
-      });
-  }, [counties, includeCities, normalizedSearch]);
+  const results = useMemo(
+    () => matchCounties(counties, normalizedSearch, { includeCities }),
+    [counties, includeCities, normalizedSearch]
+  );
 
   return (
     <div className="county-selector">

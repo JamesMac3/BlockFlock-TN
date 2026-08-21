@@ -1,13 +1,21 @@
 /* Request Delivery Panel */
 
+/* Positioned below the real (measured) sticky site header, the same
+   strategy AdminPopout.css uses — z-index 98 sits above AdminPopout (95,
+   since this panel can open nested inside an already-open goal-editor
+   popout) but below the site header (100), so the header stays visibly on
+   top rather than being covered. */
 .delivery-panel-backdrop {
   position: fixed;
-  inset: 0;
-  z-index: 200;
+  top: var(--site-header-height, 4.75rem);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 98;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 2rem 1rem;
+  padding: 1.5rem 1rem;
   overflow-y: auto;
   background: rgba(15, 23, 42, 0.55);
   border: none;
@@ -16,10 +24,23 @@
 .delivery-panel {
   position: relative;
   width: min(720px, 100%);
+  max-height: calc(100dvh - var(--site-header-height, 4.75rem) - 3rem);
+  overflow-y: auto;
   background: white;
   border-radius: 0.75rem;
   padding: 2rem;
   margin: auto;
+}
+
+/* Sticky within the panel's own scroll — the close control and (when
+   present) the draft banner stay visible while the rest of the panel's
+   content scrolls underneath, on both desktop and mobile. */
+.delivery-panel__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: white;
+  padding-bottom: 0.5rem;
 }
 
 .delivery-panel h2 {
@@ -27,6 +48,27 @@
   font-size: 1.4rem;
   color: #1a1a1a;
   padding-right: 2rem;
+}
+
+.delivery-panel__draft-banner {
+  margin: 0 2rem 1rem 0;
+  padding: 0.75rem 1rem;
+  background: #7f1d1d;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 0.375rem;
+  text-align: center;
+}
+
+.delivery-panel__draft-subtitle {
+  margin: -0.75rem 0 1.25rem;
+  color: #92400e;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  border-radius: 0.25rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.85rem;
 }
 
 .delivery-panel h3 {
@@ -106,7 +148,34 @@
   color: #4b5563;
 }
 
+.delivery-panel__preview-frame {
+  width: 100%;
+  height: min(70vh, 640px);
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.delivery-panel__preview-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.delivery-panel__preview-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin: 0;
+  color: #6b7280;
+}
+
 .delivery-panel__download {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
   text-align: center;
 }
 
@@ -125,6 +194,22 @@
 
 .delivery-panel__download-link:hover {
   background: #1d4ed8;
+}
+
+.delivery-panel__download-link[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.delivery-panel__download-link--secondary {
+  background: transparent;
+  color: #2563eb;
+  border: 1px solid #2563eb;
+}
+
+.delivery-panel__download-link--secondary:hover {
+  background: #eff6ff;
 }
 
 .delivery-panel__email label {
@@ -204,6 +289,20 @@
   border-radius: 0.25rem;
   color: #92400e;
   font-size: 0.85rem;
+}
+
+/* Visually prominent — separate from the ordinary numbered steps around
+   it, since omitting this proof is a common, avoidable cause of a
+   rejected request. */
+.delivery-panel__identity-warning {
+  display: block;
+  margin: 0.35rem 0;
+  padding: 0.65rem 0.85rem;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  border-radius: 0.25rem;
+  color: #92400e;
+  list-style: none;
 }
 
 @media (max-width: 640px) {

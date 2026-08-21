@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSupabaseTemplateLoader, TemplateSourceError, type TemplateSource } from "./supabase-template-loader";
+import {
+  createOperatorPreviewTemplateLoader,
+  createSupabaseTemplateLoader,
+  TemplateSourceError,
+  type TemplateSource,
+} from "./supabase-template-loader";
 
 const evidenceId = "30000000-0000-4000-8000-000000000003";
 
@@ -104,5 +109,41 @@ describe("createSupabaseTemplateLoader", () => {
     const result = await load(evidenceId);
     expect(result).toEqual(bytes);
     expect(supabase.rpc).toHaveBeenCalledWith("get_public_request_template_source", { evidence_id: evidenceId });
+  });
+});
+
+describe("createOperatorPreviewTemplateLoader", () => {
+  // Operator preview metadata comes from get_draft_request_preview_bundle,
+  // never from get_public_request_template_source — this loader must never
+  // call the public RPC.
+
+  it("never calls the public get_public_request_template_source RPC", async () => {
+    const bytes = new Uint8Array([37, 80, 68, 70, 45]);
+    const hash = await sha256Hex(bytes);
+    const source: TemplateSource = { bucket_id: "request-templates", object_path: "forms/draft.pdf", mime_type: "application/pdf", size_bytes: bytes.length, sha256_hex: hash };
+    const supabase = fakeSupabase({ data: null, error: null });
+    const fetcher = vi.fn(async () => new Response(bytes, { status: 200 }));
+    const load = createOperatorPreviewTemplateLoader(source, supabase, fetcher as unknown as typeof fetch);
+
+    const result = await load();
+
+    expect(result).toEqual(bytes);
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("applies the same metadata validation as the public loader", async () => {
+    const source: TemplateSource = { bucket_id: "not-request-templates", object_path: "forms/draft.pdf", mime_type: "application/pdf", size_bytes: 10, sha256_hex: "a".repeat(64) };
+    const supabase = fakeSupabase({ data: null, error: null });
+    const load = createOperatorPreviewTemplateLoader(source, supabase);
+    await expect(load()).rejects.toMatchObject({ code: "SOURCE_METADATA_INVALID" });
+  });
+
+  it("applies the same size/hash verification as the public loader", async () => {
+    const bytes = new Uint8Array([1, 2, 3, 4, 5]);
+    const source: TemplateSource = { bucket_id: "request-templates", object_path: "forms/draft.pdf", mime_type: "application/pdf", size_bytes: bytes.length, sha256_hex: "a".repeat(64) };
+    const supabase = fakeSupabase({ data: null, error: null });
+    const fetcher = vi.fn(async () => new Response(bytes, { status: 200 }));
+    const load = createOperatorPreviewTemplateLoader(source, supabase, fetcher as unknown as typeof fetch);
+    await expect(load()).rejects.toMatchObject({ code: "SOURCE_HASH_MISMATCH" });
   });
 });

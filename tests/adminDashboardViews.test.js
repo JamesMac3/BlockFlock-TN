@@ -8,12 +8,13 @@ import {
 } from "../src/utils/adminDashboardViews.js";
 
 const NOW = new Date("2026-08-03T12:00:00Z");
+// Live posts_status_check permits exactly draft/pending/approved/rejected —
+// there is no separate 'returned'/'revision_requested' status.
 const POSTS = [
   { id: 1, status: "pending", content_type: "announcement" },
   { id: 2, status: "draft", content_type: "announcement" },
   { id: 3, status: "approved", content_type: "announcement" },
-  { id: 4, status: "returned", content_type: "announcement" },
-  { id: 5, status: "revision_requested", content_type: "announcement" },
+  { id: 4, status: "rejected", content_type: "announcement" },
   { id: 6, status: "draft", content_type: "meeting", event_start: "2026-08-05T12:00:00Z" },
   { id: 7, status: "approved", content_type: "meeting", event_start: "2026-08-04T12:00:00Z" },
   { id: 8, status: "approved", content_type: "meeting", event_start: "2026-07-01T12:00:00Z" },
@@ -28,7 +29,7 @@ test("each post view applies its existing status predicate", () => {
   assert.deepEqual(getAdminDashboardItems(POSTS, "pending", NOW).map(({ id }) => id), [1]);
   assert.deepEqual(getAdminDashboardItems(POSTS, "drafts", NOW).map(({ id }) => id), [2, 6]);
   assert.deepEqual(getAdminDashboardItems(POSTS, "published", NOW).map(({ id }) => id), [3, 7, 8]);
-  assert.deepEqual(getAdminDashboardItems(POSTS, "returned", NOW).map(({ id }) => id), [4, 5]);
+  assert.deepEqual(getAdminDashboardItems(POSTS, "returned", NOW).map(({ id }) => id), [4]);
 });
 
 test("upcoming meetings are rendered in ascending date order", () => {
@@ -37,7 +38,7 @@ test("upcoming meetings are rendered in ascending date order", () => {
 
 test("counts remain complete and stable regardless of selected view", () => {
   const counts = getAdminDashboardCounts(POSTS, NOW);
-  assert.deepEqual(counts, { pending: 1, drafts: 2, published: 3, returned: 2, meetings: 2 });
+  assert.deepEqual(counts, { pending: 1, drafts: 2, published: 3, returned: 1, meetings: 2 });
   for (const view of ADMIN_DASHBOARD_VIEWS) {
     getAdminDashboardItems(POSTS, view.id, NOW);
     assert.deepEqual(getAdminDashboardCounts(POSTS, NOW), counts);

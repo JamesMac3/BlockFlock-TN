@@ -6,6 +6,7 @@ import CountyStatusChooser from "../components/CountyStatusChooser";
 import RecordsRequestGoalsTiers from "../components/records-request-goals/RecordsRequestGoalsTiers";
 import { formatCountyLabel } from "../features/document-request/countyLabel";
 import { supabase } from "../lib/supabase";
+import { setStoredCountySlug } from "../utils/countyPreference";
 import "./RecordsRequestGoalsPage.css";
 
 const INITIAL_STATE = {
@@ -47,6 +48,7 @@ export default function RecordsRequestGoalsPage() {
       }
 
       setState((current) => ({ ...current, county, phase: "goals" }));
+      setStoredCountySlug(county.slug);
 
       // Fetch public records-request goals for this county
       const { data: goals, error: goalsError } = await supabase
@@ -140,7 +142,10 @@ export default function RecordsRequestGoalsPage() {
       <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
         <header className="records-goals-header">
           <div>
-            <CountyStatusChooser currentSlug={state.county.slug} />
+            {/* The "Choose another county" control is deliberately not
+                shown here — the homepage/map county selector is the one
+                deliberate way to switch counties; removing it here does
+                not clear the remembered county. */}
             <h1>Records Request Roadmap</h1>
             <p className="records-goals-intro">
               View the status of records requests for {countyLabel}.
@@ -181,7 +186,7 @@ function StatusMessage({ title, message, currentCountySlug }) {
       <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
         <h1>{title}</h1>
         <p>{message}</p>
-        <CountyStatusChooser currentSlug={currentCountySlug} />
+        <CountyStatusChooser currentCountySlug={currentCountySlug} />
       </div>
     </main>
   );

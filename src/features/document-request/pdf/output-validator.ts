@@ -120,6 +120,24 @@ export async function validateRenderedOutput(
 
 export async function inspectWithPdfJs(pdfBytes: Uint8Array): Promise<PdfInspection> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+
+  // pdfjs-dist 6 requires GlobalWorkerOptions.workerSrc in a real browser —
+  // without it, getDocument() fails and callers see "PDF.js could not
+  // reopen the generated output" (this function's own caller wraps that
+  // failure as OutputValidationError PDF_REOPEN_FAILED). Node (this
+  // module's own tests) has no `window` and no `Worker` global, so
+  // pdfjs-dist already falls back to its in-process fake worker there —
+  // workerSrc is deliberately left unset in that case rather than pointed
+  // at a meaningless value. Both the library and its worker are
+  // dynamically imported so neither ships in the initial bundle; the
+  // worker specifically is imported with the `?url` suffix so Vite emits
+  // it as a separate static asset (never bundled into a JS chunk) that
+  // only loads when a preview is actually generated. No CDN is used.
+  if (typeof window !== "undefined" && !pdfjs.GlobalWorkerOptions.workerSrc) {
+    const workerModule = await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url");
+    pdfjs.GlobalWorkerOptions.workerSrc = workerModule.default;
+  }
+
   const loadingTask = pdfjs.getDocument({ data: pdfBytes.slice() });
   const document = await loadingTask.promise;
   try {

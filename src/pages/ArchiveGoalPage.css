@@ -1,0 +1,101 @@
+.archive-goal-page {
+  padding: 2rem 1.5rem 3rem;
+  min-height: 60vh;
+  /* This page's text (#374151, #6b7280, etc.) is dark and was designed for
+     a light surface — an explicit translucent light background is required
+     here (not just inherited transparency) so that text stays readable
+     against the global dark background image rather than sitting directly
+     on it. */
+  background: rgba(249, 249, 249, 0.9);
+}
+
+.archive-goal-page__inner {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.archive-goal-page__message {
+  padding: 6rem 0 4rem;
+  text-align: center;
+}
+
+/* h1/h2 had no explicit color and inherited the app's dark-theme
+   near-white var(--text), making the goal heading and the "Records and
+   Sources" section heading effectively invisible against this page's
+   light translucent surface. */
+.archive-goal-page h1,
+.archive-goal-page h2 {
+  color: #1a1a1a;
+}
+
+.archive-goal-page__meta {
+  color: #4b5563;
+}
+
+.archive-goal-page__summary {
+  color: #1a1a1a;
+  font-size: 1.05rem;
+}
+
+.archive-goal-page__resources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.archive-goal-page__resource {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.archive-goal-page__resource-index {
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.archive-goal-page__resource-link {
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.archive-goal-page__resource-link:hover {
+  text-decoration: underline;
+}
+
+.archive-goal-page__hostname {
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.archive-goal-page__type {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #312e81;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.archive-goal-page__description {
+  margin: 0.35rem 0;
+  color: #374151;
+}
+
+.archive-goal-page__provenance {
+  margin: 0.25rem 0 0;
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.archive-goal-page section > p {
+  color: #374151;
+}
+
+.archive-goal-page__resource-link:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}

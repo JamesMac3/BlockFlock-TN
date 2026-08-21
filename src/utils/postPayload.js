@@ -48,11 +48,3 @@ export function buildDraftPostPayload({ form, meetingOnly, authenticatedUser, ex
   };
 }
 
-export function buildPublishPayload(authenticatedUser) {
-  if (!authenticatedUser?.id) throw new Error(SESSION_ERROR);
-  return {
-    status: "approved",
-    approved_at: new Date().toISOString(),
-    approved_by: authenticatedUser.id,
-  };
-}

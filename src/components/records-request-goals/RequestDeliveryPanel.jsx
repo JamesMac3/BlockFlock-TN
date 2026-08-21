@@ -20,21 +20,64 @@ function formatDisplayDate(isoDate) {
   return `${month}/${day}/${year}`;
 }
 
-export default function RequestDeliveryPanel({ county, goal, profile, data, generated, validationWarnings, onClose }) {
+export default function RequestDeliveryPanel({
+  county,
+  goal,
+  profile,
+  data,
+  generated,
+  validationWarnings,
+  draftPreview = false,
+  onClose,
+}) {
   const [email, setEmail] = useState("");
   const [reminderChecked, setReminderChecked] = useState(false);
   const [reminderState, setReminderState] = useState({ phase: "idle", message: "" });
   const [subscribeState, setSubscribeState] = useState({ phase: "idle", message: "" });
+  const [objectUrl, setObjectUrl] = useState(null);
 
+  // This panel owns the object URL's whole lifecycle — created and
+  // revoked in the same effect invocation, from generated.blob (never a
+  // URL string created by the caller). Under React StrictMode's
+  // development setup-cleanup-setup cycle this still ends correctly: the
+  // first setup creates URL A, cleanup revokes exactly URL A, and the
+  // second setup creates a fresh URL B — the parent-created-once pattern
+  // this replaces revoked the caller's one URL on the first cleanup with
+  // no second creation, leaving Open/Download pointed at a dead URL while
+  // the already-loaded iframe kept appearing to work.
   useEffect(() => {
-    return () => URL.revokeObjectURL(generated.pdfUrl);
-  }, [generated.pdfUrl]);
+    if (!generated?.blob) {
+      const timer = setTimeout(() => setObjectUrl(null), 0);
+      return () => clearTimeout(timer);
+    }
+    // The URL is only actually created once this timeout fires — if
+    // StrictMode's synchronous cleanup runs first (its throwaway mount),
+    // clearTimeout cancels it before createObjectURL is ever called, so
+    // there is nothing to revoke and nothing gets orphaned. The real
+    // (second) mount's timer is never cleared and creates the URL that
+    // Open/Download/the iframe actually use.
+    let url;
+    const timer = setTimeout(() => {
+      url = URL.createObjectURL(generated.blob);
+      setObjectUrl(url);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [generated?.blob]);
 
   const trimmedEmail = email.trim();
   const isEmailValid = EMAIL_PATTERN.test(trimmedEmail);
   const chapterEmail = county.chapter_contact_email;
   const countyLabel = formatCountyLabel(county.name);
   const notices = [...(validationWarnings ?? []), ...(generated.warnings ?? [])];
+  // The request profile's own eligibility_mode is the actual schema field
+  // that means identity documentation is required — not a jurisdiction
+  // guess. This is the same field the Eligibility notice section below
+  // already keys off of for citizenship/residency text.
+  const identityDocumentRequired =
+    profile.eligibility_mode === "citizenship_required" || profile.eligibility_mode === "residency_required";
 
   function handleEmailChange(event) {
     const value = event.target.value;
@@ -95,11 +138,28 @@ export default function RequestDeliveryPanel({ county, goal, profile, data, gene
         aria-labelledby="delivery-panel-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <button type="button" className="delivery-panel__close" onClick={onClose} aria-label="Close">
-          ×
-        </button>
+        <header className="delivery-panel__header">
+          <button type="button" className="delivery-panel__close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
 
-        <h2 id="delivery-panel-title">Your Prefilled Request Is Ready</h2>
+          {draftPreview && (
+            <p className="delivery-panel__draft-banner" role="alert">
+              Draft operator preview — do not submit or distribute until this request profile is verified.
+            </p>
+          )}
+
+          <h2 id="delivery-panel-title">
+            {draftPreview ? "Draft Operator Preview" : "Your Prefilled Request Is Ready"}
+          </h2>
+        </header>
+
+        {draftPreview && (
+          <p className="delivery-panel__draft-subtitle">
+            This is an operator-only draft preview of an unverified request profile. It is not publicly available
+            and reflects exactly what a public visitor would eventually see once this profile is verified.
+          </p>
+        )}
 
         <dl className="delivery-panel__summary">
           <div>
@@ -228,6 +288,16 @@ export default function RequestDeliveryPanel({ county, goal, profile, data, gene
               Adobe, while local Acrobat Reader does not.
             </li>
             <li>Complete the identity, Tennessee citizenship, request date, and signature fields locally.</li>
+            {identityDocumentRequired && (
+              <li className="delivery-panel__identity-warning">
+                <strong>
+                  Attach a scan or clear photo of a valid ID showing that you are a Tennessee resident. Requests are
+                  commonly rejected when this proof is omitted.
+                </strong>{" "}
+                Attach it directly to your own submission — the website never collects, uploads, stores, or
+                transmits this ID.
+              </li>
+            )}
             <li>
               Submit the completed request directly to the government entity using the information above. The
               website does not submit requests automatically.
@@ -249,15 +319,34 @@ export default function RequestDeliveryPanel({ county, goal, profile, data, gene
           </p>
         </section>
 
+        <section className="delivery-panel__preview">
+          <h3>{draftPreview ? "Draft preview" : "Preview"}</h3>
+          <div className="delivery-panel__preview-frame">
+            {objectUrl ? (
+              <iframe title={draftPreview ? "Draft preview PDF" : "Prefilled request PDF"} src={objectUrl} />
+            ) : (
+              <p role="status" className="delivery-panel__preview-loading">Preparing preview…</p>
+            )}
+          </div>
+        </section>
+
         <section className="delivery-panel__download">
           <a
-            href={generated.pdfUrl}
+            {...(objectUrl ? { href: objectUrl } : {})}
             target="_blank"
             rel="noopener noreferrer"
-            download={generated.filename}
             className="delivery-panel__download-link"
+            aria-disabled={!objectUrl}
           >
-            Open / Download Prefilled PDF
+            Open PDF
+          </a>
+          <a
+            {...(objectUrl ? { href: objectUrl } : {})}
+            download={generated.filename}
+            className="delivery-panel__download-link delivery-panel__download-link--secondary"
+            aria-disabled={!objectUrl}
+          >
+            {draftPreview ? "Download Draft PDF" : "Download Prefilled PDF"}
           </a>
         </section>
 

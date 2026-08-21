@@ -178,6 +178,74 @@ describe("resolveAndRenderTemplate", () => {
     );
   });
 
+  describe("allowDraftProfile (authorized operator preview only)", () => {
+    it("still rejects a draft profile by default (public path unaffected)", async () => {
+      await expectCode(
+        () => resolveAndRenderTemplate({ ...profileFor("generated_letter"), status: "draft" }, requestData, registry()),
+        "PROFILE_NOT_VERIFIED",
+      );
+    });
+
+    it("renders a draft profile when allowDraftProfile is explicitly set", async () => {
+      const renderers = registry();
+      const result = await resolveAndRenderTemplate(
+        { ...profileFor("generated_letter"), status: "draft" },
+        requestData,
+        renderers,
+        { allowDraftProfile: true },
+      );
+      expect(result.pdfBytes.length).toBeGreaterThan(0);
+      expect(renderers.generated_letter).toHaveBeenCalledOnce();
+    });
+
+    it("ignores effective dates for a draft profile when allowDraftProfile is set (drafts have no effective window that matters yet)", async () => {
+      const result = await resolveAndRenderTemplate(
+        { ...profileFor("generated_letter"), status: "draft", effective_from: "2027-01-01" },
+        requestData,
+        registry(),
+        { allowDraftProfile: true, today: "2026-01-01" },
+      );
+      expect(result.pdfBytes.length).toBeGreaterThan(0);
+    });
+
+    it.each(["in_review", "verified", "retired"] as const)(
+      "rejects a %s profile even when allowDraftProfile is set — only status === 'draft' is previewable",
+      async (status) => {
+        await expectCode(
+          () => resolveAndRenderTemplate(
+            { ...profileFor("generated_letter"), status },
+            requestData,
+            registry(),
+            { allowDraftProfile: true },
+          ),
+          "PROFILE_NOT_DRAFT",
+        );
+      },
+    );
+
+    it("still enforces every other check (structural validation, identity match, template preflight) with the bypass set", async () => {
+      await expectCode(
+        () => resolveAndRenderTemplate(
+          { ...profileFor("acroform"), status: "draft", base_pdf_object_id: null },
+          requestData,
+          registry(),
+          { allowDraftProfile: true },
+        ),
+        "INVALID_PROFILE",
+      );
+
+      await expectCode(
+        () => resolveAndRenderTemplate(
+          { ...profileFor("generated_letter"), status: "draft" },
+          { ...requestData, profile: { ...requestData.profile, id: "50000000-0000-4000-8000-000000000005" } },
+          registry(),
+          { allowDraftProfile: true },
+        ),
+        "PROFILE_REQUEST_MISMATCH",
+      );
+    });
+  });
+
   it.each([
     { profile: { id: "50000000-0000-4000-8000-000000000005" } },
     { profile: { version: 2 } },

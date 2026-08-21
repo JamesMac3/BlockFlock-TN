@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { supabase } from "../../lib/supabase";
 import { validateExternalUrl } from "../../utils/urlValidation";
-import { buildDraftPostPayload, buildPublishPayload, runWithVerifiedUser } from "../../utils/postPayload";
+import { buildDraftPostPayload, runWithVerifiedUser } from "../../utils/postPayload";
 import {
   MediaPersistenceError,
   createSupabaseMediaAdapter,
@@ -187,26 +187,29 @@ export default function PostComposer({
       return;
     }
 
+    let submittedStatus = null;
     if (publish) {
-      setProgress("Publishing...");
-      const { data: published, error: publishError } = await supabase
-        .from("posts")
-        .update(buildPublishPayload(authenticatedUser))
-        .eq("id", post.id)
-        .select("*")
-        .single();
-      if (publishError) {
-        setError(`${publishError.message} The post remains a draft.`);
+      setProgress("Submitting...");
+      // Status transitions (immediate publish for admins/trusted chapter
+      // masters, pending review for restricted ones) are decided
+      // server-side by rrg_submit_post from the live portal_accounts row —
+      // never by a client-provided status.
+      const { data: submitted, error: submitError } = await supabase.rpc("rrg_submit_post", {
+        p_post_id: post.id,
+      });
+      if (submitError) {
+        setError(`${submitError.message} The post remains a draft.`);
         setRetryPublish(publish);
         setSubmitting(false);
         submissionLockRef.current = false;
         return;
       }
-      post = published;
+      post = submitted;
+      submittedStatus = submitted.status;
       setSavedPost(post);
     }
 
-    setProgress(publish ? "Published" : "Draft saved");
+    setProgress(!publish ? "Draft saved" : submittedStatus === "pending" ? "Submitted for review" : "Published");
     setSubmitting(false);
     submissionLockRef.current = false;
     onComplete?.(post);

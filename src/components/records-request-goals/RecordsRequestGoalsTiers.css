@@ -162,6 +162,11 @@
   text-decoration: underline;
 }
 
+.goal-card__links a:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
 @media (max-width: 768px) {
   .goal-tier__header {
     font-size: 1.15rem;

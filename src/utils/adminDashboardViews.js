@@ -10,7 +10,10 @@ export function postMatchesAdminView(post, viewId, now = new Date()) {
   if (viewId === "pending") return post.status === "pending";
   if (viewId === "drafts") return post.status === "draft";
   if (viewId === "published") return post.status === "approved";
-  if (viewId === "returned") return ["returned", "revision_requested"].includes(post.status);
+  // The live posts_status_check permits only draft/pending/approved/rejected
+  // — this view labels 'rejected' as "Returned for Revision" but the stored
+  // status column is always 'rejected'.
+  if (viewId === "returned") return post.status === "rejected";
   if (viewId === "meetings") {
     return post.content_type === "meeting" &&
       Boolean(post.event_start) &&

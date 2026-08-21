@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildDraftPostPayload,
-  buildPublishPayload,
   runWithVerifiedUser,
 } from "../src/utils/postPayload.js";
 
@@ -90,13 +89,6 @@ test("missing authenticated user prevents media upload", async () => {
     /session could not be verified/i
   );
   assert.equal(uploadCalls, 0);
-});
-
-test("publishing sets approved_by to authenticated administrator", () => {
-  const payload = buildPublishPayload(ADMIN);
-  assert.equal(payload.status, "approved");
-  assert.equal(payload.approved_by, ADMIN.id);
-  assert.ok(payload.approved_at);
 });
 
 test("editing a chapter-authored post preserves its original author", () => {

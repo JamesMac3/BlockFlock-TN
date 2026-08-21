@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import "./EducationEntryCards.css";
 
 const CATEGORIES = [
@@ -13,7 +14,7 @@ const CATEGORIES = [
     resources: [
       {
         label: "6 Points About Surveillance",
-        href: "https://zvmfvyhhcxdzwlbquudw.supabase.co/storage/v1/object/public/education-materials/6pointsaboutsurveillence.pdf",
+        href: "/documents/6-points-about-surveillance",
       },
     ],
   },
@@ -36,9 +37,7 @@ export default function EducationEntryCards() {
               <ul className="education-entry-card__resources">
                 {category.resources.map((resource) => (
                   <li key={resource.href}>
-                    <a href={resource.href} target="_blank" rel="noreferrer">
-                      {resource.label}
-                    </a>
+                    <Link to={resource.href}>{resource.label}</Link>
                   </li>
                 ))}
               </ul>

@@ -36,6 +36,22 @@ export type RendererRegistry = Readonly<Record<RendererType, PdfRenderer>>;
 
 export type TemplateResolverOptions = Readonly<{
   today?: string;
+  /**
+   * Off by default. When true, replaces the verified-status and
+   * currently-effective checks below with a narrower requirement that the
+   * profile's status is exactly "draft" — never in_review, verified, or
+   * retired. This exists solely for the authenticated operator
+   * draft-preview path (see generate-operator-preview-document.ts), which
+   * is explicitly meant to preview draft profiles only; verified profiles
+   * are still served through the ordinary path below (with this option
+   * off), and in_review/retired profiles are rejected either way. The
+   * public/production path (generate-request-document.ts) never sets this,
+   * so its behavior is unchanged. Every other check in this module —
+   * structural validation, profile/request identity, template preflight,
+   * renderer dispatch, and output validation — still applies
+   * unconditionally.
+   */
+  allowDraftProfile?: boolean;
 }>;
 
 export type TemplateResolverErrorCode =
@@ -43,6 +59,7 @@ export type TemplateResolverErrorCode =
   | "INVALID_REQUEST_DATA"
   | "PROFILE_NOT_VERIFIED"
   | "PROFILE_NOT_EFFECTIVE"
+  | "PROFILE_NOT_DRAFT"
   | "PROFILE_REQUEST_MISMATCH"
   | "INVALID_TEMPLATE_LAYOUT"
   | "TEMPLATE_PREFLIGHT_FAILED"
@@ -159,17 +176,26 @@ export async function resolveAndRenderTemplate(
   const profile = profileResult.data;
   const data = requestResult.data;
 
-  if (profile.status !== "verified") {
-    throw new TemplateResolverError("PROFILE_NOT_VERIFIED", "Only verified request profiles may generate documents.");
-  }
+  if (options.allowDraftProfile) {
+    if (profile.status !== "draft") {
+      throw new TemplateResolverError(
+        "PROFILE_NOT_DRAFT",
+        "Only draft request profiles may be previewed through the operator preview path.",
+      );
+    }
+  } else {
+    if (profile.status !== "verified") {
+      throw new TemplateResolverError("PROFILE_NOT_VERIFIED", "Only verified request profiles may generate documents.");
+    }
 
-  const today = options.today ?? currentIsoDate();
-  assertIsoDate(today);
-  if (
-    (profile.effective_from !== null && today < profile.effective_from)
-    || (profile.effective_to !== null && today > profile.effective_to)
-  ) {
-    throw new TemplateResolverError("PROFILE_NOT_EFFECTIVE", "The request profile is not effective on the generation date.");
+    const today = options.today ?? currentIsoDate();
+    assertIsoDate(today);
+    if (
+      (profile.effective_from !== null && today < profile.effective_from)
+      || (profile.effective_to !== null && today > profile.effective_to)
+    ) {
+      throw new TemplateResolverError("PROFILE_NOT_EFFECTIVE", "The request profile is not effective on the generation date.");
+    }
   }
 
   if (

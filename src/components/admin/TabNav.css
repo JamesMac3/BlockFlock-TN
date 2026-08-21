@@ -1,0 +1,55 @@
+/* Shared white-outline dark navigation treatment: transparent/dark
+   background, white border and text, a restrained active state, and a
+   keyboard-visible focus ring. Applied to the administrator workspace
+   tabs, the chapter-master portal-section tabs, and the Goal Management
+   subtabs — red is reserved for destructive/danger actions elsewhere. */
+
+.tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Selectors are deliberately qualified with the .tab-nav ancestor (rather
+   than bare .tab-nav__item) to outrank incidental higher-specificity
+   ancestor rules like ".portal-dashboard button" (1 class + 1 type), which
+   would otherwise repaint every TabNav instance nested inside the portal
+   dashboard red instead of white-outline. TabNav is a shared component
+   reused across unrelated containers, so its own styling must always win
+   regardless of what a parent happens to declare for a bare "button". */
+.tab-nav .tab-nav__item {
+  padding: 0.6rem 1.1rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-nav .tab-nav__item:hover {
+  border-color: var(--text);
+}
+
+.tab-nav .tab-nav__item.is-active {
+  border-color: #55e1ff;
+  color: #55e1ff;
+  box-shadow: inset 0 -3px #55e1ff;
+}
+
+.tab-nav .tab-nav__item:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .tab-nav {
+    flex-direction: column;
+  }
+
+  .tab-nav__item {
+    width: 100%;
+  }
+}

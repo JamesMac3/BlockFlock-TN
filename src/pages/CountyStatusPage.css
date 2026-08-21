@@ -1,7 +1,10 @@
 .county-status-page {
   min-height: calc(100vh - 4.75rem);
   padding: 4rem 1rem 6rem;
-  background: var(--background);
+  /* Translucent, not opaque — lets the global fixed background image show
+     through; .county-status-header and other content cards below keep
+     their own opaque var(--surface) background for readability. */
+  background: rgba(7, 17, 31, 0.55);
 }
 
 .county-status-page__inner {

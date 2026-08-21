@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import TennesseeCountyMap from "./TennesseeCountyMap";
 import CountyContactForm from "../CountyContactForm";
+import { setStoredCountySlug } from "../../utils/countyPreference";
 import "./TennesseeCountyMapContainer.css";
 
 export default function TennesseeCountyMapContainer({
@@ -74,6 +75,8 @@ export default function TennesseeCountyMapContainer({
 
   function handleCountySelect(countyName) {
     setSelectedCountyName(countyName);
+    const slug = countyData[countyName]?.slug;
+    if (slug) setStoredCountySlug(slug);
   }
 
   function handleOpenContactForm() {

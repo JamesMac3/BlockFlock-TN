@@ -31,7 +31,7 @@ async function loadEditablePost(postId) {
     .single();
 }
 
-export default function AdminPostDashboard({ user, onSignOut, initialEditPostId = null, activeSection = null, onSectionChange = null }) {
+export default function AdminPostDashboard({ user, initialEditPostId = null }) {
   const [activeView, setActiveView] = useState("pending");
   const [posts, setPosts] = useState([]);
   const [counties, setCounties] = useState([]);
@@ -125,18 +125,6 @@ export default function AdminPostDashboard({ user, onSignOut, initialEditPostId 
 
   return (
     <section className="admin-post-dashboard">
-      <header className="admin-post-dashboard__header">
-        <div><p>Administrator workspace</p><h1>Publishing dashboard</h1></div>
-        <div className="admin-dashboard-actions">
-          <button type="button" onClick={() => setCreationType("post")}>Publish update</button>
-          <span>
-            <button type="button" className="is-secondary" onClick={() => setCreationType("meeting")}>Create meeting without post</button>
-            <small>Add a meeting to the schedule without publishing a full county update.</small>
-          </span>
-          <button type="button" className="is-secondary" onClick={onSignOut}>Sign Out</button>
-        </div>
-      </header>
-
       {loading && <p role="status">Loading administrator posts...</p>}
       {error && <p className="composer-error" role="alert">{error}</p>}
 
@@ -145,7 +133,19 @@ export default function AdminPostDashboard({ user, onSignOut, initialEditPostId 
           {ADMIN_DASHBOARD_VIEWS.map((view) => <DashboardViewCard key={view.id} definition={view} count={counts[view.id]} active={activeView === view.id} onSelect={() => setActiveView(view.id)} />)}
         </div>
         <section className="admin-dashboard-content" aria-labelledby="admin-active-view-heading">
-          <header><h2 id="admin-active-view-heading">{activeDefinition.heading}</h2><p>{counts[activeView]} {counts[activeView] === 1 ? "item" : "items"}.</p></header>
+          <header className="admin-dashboard-content__header">
+            <div>
+              <h2 id="admin-active-view-heading">{activeDefinition.heading}</h2>
+              <p>{counts[activeView]} {counts[activeView] === 1 ? "item" : "items"}.</p>
+            </div>
+            <div className="admin-dashboard-actions">
+              <button type="button" onClick={() => setCreationType("post")}>Publish update</button>
+              <span>
+                <button type="button" className="is-secondary" onClick={() => setCreationType("meeting")}>Create meeting without post</button>
+                <small>Add a meeting to the schedule without publishing a full county update.</small>
+              </span>
+            </div>
+          </header>
           <ContentManagementTable
             key={activeView}
             records={activeItems}

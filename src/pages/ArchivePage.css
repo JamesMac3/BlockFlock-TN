@@ -1,8 +1,11 @@
-/* Public Records Archive Page */
-
 .archive-page {
-  padding: 2rem 1.5rem;
-  background: #f9f9f9;
+  padding: 2rem 1.5rem 3rem;
+  /* Translucent, not opaque — lets the global fixed background image show
+     through the page margins/gaps. The actual data lives in fully-opaque
+     white cards/tables below (.archive-toolbar, .archive-table__scroll),
+     which stay readable regardless. */
+  background: rgba(249, 249, 249, 0.9);
+  min-height: 60vh;
 }
 
 .archive-page__inner {
@@ -10,69 +13,210 @@
   margin: 0 auto;
 }
 
-.archive-header {
-  margin-bottom: 3rem;
+.archive-message {
+  padding: 6rem 0 4rem;
+  text-align: center;
+}
+
+.archive-message h1 {
+  font-size: 1.75rem;
+  color: #1a1a1a;
 }
 
 .archive-header h1 {
-  font-size: 2rem;
-  margin: 0.5rem 0 1rem;
+  font-size: 1.75rem;
   color: #1a1a1a;
+  margin: 0 0 0.5rem;
 }
 
 .archive-intro {
-  color: #666;
-  max-width: 700px;
-  margin: 0;
-  font-size: 1.05rem;
-  line-height: 1.6;
+  color: #6b7280;
+  font-size: 1.02rem;
+  max-width: 48rem;
 }
 
-.archive-message {
-  padding: 6rem 0 4rem;
+.archive-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.archive-tabs button {
+  padding: 0.6rem 1.1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.35rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.archive-tabs button.is-active {
+  border-color: #2563eb;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.archive-message-inline {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.archive-table__badge--complete {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.archive-table__badge--partial {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.archive-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.archive-toolbar label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.archive-toolbar input,
+.archive-toolbar select {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.35rem;
+  font: inherit;
 }
 
 .archive-empty {
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 0.5rem;
-  padding: 2rem;
+  padding: 3rem 0;
   text-align: center;
-  color: #666;
+  color: #6b7280;
 }
 
-.archive-jurisdiction {
-  margin-bottom: 2.5rem;
+.archive-table__scroll {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
 }
 
-.archive-jurisdiction__header {
-  font-size: 1.35rem;
+.archive-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.archive-table th,
+.archive-table td {
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.archive-table th {
+  background: #f9fafb;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+/* This table's light surface (#fff) sits inside a globally dark-themed app
+   whose body text color is a near-white (var(--text): #f2efe7) — without an
+   explicit dark foreground here, cells inherit that near-white color and
+   become nearly unreadable against the white background. Applies uniformly
+   to both the Investigative Goals and Blank Request Forms tables, since
+   both share .archive-table/.archive-table__row. */
+.archive-table td {
   color: #1a1a1a;
-  margin: 0 0 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e0e0e0;
 }
 
-.archive-jurisdiction__list {
+.archive-table__row {
+  cursor: pointer;
+  color: #1a1a1a;
+}
+
+.archive-table__row:hover {
+  background: #f3f4f6;
+}
+
+.archive-table__row:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
+  background: #eff6ff;
+}
+
+.archive-table__badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #e0e7ff;
+  color: #312e81;
+}
+
+.archive-table__badge--template {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.archive-table__badge--evidence {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.archive-table__badge--response-email {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.archive-pagination {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 1rem;
+  margin-top: 1rem;
+}
+
+.archive-pagination button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.35rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.archive-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
   .archive-page {
-    padding: 1.5rem 1rem;
+    padding: 1.5rem 1rem 2rem;
   }
 
   .archive-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 
-  .archive-intro {
-    font-size: 1rem;
-  }
-
-  .archive-jurisdiction__header {
-    font-size: 1.15rem;
+  .archive-table th:nth-child(4),
+  .archive-table td:nth-child(4),
+  .archive-table th:nth-child(6),
+  .archive-table td:nth-child(6),
+  .archive-table th:nth-child(7),
+  .archive-table td:nth-child(7) {
+    display: none;
   }
 }

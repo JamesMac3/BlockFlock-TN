@@ -13,5 +13,10 @@
     "resolveJsonModule": true,
     "types": ["vitest/globals"]
   },
-  "include": ["src/features/document-request/pdf/**/*.ts", "src/features/document-request/pdf/**/*.tsx"]
+  "include": [
+    "src/features/document-request/pdf/**/*.ts",
+    "src/features/document-request/pdf/**/*.tsx",
+    "src/features/portal-admin/**/*.ts",
+    "src/features/portal-admin/**/*.tsx"
+  ]
 }

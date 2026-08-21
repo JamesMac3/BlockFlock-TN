@@ -1,0 +1,26 @@
+.access-revoked-page {
+  display: flex;
+  min-height: 60vh;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.access-revoked-page__inner {
+  max-width: 32rem;
+  padding: 2rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  background: #fef2f2;
+  text-align: center;
+}
+
+.access-revoked-page__inner h1 {
+  margin-top: 0;
+  color: #991b1b;
+}
+
+.access-revoked-page__inner a {
+  color: #991b1b;
+  font-weight: 600;
+}

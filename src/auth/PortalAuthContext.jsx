@@ -9,6 +9,7 @@ export function PortalAuthProvider({ children }) {
   const [account, setAccount] = useState(null);
   const [assignedCounty, setAssignedCounty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [revoked, setRevoked] = useState(false);
 
   const clearPortalState = useCallback(() => {
     setSession(null);
@@ -26,9 +27,23 @@ export function PortalAuthProvider({ children }) {
     async (user) => {
       const { data: portalAccount, error: accountError } = await supabase
         .from("portal_accounts")
-        .select("user_id, role, county_id, status")
+        .select("user_id, role, county_id, status, review_required")
         .eq("user_id", user.id)
         .single();
+
+      // Tokens issued before a suspension may still be briefly valid, so
+      // this check must run on every profile load (login and session
+      // restore), not only at sign-in — every protected data/storage path
+      // independently requires status = 'active' too.
+      if (!accountError && portalAccount?.status === "suspended") {
+        setRevoked(true);
+        await signOut();
+        // A distinguishable return value, not just null — callers like
+        // PortalLogin must react to "this account is suspended" without
+        // relying on a same-tick read of context state, which would still
+        // reflect the render before this update.
+        return { revoked: true };
+      }
 
       if (
         accountError ||
@@ -39,6 +54,8 @@ export function PortalAuthProvider({ children }) {
         await signOut();
         return null;
       }
+
+      setRevoked(false);
 
       let county = null;
 
@@ -160,6 +177,7 @@ export function PortalAuthProvider({ children }) {
         assignedCounty,
         loading,
         authenticated,
+        revoked,
         acceptSession,
         refreshPortalProfile,
         signOut,
