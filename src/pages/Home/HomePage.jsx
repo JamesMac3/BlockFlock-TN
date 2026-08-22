@@ -108,10 +108,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        <div className="container">
-          <NextMeetingBanner countyId={null} />
-        </div>
-
         <section className="trust-strip">
           <div className="container trust-strip__inner">
             <div>
@@ -128,6 +124,10 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        <div className="container">
+          <NextMeetingBanner countyId={null} />
+        </div>
 
         <section className="section">
           <div className="container">
