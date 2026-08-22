@@ -70,6 +70,14 @@ describe("createOverlayRenderer", () => {
     expect((await PDFDocument.load(result.pdfBytes)).getPageCount()).toBe(1);
   });
 
+  it("draws text containing an arrow character instead of crashing the standard WinAnsi font (same underlying fix as acroform-renderer.test.ts)", async () => {
+    const source = await blankPdf();
+    const renderer = createOverlayRenderer({ loadBasePdf: async () => source });
+    const arrowData = { ...data, request: { ...data.request, records_description: "Records located → transferred to archive." } };
+    const result = await renderer({ profile: profile(baseField), data: arrowData });
+    expect(result.pdfBytes.slice(0, 5)).toEqual(new TextEncoder().encode("%PDF-"));
+  });
+
   it("wraps long unbroken words without exceeding the box", async () => {
     const source = await blankPdf();
     const renderer = createOverlayRenderer({ loadBasePdf: async () => source });

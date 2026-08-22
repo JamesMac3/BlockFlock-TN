@@ -2,6 +2,7 @@ import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, PDFFont, StandardFonts } from "pdf-lib";
 import type { AllowedPlaceholderPath } from "./request-data-schema";
 import { readPlaceholderValue, resolvePlaceholders } from "./placeholder-resolver";
+import { sanitizeForWinAnsiFont } from "./winansi-text";
 import type {
   PdfRenderer,
   RenderDiagnostic,
@@ -154,11 +155,16 @@ async function renderAcroform(
     try {
       switch (mapping.kind) {
         case "text": {
-          const text = displayValue(value);
-          if (text === undefined || typeof value === "boolean") {
+          const rawText = displayValue(value);
+          if (rawText === undefined || typeof value === "boolean") {
             diagnostics.push(diagnostic("FIELD_VALUE_INVALID", "Text fields require a string or number.", mapping.pdf_field));
             break;
           }
+          // The base PDF's rendered appearance uses the standard font
+          // (WinAnsi-only) unless a custom font is embedded — sanitize
+          // before the length check so the enforced limit applies to what
+          // is actually rendered, not a pre-substitution length.
+          const text = sanitizeForWinAnsiFont(rawText);
           if (mapping.max_length !== undefined && text.length > mapping.max_length) {
             diagnostics.push(diagnostic(
               "FIELD_VALUE_INVALID",

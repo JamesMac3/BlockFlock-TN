@@ -3,6 +3,7 @@ import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib";
 import type { BasePdfLoader, FontLoader } from "./acroform-renderer";
 import { requestProfileSchema, type RequestProfile } from "./profile-schema";
 import { readPlaceholderValue } from "./placeholder-resolver";
+import { sanitizeForWinAnsiFont } from "./winansi-text";
 import type { PdfRenderer, RendererContext, RenderedPdf } from "./template-resolver";
 
 const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
@@ -208,8 +209,12 @@ async function renderOverlay(
       if (field.required) throw new OverlayRendererError("FIELD_VALUE_MISSING", `Required overlay value is missing: ${field.source}.`, field.source);
       continue;
     }
-    const text = stringValue(value);
-    if (text === undefined) throw new OverlayRendererError("FIELD_VALUE_INVALID", `Overlay value is not printable: ${field.source}.`, field.source);
+    const rawText = stringValue(value);
+    if (rawText === undefined) throw new OverlayRendererError("FIELD_VALUE_INVALID", `Overlay value is not printable: ${field.source}.`, field.source);
+    // Same standard-font (WinAnsi-only) limitation as the acroform
+    // renderer — see winansi-text.ts. Sanitized before any width
+    // measurement/wrapping so layout reflects what will actually render.
+    const text = sanitizeForWinAnsiFont(rawText);
     const page = document.getPages()[field.page];
     if (!page) throw new OverlayRendererError("BOX_OUT_OF_BOUNDS", `Overlay page does not exist: ${field.page}.`, field.source);
     const { width: pageWidth, height: pageHeight } = page.getSize();

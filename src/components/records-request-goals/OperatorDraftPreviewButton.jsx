@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { usePortalAuth } from "../../auth/portalAuth";
 import { canOperatorPreviewGoalCounty, fetchDraftPreviewBundle } from "../../features/document-request/operatorPreview";
@@ -42,13 +42,59 @@ const ALLOWLISTED_BUNDLE_MESSAGES = new Set([
   "Base PDF evidence is not published.",
 ]);
 
+// Same column lists RecordsRequestGoalsTiers.jsx uses to evaluate the
+// public "Prepare Request Form" path — kept in exact sync so a verified
+// profile previewed here goes through the identical readiness check the
+// public roadmap performs, not a narrower or looser one.
+const PROFILE_ROW_COLUMNS =
+  "id, government_entity_id, version, schema_version, status, effective_from, effective_to, " +
+  "policy_source_url, archived_policy_object_id, policy_summary, eligibility_mode, eligibility_jurisdiction, " +
+  "eligibility_explanation, form_mode, form_explanation, fee_rule, aggregation_rule, submission_instructions, " +
+  "template_family, renderer_type, base_pdf_object_id, continuation_profile_id, field_schema, template_schema, " +
+  "validation_schema, output_options, verified_by, verified_at";
+
+const ENTITY_ROW_COLUMNS =
+  "id, legal_name, display_name, coordinator_name, coordinator_title, submission_email, mailing_address, portal_url";
+
+// Several errors in the generation pipeline (TemplateResolverError,
+// AcroformRendererError, OverlayRendererError, OutputValidationError,
+// TemplateSourceError) wrap the real underlying failure in their own
+// `causeValue` rather than Error's native `cause`, and template-resolver.ts
+// re-wraps whatever a renderer throws into one generic RENDERER_FAILED
+// message — so a bare `console.error(topLevelError)` only ever shows that
+// generic wrapper text, never the specific code/diagnostics/message one or
+// two levels down. This walks the full chain to the console only — never
+// rendered, and never altering what's shown on screen.
+function logGenerationErrorChain(label, error) {
+  console.error(label, error);
+  let current = error;
+  let depth = 0;
+  while (current?.causeValue && depth < 5) {
+    console.error(`${label} — underlying cause (level ${depth + 1}):`, current.causeValue);
+    current = current.causeValue;
+    depth += 1;
+  }
+}
+
 /**
- * First slice of authorized administrator/chapter-master draft-request
- * preview. Renders nothing for anonymous visitors, ordinary authenticated
- * users, or a chapter master previewing a goal outside their assigned
- * county — this is only a UX pre-check; the server independently
- * re-verifies authorization on every call via
- * get_draft_request_preview_bundle. Never renders for a locked goal, and
+ * Authorized administrator/chapter-master preview of a goal's request
+ * document, profile-aware: a draft profile uses the protected
+ * get_draft_request_preview_bundle RPC workflow (unchanged); a verified
+ * profile is generated through the exact same evaluateGoalReadiness +
+ * generateRequestDocument pipeline the public "Prepare Request Form"
+ * action uses, so an operator previews precisely what a visitor would
+ * receive. Every other profile state (in_review, retired, or the profile
+ * failing to load) offers neither action — showing "Preview Draft" for a
+ * profile that is no longer draft, or any preview at all for a state
+ * neither pipeline supports, would be misleading.
+ *
+ * Renders nothing for anonymous visitors, ordinary authenticated users, or
+ * a chapter master previewing a goal outside their assigned county — this
+ * is only a UX pre-check; both pipelines independently re-verify on the
+ * server (the RPC's own authorization check for drafts; ordinary RLS reads
+ * plus evaluateGoalReadiness's verified/effective/entity checks for
+ * verified profiles — the same checks the public, unauthenticated path
+ * relies on, never weakened here). Never renders for a locked goal, and
  * never mutates the goal, profile, evidence, or archive.
  *
  * Every failure surface is stage-specific rather than one catch-all
@@ -62,16 +108,45 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
   const { authenticated, account } = usePortalAuth();
   const [state, setState] = useState({ status: "idle", headline: "", detail: "" });
   const [delivery, setDelivery] = useState(null);
+  // null = not yet resolved (or not eligible to check at all); otherwise
+  // the linked profile's live status string, or "unavailable" if the
+  // profile row itself could not be loaded.
+  const [profileStatus, setProfileStatus] = useState(null);
 
-  const eligible =
+  const baseEligible =
     authenticated &&
     !goal.locked &&
     Boolean(goal.request_profile_id) &&
     canOperatorPreviewGoalCounty({ account, goalCountyId: county?.id });
 
-  if (!eligible) return null;
+  useEffect(() => {
+    if (!baseEligible) {
+      const timer = setTimeout(() => setProfileStatus(null), 0);
+      return () => clearTimeout(timer);
+    }
+    let active = true;
+    async function loadProfileStatus() {
+      const { data, error } = await supabase
+        .from("request_profiles")
+        .select("status")
+        .eq("id", goal.request_profile_id)
+        .maybeSingle();
+      if (!active) return;
+      setProfileStatus(error || !data ? "unavailable" : data.status);
+    }
+    const timer = setTimeout(loadProfileStatus, 0);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [baseEligible, goal.request_profile_id]);
 
-  async function handlePreview() {
+  const isDraftMode = profileStatus === "draft";
+  const isVerifiedMode = profileStatus === "verified";
+
+  if (!baseEligible || (!isDraftMode && !isVerifiedMode)) return null;
+
+  async function handleDraftPreview() {
     setState({ status: "working", headline: "", detail: "" });
 
     try {
@@ -124,24 +199,65 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
       setState({ status: "idle", headline: "", detail: "" });
       setDelivery({ profile: readiness.profile, data: readiness.data, generated, warnings: readiness.warnings });
       // A real, successful preview for this exact profile — the UX gate
-      // the Request Profile lifecycle section requires before it will
-      // offer Activate Profile at all.
+      // the Request Profile Verification section requires before it will
+      // offer Verify Profile at all.
       onPreviewSuccess?.(readiness.profile.id);
     } catch (previewError) {
       // The developer-facing detail is logged only — never rendered. See
-      // the module doc comment above.
-      console.error("Operator draft preview failed:", previewError);
+      // the module doc comment above and logGenerationErrorChain.
+      logGenerationErrorChain("Operator draft preview failed:", previewError);
 
-      // OutputValidationError (e.g. PDF_REOPEN_FAILED) wraps the actual
-      // underlying failure — a raw PDF.js/browser error — in its own
-      // causeValue, which console.error alone does not reliably surface
-      // (custom Error subclass properties aren't always shown when an
-      // Error is logged directly). Logged separately here, still only to
-      // the console, never rendered.
-      if (previewError?.name === "OutputValidationError" && previewError.causeValue) {
-        console.error("Underlying PDF inspection failure:", previewError.causeValue);
+      const stage = classifyOperatorPreviewError(previewError);
+      setState({ status: "error", headline: operatorPreviewStageMessage(stage), detail: "" });
+    }
+  }
+
+  async function handleVerifiedPreview() {
+    setState({ status: "working", headline: "", detail: "" });
+
+    try {
+      const [profileResult, entityResult] = await Promise.all([
+        supabase.from("request_profiles").select(PROFILE_ROW_COLUMNS).eq("id", goal.request_profile_id).maybeSingle(),
+        goal.government_entity_id
+          ? supabase.from("government_entities").select(ENTITY_ROW_COLUMNS).eq("id", goal.government_entity_id).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (profileResult.error || entityResult.error) {
+        console.error(
+          "Failed to load profile/entity for verified operator preview:",
+          profileResult.error ?? entityResult.error,
+        );
+        setState({ status: "error", headline: operatorPreviewStageMessage("bundle"), detail: "" });
+        return;
       }
 
+      // Never a narrower or looser check than the public generator uses —
+      // this is the exact same function, called with the exact same
+      // shape of goal/profile/entity rows RecordsRequestGoalsTiers.jsx
+      // (the public "Prepare Request Form" path) uses.
+      const { evaluateGoalReadiness } = await import("../../features/document-request/pdf/readiness");
+      const readiness = evaluateGoalReadiness({
+        goal,
+        profileRow: profileResult.data,
+        entityRow: entityResult.data,
+      });
+
+      if (!readiness.ready) {
+        // readiness.message is already a curated, safe sentence (see
+        // readiness.ts) — never a raw database or storage error.
+        setState({ status: "error", headline: readiness.message, detail: "" });
+        return;
+      }
+
+      const { generateRequestDocument } = await import("../../features/document-request/pdf/generate-request-document");
+      const generated = await generateRequestDocument(readiness.profile, readiness.data, { supabase });
+
+      setState({ status: "idle", headline: "", detail: "" });
+      setDelivery({ profile: readiness.profile, data: readiness.data, generated, warnings: readiness.warnings });
+      onPreviewSuccess?.(readiness.profile.id);
+    } catch (previewError) {
+      logGenerationErrorChain("Verified operator preview failed:", previewError);
       const stage = classifyOperatorPreviewError(previewError);
       setState({ status: "error", headline: operatorPreviewStageMessage(stage), detail: "" });
     }
@@ -153,13 +269,19 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
         <button
           type="button"
           className="operator-preview__btn"
-          onClick={handlePreview}
+          onClick={isDraftMode ? handleDraftPreview : handleVerifiedPreview}
           disabled={state.status === "working"}
         >
-          {state.status === "working" ? "Generating preview…" : "Preview Draft Request Form"}
+          {state.status === "working"
+            ? "Generating preview…"
+            : isDraftMode
+              ? "Preview Draft Request Form"
+              : "Preview Verified Request Form"}
         </button>
         <p className="operator-preview__note">
-          Operator-only draft preview — not publicly available. Uses the goal's last saved data.
+          {isDraftMode
+            ? "Operator-only draft preview — not publicly available. Uses the goal's last saved data."
+            : "Generates the same request form the public roadmap would produce for this verified profile."}
         </p>
         {hasUnsavedChanges && (
           <p className="operator-preview__error">
@@ -183,7 +305,7 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
           data={delivery.data}
           generated={delivery.generated}
           validationWarnings={delivery.warnings}
-          draftPreview
+          draftPreview={isDraftMode}
           onClose={() => setDelivery(null)}
         />
       )}

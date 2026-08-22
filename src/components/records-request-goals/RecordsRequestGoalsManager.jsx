@@ -11,8 +11,10 @@ import AdminPopout from "../admin/AdminPopout";
 import { classifyRpcError } from "../../features/portal-admin/rpcErrors";
 import {
   publicVisibilityAllowed,
+  publicVisibilityForcedValue,
   applyPublicVisibilityRule,
   PUBLIC_VISIBILITY_BLOCKED_REASON,
+  PUBLIC_VISIBILITY_FORCED_REASON,
   goalFormSnapshot,
   goalRowSnapshot,
   goalFormIsDirty,
@@ -963,13 +965,16 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
           <input
             type="checkbox"
             checked={formData.is_public}
-            disabled={!publicVisibilityAllowed(formData.status)}
+            disabled={publicVisibilityForcedValue(formData.status) !== null}
             onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
           />
           Public Visibility
         </label>
         {!publicVisibilityAllowed(formData.status) && (
           <small className="rrg-fill-payload__hint">{PUBLIC_VISIBILITY_BLOCKED_REASON}</small>
+        )}
+        {publicVisibilityForcedValue(formData.status) === true && (
+          <small className="rrg-fill-payload__hint">{PUBLIC_VISIBILITY_FORCED_REASON}</small>
         )}
       </div>
 
@@ -1051,15 +1056,27 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
   // time rather than listed as a dependency, specifically so this never
   // fires again merely because the operator typed something (which flips
   // dirty to true but does not change the `goal` prop itself).
+  //
+  // A second guard protects a just-saved row specifically: the parent's
+  // refetch is async and has no request-ordering guarantee against this
+  // component's own save. If a refetch that was already in flight before
+  // Save was clicked resolves afterward, it would otherwise hand back the
+  // pre-save (stale) row and silently restore it into the form — exactly
+  // the "Ready reverts to draft" failure this guards against. Every update
+  // is stamped server-side by the rrg_touch_goal trigger, so a fetched row
+  // whose updated_at predates our own last successful save is provably
+  // stale and is never applied.
   useEffect(() => {
     if (dirty) return undefined;
     const timer = setTimeout(() => {
+      const fetchedUpdatedAt = goal.updated_at ? new Date(goal.updated_at).getTime() : 0;
+      if (savedAt && fetchedUpdatedAt < savedAt) return;
       setFormData(goal);
       setFillRequest(goal.fill_payload?.request ?? EMPTY_FILL_REQUEST);
       setBaselineSnapshot(goalRowSnapshot(goal));
     }, 0);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- see comment above: dirty is read, not depended on
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see comment above: dirty and savedAt are read, not depended on
   }, [goal]);
 
   function updateField(changes) {
@@ -1153,10 +1170,16 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
         .update(payload)
         .eq("id", goal.id);
       if (updateError) throw updateError;
-      // The just-saved values become the new baseline immediately, without
-      // waiting for the parent's refetch round-trip — dirty is derived, so
-      // this alone is what makes it read false again right after a save.
-      setBaselineSnapshot(goalFormSnapshot({ ...formData, ...payload }, fillRequest));
+      // The form now displays exactly what was persisted — including any
+      // value applyPublicVisibilityRule corrected (e.g. forcing is_public
+      // true for "ready") that may differ from what was on screen a moment
+      // ago — rather than waiting for the parent's refetch round-trip to
+      // reflect it. dirty is derived from baselineSnapshot vs. the current
+      // snapshot, so updating both together is what makes it read false
+      // again right after a save.
+      const savedFormData = { ...formData, ...payload };
+      setFormData(savedFormData);
+      setBaselineSnapshot(goalFormSnapshot(savedFormData, fillRequest));
       setSavedAt(Date.now());
       // Reconciles the parent's goal list in the background — onSave never
       // closes this popout itself; only Cancel/Close/Delete do.
@@ -1253,13 +1276,16 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
           <input
             type="checkbox"
             checked={formData.is_public}
-            disabled={!publicVisibilityAllowed(formData.status)}
+            disabled={publicVisibilityForcedValue(formData.status) !== null}
             onChange={(e) => updateField({ is_public: e.target.checked })}
           />
           Public
         </label>
         {!publicVisibilityAllowed(formData.status) && (
           <small className="rrg-fill-payload__hint">{PUBLIC_VISIBILITY_BLOCKED_REASON}</small>
+        )}
+        {publicVisibilityForcedValue(formData.status) === true && (
+          <small className="rrg-fill-payload__hint">{PUBLIC_VISIBILITY_FORCED_REASON}</small>
         )}
       </div>
 

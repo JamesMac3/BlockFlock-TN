@@ -15,25 +15,53 @@ export const PRIVATE_ONLY_GOAL_STATUSES = ["draft", "retired"] as const;
 
 export type PrivateOnlyGoalStatus = (typeof PRIVATE_ONLY_GOAL_STATUSES)[number];
 
+/**
+ * A goal moved to "ready" is automatically made public — there is no
+ * separate operator decision to make. This is a UI/product rule, not a
+ * live database constraint (the constraint only forbids draft/retired +
+ * public; it does not require ready + public), so it lives here exactly
+ * like the draft/retired rule: forced on every status change AND reapplied
+ * defensively on the submitted payload.
+ */
+export const AUTO_PUBLIC_GOAL_STATUS = "ready" as const;
+
 export const PUBLIC_VISIBILITY_BLOCKED_REASON =
   "Draft and retired goals are always private. Move the goal to another status before making it public.";
+
+export const PUBLIC_VISIBILITY_FORCED_REASON =
+  "Ready goals are automatically public so visitors can prepare the request form.";
 
 export function publicVisibilityAllowed(status: unknown): boolean {
   return !PRIVATE_ONLY_GOAL_STATUSES.includes(status as PrivateOnlyGoalStatus);
 }
 
 /**
- * Forces is_public to false whenever the current status forbids it. Applied
- * to form state on every status change AND again to the object actually
- * submitted, so a stale checked box can never reach the database even if a
- * future edit path forgets to re-run the first check.
+ * Returns the value is_public is locked to for the given status, or `null`
+ * if the operator is free to choose. Single source of truth for both the
+ * forced value applied to form state / the submitted payload, and for
+ * whether the Public checkbox should render disabled.
+ */
+export function publicVisibilityForcedValue(status: unknown): boolean | null {
+  if (PRIVATE_ONLY_GOAL_STATUSES.includes(status as PrivateOnlyGoalStatus)) return false;
+  if (status === AUTO_PUBLIC_GOAL_STATUS) return true;
+  return null;
+}
+
+/**
+ * Forces is_public to whatever the current status requires (false for
+ * draft/retired, true for ready), leaving it to the operator's choice for
+ * every other status. Applied to form state on every status change AND
+ * again to the object actually submitted, so a stale checkbox value can
+ * never reach the database even if a future edit path forgets to re-run
+ * the first check.
  */
 export function applyPublicVisibilityRule<T extends { status?: unknown; is_public?: unknown }>(
   form: T,
 ): T {
-  if (publicVisibilityAllowed(form.status)) return form;
-  if (form.is_public === false) return form;
-  return { ...form, is_public: false };
+  const forced = publicVisibilityForcedValue(form.status);
+  if (forced === null) return form;
+  if (form.is_public === forced) return form;
+  return { ...form, is_public: forced };
 }
 
 /**
@@ -42,6 +70,15 @@ export function applyPublicVisibilityRule<T extends { status?: unknown; is_publi
  */
 export function violatesPublicStatusRule(payload: { status?: unknown; is_public?: unknown }): boolean {
   return Boolean(payload.is_public) && !publicVisibilityAllowed(payload.status);
+}
+
+/**
+ * True whenever a goal is "ready" but was submitted without is_public
+ * forced true. Used by the regression tests to assert the auto-public rule
+ * is actually applied, not merely available.
+ */
+export function violatesAutoPublicRule(payload: { status?: unknown; is_public?: unknown }): boolean {
+  return payload.status === AUTO_PUBLIC_GOAL_STATUS && payload.is_public !== true;
 }
 
 // ---------------------------------------------------------------------------

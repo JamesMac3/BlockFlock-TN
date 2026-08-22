@@ -56,7 +56,7 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
 
       const { data, error } = await supabase
         .from("request_profiles")
-        .select("id, version, template_family")
+        .select("id, version, template_family, status")
         .in("id", profileIds);
 
       if (!active) return;
@@ -291,6 +291,10 @@ function GoalCard({ goal, county, profile, readiness, onPrepared }) {
         </div>
       )}
 
+      {/* Renders nothing unless a portal session is authenticated for this
+          county — the component itself now decides, based on the linked
+          profile's live status, whether to offer a draft or verified
+          preview, or neither. */}
       <OperatorDraftPreviewButton goal={goal} county={county} />
 
       {links.length > 0 && (

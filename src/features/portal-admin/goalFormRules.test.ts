@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   publicVisibilityAllowed,
+  publicVisibilityForcedValue,
   applyPublicVisibilityRule,
   violatesPublicStatusRule,
+  violatesAutoPublicRule,
   PUBLIC_VISIBILITY_BLOCKED_REASON,
+  PUBLIC_VISIBILITY_FORCED_REASON,
   goalFormSnapshot,
   goalRowSnapshot,
   goalFormIsDirty,
@@ -166,5 +169,95 @@ describe("changing goal status alone must not invalidate structured request data
     const fillOnlyChanged = goalFormSnapshot({ ...flockGoal, status: "published" }, flockGoal.fill_payload.request);
     const parseSnapshotFillPortion = (snapshot: string) => JSON.parse(snapshot).at(-1);
     expect(parseSnapshotFillPortion(fillOnlyChanged)).toEqual(parseSnapshotFillPortion(fillOnlyBaseline));
+  });
+});
+
+describe("auto-public-on-ready rule: a goal moved to Ready is automatically made public", () => {
+  it("publicVisibilityForcedValue is true for ready, false for draft/retired, and unforced for every other status", () => {
+    expect(publicVisibilityForcedValue("ready")).toBe(true);
+    expect(publicVisibilityForcedValue("draft")).toBe(false);
+    expect(publicVisibilityForcedValue("retired")).toBe(false);
+    for (const status of ["profile_needed", "requested", "received", "published", "unavailable"]) {
+      expect(publicVisibilityForcedValue(status)).toBeNull();
+    }
+  });
+
+  it("applyPublicVisibilityRule forces is_public true the moment status becomes ready, even if it was false a moment ago", () => {
+    const result = applyPublicVisibilityRule({ status: "ready", is_public: false });
+    expect(result).toEqual({ status: "ready", is_public: true });
+  });
+
+  it("leaves an already-public ready goal untouched (no unnecessary object churn)", () => {
+    const form = { status: "ready", is_public: true };
+    expect(applyPublicVisibilityRule(form)).toBe(form);
+  });
+
+  it("draft and retired are still forced private — the new rule does not weaken the existing one", () => {
+    expect(applyPublicVisibilityRule({ status: "draft", is_public: true })).toEqual({ status: "draft", is_public: false });
+    expect(applyPublicVisibilityRule({ status: "retired", is_public: true })).toEqual({ status: "retired", is_public: false });
+  });
+
+  it("violatesAutoPublicRule flags a ready goal that bypassed the rule (e.g. from a future code path)", () => {
+    expect(violatesAutoPublicRule({ status: "ready", is_public: false })).toBe(true);
+    expect(violatesAutoPublicRule({ status: "ready", is_public: true })).toBe(false);
+    expect(violatesAutoPublicRule({ status: "draft", is_public: false })).toBe(false);
+  });
+
+  it("PUBLIC_VISIBILITY_FORCED_REASON explains why the checkbox is disabled-and-checked while Ready is selected", () => {
+    expect(PUBLIC_VISIBILITY_FORCED_REASON.length).toBeGreaterThan(0);
+    expect(PUBLIC_VISIBILITY_FORCED_REASON).toMatch(/public/i);
+  });
+
+  // Reproduces this session's exact reported case: goal 11 ("Information
+  // about Flock parks/greenways"), persisted as status: draft,
+  // is_public: false, unlocked, with a verified linked profile and a
+  // valid fill_payload. An operator selects Ready and saves — the
+  // submitted payload must carry both corrected fields together, not just
+  // the status change alone.
+  it("a draft/private goal (goal 11's exact persisted shape) changed to Ready submits { status: 'ready', is_public: true }", () => {
+    const goal11Persisted = {
+      id: 11,
+      title: "Information about Flock parks/greenways",
+      status: "draft",
+      is_public: false,
+      locked: false,
+      government_entity_id: 5,
+      request_profile_id: "10dc495d-417d-4027-8ac4-4cb9fbd5b966",
+    };
+
+    // The operator's only action: change the Status field to "ready".
+    // is_public is never touched directly — the rule alone must correct it.
+    const formAfterStatusChange = applyPublicVisibilityRule({ ...goal11Persisted, status: "ready" });
+    expect(formAfterStatusChange.status).toBe("ready");
+    expect(formAfterStatusChange.is_public).toBe(true);
+
+    // Defensive reapplication at submit time (mirrors handleSave's own
+    // `applyPublicVisibilityRule({...})` call around the payload) must
+    // reach the identical result even if some other field handler forgot
+    // the first pass.
+    const submittedPayload = applyPublicVisibilityRule({
+      status: formAfterStatusChange.status,
+      is_public: formAfterStatusChange.is_public,
+    });
+    expect(submittedPayload).toEqual({ status: "ready", is_public: true });
+    expect(violatesAutoPublicRule(submittedPayload)).toBe(false);
+    expect(violatesPublicStatusRule(submittedPayload)).toBe(false);
+  });
+
+  it("cannot be reverted by stale hydration/refetch: reapplying the rule to a stale draft/private snapshot never resurrects it once the operator has moved on to ready", () => {
+    // A stale refetch reflecting the pre-save row must never be treated as
+    // authoritative once a newer save has happened — this is a property of
+    // the rule itself: reapplying it to whatever the *current* status is
+    // always produces a self-consistent result, so a caller that correctly
+    // ignores a stale fetch (see GoalEditForm's savedAt/updated_at guard)
+    // and keeps the locally-saved formData never has that formData
+    // silently re-derived into something inconsistent by this rule.
+    const staleDraftSnapshot = { status: "draft", is_public: false };
+    const currentlySavedReady = { status: "ready", is_public: true };
+
+    // Reapplying the rule to the locally-held, already-correct state is a
+    // no-op — it never regresses toward the stale snapshot's values.
+    expect(applyPublicVisibilityRule(currentlySavedReady)).toEqual(currentlySavedReady);
+    expect(applyPublicVisibilityRule(currentlySavedReady)).not.toEqual(staleDraftSnapshot);
   });
 });

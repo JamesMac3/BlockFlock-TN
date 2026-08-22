@@ -174,6 +174,25 @@ describe("createAcroformRenderer", () => {
     expect(completed.getTitle()).toBe("Request - Example City");
   });
 
+  it("fills a text field containing an arrow character instead of crashing the standard WinAnsi font (regression: TemplateResolverError/AcroformRendererError PDF_SAVE_FAILED -> 'WinAnsi cannot encode' on an unhandled arrow)", async () => {
+    const bytes = await sourcePdf();
+    const renderer = createAcroformRenderer({ loadBasePdf: async () => bytes });
+    const arrowData: RequestDocumentData = {
+      ...data,
+      request: { ...data.request, records_description: "Records located → transferred to archive." },
+    };
+    const result = await renderer({
+      profile: profile([
+        { source: "request.records_description", pdf_field: "RecordsDescription", kind: "text", required: true, multiline: true },
+      ]),
+      data: arrowData,
+    });
+    const completed = await PDFDocument.load(result.pdfBytes);
+    expect(completed.getForm().getTextField("RecordsDescription").getText()).toBe(
+      "Records located -> transferred to archive.",
+    );
+  });
+
   it("rejects profiles that request AcroForm flattening", () => {
     const parsed = requestProfileSchema.safeParse({ ...profile([]), output_options: { ...profile([]).output_options, flatten_acroform: true } });
     expect(parsed.success).toBe(false);
