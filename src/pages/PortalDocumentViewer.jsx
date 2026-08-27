@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import { supabase } from "../lib/supabase";
 import { classifyRpcError, RPC_ERROR_MESSAGES } from "../features/portal-admin/rpcErrors";
 import { isInlineViewable, friendlyDownloadFilename } from "../features/portal-admin/archiveDocumentType";
+import PdfPreview from "../components/pdf/PdfPreview";
 import "./ArchiveDocumentViewer.css";
 
 // Authenticated counterpart to the public /archive/documents/:evidenceId
@@ -101,7 +102,11 @@ export default function PortalDocumentViewer() {
           </div>
         </header>
 
-        {inline ? (
+        {doc.mime_type === "application/pdf" ? (
+          <div className="archive-document-viewer__viewer archive-document-viewer__viewer--pdf">
+            <PdfPreview source={{ kind: "url", url }} title={doc.title} />
+          </div>
+        ) : inline ? (
           <div className="archive-document-viewer__viewer">
             <iframe title={doc.title} src={url} />
           </div>

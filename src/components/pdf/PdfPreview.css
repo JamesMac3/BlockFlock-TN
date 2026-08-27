@@ -1,0 +1,38 @@
+/* Deliberately no fixed height and no auto/scroll overflow here — an
+   iframe-based preview needed a boxed, internally-scrollable frame; a
+   stack of full-width canvases instead scrolls with whatever page/panel
+   contains it, so a visitor never hits a nested scroll region trapped
+   inside another scroll region (the exact complaint a boxed iframe
+   caused on mobile). */
+.pdf-preview {
+  width: 100%;
+}
+
+.pdf-preview__pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.pdf-preview__page {
+  max-width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  background: white;
+}
+
+.pdf-preview__status {
+  margin: 1rem 0;
+  text-align: center;
+  color: #4b5563;
+}
+
+.pdf-preview__status--error {
+  color: #991b1b;
+}
+
+.pdf-preview__status--truncated {
+  font-size: 0.9rem;
+}

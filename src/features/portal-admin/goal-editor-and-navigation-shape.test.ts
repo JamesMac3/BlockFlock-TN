@@ -38,6 +38,15 @@ describe("RequestDeliveryPanel: header offset structure (CSS assertions live in 
     expect(headerBlock).toMatch(/delivery-panel__close/);
     expect(headerBlock).toMatch(/delivery-panel__draft-banner/);
   });
+
+  it("only the close button sits in its own sticky row — the title and draft banner are not wrapped in it, so they scroll away normally", () => {
+    const headerBlock = deliveryPanelSource.match(/<header className="delivery-panel__header">[\s\S]*?<\/header>/)?.[0] ?? "";
+    const closeRowBlock = headerBlock.match(/<div className="delivery-panel__close-row">[\s\S]*?<\/div>/)?.[0] ?? "";
+    expect(closeRowBlock).not.toBe("");
+    expect(closeRowBlock).toMatch(/delivery-panel__close/);
+    expect(closeRowBlock).not.toMatch(/delivery-panel__draft-banner/);
+    expect(closeRowBlock).not.toMatch(/id="delivery-panel-title"/);
+  });
 });
 
 describe("Goal status selector: chapter masters see only draft/ready/published; admins keep the full list", () => {

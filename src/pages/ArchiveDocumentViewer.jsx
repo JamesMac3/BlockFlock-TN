@@ -4,6 +4,7 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 import { supabase } from "../lib/supabase";
 import { isInlineViewable, friendlyDownloadFilename } from "../features/portal-admin/archiveDocumentType";
+import PdfPreview from "../components/pdf/PdfPreview";
 import "./ArchiveDocumentViewer.css";
 
 // Bucket/path are resolved server-side from evidenceId alone via
@@ -97,7 +98,11 @@ export default function ArchiveDocumentViewer() {
           </div>
         </header>
 
-        {inline ? (
+        {doc.mime_type === "application/pdf" ? (
+          <div className="archive-document-viewer__viewer archive-document-viewer__viewer--pdf">
+            <PdfPreview source={{ kind: "url", url }} title={doc.title} />
+          </div>
+        ) : inline ? (
           <div className="archive-document-viewer__viewer">
             <iframe title={doc.title} src={url} />
           </div>

@@ -21,26 +21,43 @@
   border: none;
 }
 
+/* No max-height / overflow-y here on purpose — the panel must use its
+   natural document height so its full content (title, banner, PDF
+   preview, instructions, Open/Download, everything) scrolls as one
+   normal document flow. .delivery-panel-backdrop (fixed, already
+   overflow-y: auto, spanning from below the site header to the bottom of
+   the viewport) is the only scrolling surface; constraining this panel's
+   own height turned it into a second, nested scroll box with its own
+   short internal viewport, which is exactly the bug this avoids. */
 .delivery-panel {
   position: relative;
   width: min(720px, 100%);
-  max-height: calc(100dvh - var(--site-header-height, 4.75rem) - 3rem);
-  overflow-y: auto;
   background: white;
   border-radius: 0.75rem;
   padding: 2rem;
   margin: auto;
 }
 
-/* Sticky within the panel's own scroll — the close control and (when
-   present) the draft banner stay visible while the rest of the panel's
-   content scrolls underneath, on both desktop and mobile. */
+/* No longer sticky and no boxed background — only the close button (via
+   .delivery-panel__close-row below) stays fixed in place while
+   scrolling; the draft banner and title scroll away normally with the
+   rest of the panel's content. */
 .delivery-panel__header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: white;
-  padding-bottom: 0.5rem;
+  position: relative;
+}
+
+/* Fixed to the viewport rather than sticky: this row lives inside the
+   short header element, which bounds sticky positioning even when the
+   backdrop owns scrolling. Fixed positioning keeps the close control in
+   view for the full modal and below the measured site header. */
+.delivery-panel__close-row {
+  position: fixed;
+  top: calc(var(--site-header-height, 4.75rem) + 2.5rem);
+  right: max(2.25rem, calc((100vw - 720px) / 2 + 2rem));
+  z-index: 99;
+  height: 0;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .delivery-panel h2 {
@@ -105,9 +122,7 @@
 }
 
 .delivery-panel__close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
+  flex-shrink: 0;
   width: 2rem;
   height: 2rem;
   border: none;
@@ -148,27 +163,13 @@
   color: #4b5563;
 }
 
+/* No fixed height / overflow:hidden here on purpose — the preview is a
+   stack of full-width page canvases (see PdfPreview.css), so it scrolls
+   naturally with this already-scrollable panel instead of being boxed
+   into its own nested scroll region, which is exactly what an iframe
+   forced and what caused the mobile "nested scroll trap" complaint. */
 .delivery-panel__preview-frame {
   width: 100%;
-  height: min(70vh, 640px);
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-.delivery-panel__preview-frame iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-.delivery-panel__preview-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  margin: 0;
-  color: #6b7280;
 }
 
 .delivery-panel__download {
@@ -308,6 +309,11 @@
 @media (max-width: 640px) {
   .delivery-panel {
     padding: 1.25rem;
+  }
+
+  .delivery-panel__close-row {
+    top: calc(var(--site-header-height, 4.75rem) + 2rem);
+    right: 2.25rem;
   }
 
   .delivery-panel__summary {

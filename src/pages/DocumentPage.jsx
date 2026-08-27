@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import { supabase } from "../lib/supabase";
 import { getDocumentCategoryLabel, getDocumentEntry } from "../config/documentManifest";
 import { resolveDownloadOutcome } from "./documentDownloadOutcome";
+import PdfPreview from "../components/pdf/PdfPreview";
 import "./DocumentPage.css";
 
 export default function DocumentPage() {
@@ -116,7 +117,7 @@ export default function DocumentPage() {
         </header>
 
         <div className="document-page__viewer">
-          <iframe title={entry.title} src={objectUrl} />
+          <PdfPreview source={{ kind: "url", url: objectUrl }} title={entry.title} />
         </div>
       </>
     );

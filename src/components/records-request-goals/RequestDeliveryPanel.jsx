@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { subscribeToCountyUpdates } from "../../features/document-request/countyContactSubscription";
 import { requestChapterReminder } from "../../features/document-request/reminderService";
 import { formatCountyLabel } from "../../features/document-request/countyLabel";
+import PdfPreview from "../pdf/PdfPreview";
 import "./RequestDeliveryPanel.css";
 
 const DELIVERY_METHOD_LABELS = {
@@ -34,38 +35,11 @@ export default function RequestDeliveryPanel({
   const [reminderChecked, setReminderChecked] = useState(false);
   const [reminderState, setReminderState] = useState({ phase: "idle", message: "" });
   const [subscribeState, setSubscribeState] = useState({ phase: "idle", message: "" });
+  // The blob: URL's whole lifecycle (create-once, revoke-on-cleanup,
+  // StrictMode-safe deferred creation) now lives inside PdfPreview, which
+  // reports it back here via onUrlReady once it exists — this panel never
+  // creates or revokes it directly. See PdfPreview.jsx's module comment.
   const [objectUrl, setObjectUrl] = useState(null);
-
-  // This panel owns the object URL's whole lifecycle — created and
-  // revoked in the same effect invocation, from generated.blob (never a
-  // URL string created by the caller). Under React StrictMode's
-  // development setup-cleanup-setup cycle this still ends correctly: the
-  // first setup creates URL A, cleanup revokes exactly URL A, and the
-  // second setup creates a fresh URL B — the parent-created-once pattern
-  // this replaces revoked the caller's one URL on the first cleanup with
-  // no second creation, leaving Open/Download pointed at a dead URL while
-  // the already-loaded iframe kept appearing to work.
-  useEffect(() => {
-    if (!generated?.blob) {
-      const timer = setTimeout(() => setObjectUrl(null), 0);
-      return () => clearTimeout(timer);
-    }
-    // The URL is only actually created once this timeout fires — if
-    // StrictMode's synchronous cleanup runs first (its throwaway mount),
-    // clearTimeout cancels it before createObjectURL is ever called, so
-    // there is nothing to revoke and nothing gets orphaned. The real
-    // (second) mount's timer is never cleared and creates the URL that
-    // Open/Download/the iframe actually use.
-    let url;
-    const timer = setTimeout(() => {
-      url = URL.createObjectURL(generated.blob);
-      setObjectUrl(url);
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [generated?.blob]);
 
   const trimmedEmail = email.trim();
   const isEmailValid = EMAIL_PATTERN.test(trimmedEmail);
@@ -139,9 +113,11 @@ export default function RequestDeliveryPanel({
         onClick={(event) => event.stopPropagation()}
       >
         <header className="delivery-panel__header">
-          <button type="button" className="delivery-panel__close" onClick={onClose} aria-label="Close">
-            ×
-          </button>
+          <div className="delivery-panel__close-row">
+            <button type="button" className="delivery-panel__close" onClick={onClose} aria-label="Close">
+              ×
+            </button>
+          </div>
 
           {draftPreview && (
             <p className="delivery-panel__draft-banner" role="alert">
@@ -322,11 +298,11 @@ export default function RequestDeliveryPanel({
         <section className="delivery-panel__preview">
           <h3>{draftPreview ? "Draft preview" : "Preview"}</h3>
           <div className="delivery-panel__preview-frame">
-            {objectUrl ? (
-              <iframe title={draftPreview ? "Draft preview PDF" : "Prefilled request PDF"} src={objectUrl} />
-            ) : (
-              <p role="status" className="delivery-panel__preview-loading">Preparing preview…</p>
-            )}
+            <PdfPreview
+              source={generated?.blob ? { kind: "blob", blob: generated.blob } : null}
+              title={draftPreview ? "Draft preview PDF" : "Prefilled request PDF"}
+              onUrlReady={setObjectUrl}
+            />
           </div>
         </section>
 

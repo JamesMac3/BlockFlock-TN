@@ -1,57 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-// eslint-disable-next-line import/no-unresolved -- Vite/Vitest ?raw import
-import source from "../../../components/records-request-goals/RequestDeliveryPanel.jsx?raw";
 
 /**
- * This project has no React component-render test harness (no jsdom), so
- * RequestDeliveryPanel's actual useEffect cannot be mounted directly.
- * Instead:
- *   1. A shape assertion confirms the real component source implements the
- *      create-in-effect / revoke-in-matching-cleanup pattern, keyed off
- *      generated.blob (not a URL string handed down by a parent), and that
- *      creation is deferred via setTimeout (required by this repo's
- *      react-hooks/set-state-in-effect rule, and also what makes a
- *      StrictMode throwaway mount's cleanup able to cancel creation before
- *      it ever happens).
- *   2. A behavioral simulation reproduces exactly that effect's callback
- *      logic (copied here, not imported, since it's defined inline in the
- *      component) against real setTimeout timing (via vi.useFakeTimers()),
- *      driven through React's real setup -> cleanup -> setup -> cleanup
- *      sequence — which is what StrictMode's development double-invoke and
- *      a final unmount actually do — proving no URL is ever revoked while
- *      it's the one currently in use, and every URL that is actually
- *      created is eventually revoked exactly once.
+ * The object-URL create-once/revoke-on-cleanup/StrictMode-safe-deferred
+ * pattern this file was written to verify no longer lives in
+ * RequestDeliveryPanel.jsx directly — it moved into the shared
+ * <PdfPreview> component (src/components/pdf/PdfPreview.jsx) when the
+ * mobile PDF preview work replaced RequestDeliveryPanel's own iframe with
+ * it. Source-shape assertions for the current architecture (Blob source
+ * in, onUrlReady out, RequestDeliveryPanel no longer creating or revoking
+ * anything itself) now live in
+ * src/features/portal-admin/pdf-preview-shape.test.ts.
+ *
+ * What remains below is still meaningful on its own: a source-independent
+ * behavioral simulation of the exact create/revoke logic pattern (not
+ * imported from any component — hand-copied here, matching what
+ * PdfPreview.jsx's blob-URL effect implements) against real setTimeout
+ * timing (via vi.useFakeTimers()), driven through React's real
+ * setup -> cleanup -> setup -> cleanup sequence — which is what
+ * StrictMode's development double-invoke and a final unmount actually do —
+ * proving no URL is ever revoked while it's the one currently in use, and
+ * every URL that is actually created is eventually revoked exactly once.
  */
-
-describe("RequestDeliveryPanel source: object URL ownership shape", () => {
-  it("creates the object URL from generated.blob, not from a pdfUrl string the caller created", () => {
-    expect(source).toMatch(/URL\.createObjectURL\(generated\.blob\)/);
-    expect(source).not.toMatch(/generated\.pdfUrl/);
-  });
-
-  it("stores the created URL in the panel's own state and revokes exactly that URL in cleanup", () => {
-    const effectBody = source.match(/useEffect\(\(\) => \{\s*\n\s*if \(!generated\?\.blob\)[\s\S]*?\n {2}\}, \[generated\?\.blob\]\);/)?.[0] ?? "";
-    expect(effectBody).not.toBe("");
-    expect(effectBody).toMatch(/url = URL\.createObjectURL\(generated\.blob\);/);
-    expect(effectBody).toMatch(/setObjectUrl\(url\);/);
-    expect(effectBody).toMatch(/if \(url\) URL\.revokeObjectURL\(url\);/);
-  });
-
-  it("defers creation via setTimeout so a StrictMode throwaway mount's cleanup can cancel it before any URL is ever created", () => {
-    const effectBody = source.match(/useEffect\(\(\) => \{\s*\n\s*if \(!generated\?\.blob\)[\s\S]*?\n {2}\}, \[generated\?\.blob\]\);/)?.[0] ?? "";
-    expect(effectBody).toMatch(/const timer = setTimeout\(\(\) => \{/);
-    expect(effectBody).toMatch(/clearTimeout\(timer\);/);
-  });
-
-  it("the iframe, Open, and Download controls all read from objectUrl state, never generated.pdfUrl", () => {
-    expect(source).toMatch(/src=\{objectUrl\}/);
-    expect(source.match(/objectUrl \? \{ href: objectUrl \} : \{\}/g)?.length).toBe(2);
-  });
-
-  it("Open/Download are marked disabled while no URL exists yet", () => {
-    expect(source.match(/aria-disabled=\{!objectUrl\}/g)?.length).toBe(2);
-  });
-});
 
 type FakeBlob = { type: string; label?: string };
 type EffectDeps = {
