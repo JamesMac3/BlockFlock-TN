@@ -125,12 +125,10 @@ export default function HomePage() {
           </div>
         </section>
 
-        <div className="container">
-          <NextMeetingBanner countyId={null} />
-        </div>
-
         <section className="section">
           <div className="container">
+            <NextMeetingBanner countyId={null} />
+
             <SectionHeading
               eyebrow="What Are We Fighting?"
               title="The complete surveillance system"

@@ -16,6 +16,7 @@ import ArchiveDocumentViewer from "./pages/ArchiveDocumentViewer";
 import PortalDocumentViewer from "./pages/PortalDocumentViewer";
 import AdminPostPreview from "./pages/AdminPostPreview";
 import AccessRevokedPage from "./pages/AccessRevokedPage";
+import PortalSetPasswordPage from "./pages/PortalSetPasswordPage";
 
 const PortalDashboard = lazy(() => import("./pages/PortalDashboard"));
 
@@ -107,6 +108,11 @@ export default function App() {
         <Route
           path="/portal/login"
           element={<PortalLogin />}
+        />
+
+        <Route
+          path="/portal/set-password"
+          element={<PortalSetPasswordPage />}
         />
 
         <Route

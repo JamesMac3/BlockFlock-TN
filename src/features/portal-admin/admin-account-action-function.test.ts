@@ -19,7 +19,7 @@ describe("admin-account-action function: service-role key handling", () => {
     expect(functionSource).toMatch(/Deno\.env\.get\("SUPABASE_SERVICE_ROLE_KEY"\)/);
   });
 
-  it("uses the service-role client only for the Auth Admin API, never for the DB status RPC", () => {
+  it("uses the service-role client only for the Auth Admin API, never for a database RPC", () => {
     expect(functionSource).toMatch(/serviceClient\.auth\.admin\.updateUserById/);
     expect(functionSource).not.toMatch(/serviceClient\.rpc\(/);
   });
@@ -81,11 +81,41 @@ describe("admin-account-action function: authentication and CORS", () => {
     expect(functionSource).toMatch(/userClient\.auth\.getUser\(\)/);
   });
 
-  it("only accepts action 'suspend' or 'restore'", () => {
-    expect(functionSource).toMatch(/action !== "suspend" && action !== "restore"/);
+  it("accepts only the four supported account actions", () => {
+    expect(functionSource).toContain('["suspend", "restore", "invite", "send_setup_link"]');
   });
 
   it("handles CORS preflight", () => {
     expect(functionSource).toMatch(/req\.method === "OPTIONS"/);
+  });
+});
+
+describe("admin-account-action function: invitations", () => {
+  it("derives the login identity from an authenticated database RPC, not caller input", () => {
+    expect(functionSource).toMatch(/rrg_admin_get_chapter_invite_context/);
+    expect(functionSource).toMatch(/login_email: loginEmail/);
+    expect(functionSource).not.toMatch(/body\.login_email/);
+  });
+
+  it("registers the portal account with the caller JWT and cleans up Auth on failure", () => {
+    expect(functionSource).toMatch(/userClient\.rpc\("rrg_admin_register_chapter_account"/);
+    expect(functionSource).toMatch(/serviceClient\.auth\.admin\.deleteUser\(newUserId\)/);
+  });
+
+  it("uses hashed one-time tokens in application setup links", () => {
+    expect(functionSource).toMatch(/properties\?\.hashed_token/);
+    expect(functionSource).toMatch(/portal\/set-password\?token_hash=/);
+    expect(functionSource).not.toMatch(/actionLink:\s*data\.properties\.action_link/);
+  });
+
+  it("never logs forwarding addresses or setup links", () => {
+    expect(functionSource).not.toMatch(/console\.(log|error|warn)/);
+  });
+
+  it("does not send setup email while the new account is suspended", () => {
+    const suspendedStart = functionSource.indexOf('if (initialState === "suspended")');
+    const emailConfigStart = functionSource.indexOf('if (!resendApiKey)', suspendedStart);
+    const suspendedBlock = functionSource.slice(suspendedStart, emailConfigStart);
+    expect(suspendedBlock).toMatch(/invitationSent: false/);
   });
 });

@@ -23,11 +23,22 @@ const SORT_OPTIONS = [
   ["created_at", "Created date"],
 ];
 
-async function invokeAccountAction(action, userId) {
+async function invokeAccountAction(action, payload = {}) {
   const { data, error } = await supabase.functions.invoke("admin-account-action", {
-    body: { action, user_id: userId },
+    body: { action, ...payload },
   });
-  if (error) throw error;
+  if (error) {
+    let message = error.message;
+    if (error.context instanceof Response) {
+      try {
+        const errorBody = await error.context.clone().json();
+        message = errorBody?.error ?? message;
+      } catch {
+        // Keep the generic client error when the response is not JSON.
+      }
+    }
+    throw new Error(message);
+  }
   return data;
 }
 
@@ -40,6 +51,7 @@ export default function ChapterMasterManagementTable() {
     search: "", countyId: "", accountState: "", sort: "county", sortDirection: "asc", page: 1, pageSize: 25,
   });
   const [editingUserId, setEditingUserId] = useState(null);
+  const [creatingAccount, setCreatingAccount] = useState(false);
 
   const load = useCallback(async () => {
     setLoadState("loading");
@@ -84,7 +96,13 @@ export default function ChapterMasterManagementTable() {
 
   return (
     <div className="content-management chapter-master-table">
-      <h2>Chapter Master Management</h2>
+      <div className="chapter-master-table__heading">
+        <div>
+          <h2>Chapter Master Management</h2>
+          <p>Create county logins, control access, and manage private forwarding destinations.</p>
+        </div>
+        <button type="button" onClick={() => setCreatingAccount(true)}>Create chapter account</button>
+      </div>
 
       <div className="management-toolbar">
         <label>
@@ -179,7 +197,118 @@ export default function ChapterMasterManagementTable() {
           />
         </AdminPopout>
       )}
+
+      {creatingAccount && (
+        <AdminPopout title="Create Chapter Account" onClose={() => setCreatingAccount(false)}>
+          <CreateChapterAccountForm
+            onCreated={() => { setCreatingAccount(false); load(); }}
+          />
+        </AdminPopout>
+      )}
     </div>
+  );
+}
+
+function CreateChapterAccountForm({ onCreated }) {
+  const [counties, setCounties] = useState([]);
+  const [countyId, setCountyId] = useState("");
+  const [forwardingEmail, setForwardingEmail] = useState("");
+  const [initialState, setInitialState] = useState("restricted");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    async function loadCounties() {
+      const { data, error } = await supabase.rpc("rrg_admin_list_available_chapter_counties");
+      if (!active) return;
+      if (error) setMessage(error.message);
+      else setCounties(data ?? []);
+      setLoading(false);
+    }
+    loadCounties();
+    return () => { active = false; };
+  }, []);
+
+  const selectedCounty = counties.find((county) => String(county.county_id) === countyId);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await invokeAccountAction("invite", {
+        county_id: Number(countyId),
+        forwarding_email: forwardingEmail,
+        initial_state: initialState,
+      });
+      if (!result?.accountCreated) {
+        setMessage(result?.error ?? "The account could not be created.");
+        return;
+      }
+      onCreated();
+    } catch (error) {
+      setMessage(error.message ?? "The account could not be created.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="chapter-master-table__create" onSubmit={handleSubmit}>
+      <label htmlFor="new-chapter-county">County</label>
+      <select
+        id="new-chapter-county"
+        value={countyId}
+        onChange={(event) => setCountyId(event.target.value)}
+        disabled={loading || busy}
+        required
+      >
+        <option value="">Select a county</option>
+        {counties.map((county) => (
+          <option key={county.county_id} value={county.county_id}>{county.county_name}</option>
+        ))}
+      </select>
+
+      {selectedCounty && (
+        <p className="chapter-master-table__login-preview">
+          Login: <strong>{selectedCounty.login_email}</strong>
+        </p>
+      )}
+
+      <label htmlFor="new-chapter-forwarding">Recipient / forwarding email</label>
+      <input
+        id="new-chapter-forwarding"
+        type="email"
+        value={forwardingEmail}
+        onChange={(event) => setForwardingEmail(event.target.value)}
+        maxLength={320}
+        disabled={busy}
+        required
+      />
+      <p>This private address receives the setup link and becomes the account's initial forwarding destination.</p>
+
+      <label htmlFor="new-chapter-state">Initial state</label>
+      <select
+        id="new-chapter-state"
+        value={initialState}
+        onChange={(event) => setInitialState(event.target.value)}
+        disabled={busy}
+      >
+        <option value="restricted">Restricted</option>
+        <option value="trusted">Trusted</option>
+        <option value="suspended">Suspended</option>
+      </select>
+      {initialState === "suspended" && (
+        <p>A suspended test account is created and blocked immediately. No setup email is sent until it is restored.</p>
+      )}
+
+      {message && <p className="chapter-master-table__error" role="alert">{message}</p>}
+      <button type="submit" disabled={busy || loading || !countyId}>
+        {busy ? "Creating..." : initialState === "suspended" ? "Create suspended account" : "Create and send setup link"}
+      </button>
+    </form>
   );
 }
 
@@ -222,7 +351,7 @@ function ChapterAccountEditor({ row, onChanged }) {
     setMessage("");
     setRetryable(false);
     try {
-      const result = await invokeAccountAction(action, row.user_id);
+      const result = await invokeAccountAction(action, { user_id: row.user_id });
       if (!result?.dbUpdated) {
         setMessage(result?.error ?? "The action could not be completed.");
         setRetryable(Boolean(result?.retryable));
@@ -249,6 +378,19 @@ function ChapterAccountEditor({ row, onChanged }) {
     }
   }
 
+  async function handleSendSetupLink() {
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await invokeAccountAction("send_setup_link", { user_id: row.user_id });
+      setMessage(result?.invitationSent ? "A new setup link was sent." : result?.error ?? "The setup link could not be sent.");
+    } catch (error) {
+      setMessage(error.message ?? "The setup link could not be sent.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="chapter-master-table__editor">
       <dl>
@@ -263,6 +405,7 @@ function ChapterAccountEditor({ row, onChanged }) {
           type="email"
           value={emailValue}
           onChange={(event) => setEmailValue(event.target.value)}
+          maxLength={320}
           required
         />
         <button type="submit" disabled={busy}>Save forwarding email</button>
@@ -275,6 +418,7 @@ function ChapterAccountEditor({ row, onChanged }) {
           <>
             <button type="button" disabled={busy || state === "trusted"} onClick={() => handleSetReviewRequired(false)}>Mark Trusted</button>
             <button type="button" disabled={busy || state === "restricted"} onClick={() => handleSetReviewRequired(true)}>Mark Restricted</button>
+            <button type="button" disabled={busy} onClick={handleSendSetupLink}>Send setup link</button>
             <button type="button" disabled={busy} onClick={() => handleSuspendOrRestore("suspend")}>Suspend</button>
           </>
         ) : (
