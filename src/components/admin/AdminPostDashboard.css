@@ -146,8 +146,31 @@
   .post-media-url-add { grid-template-columns: 1fr 1fr; }
   .post-media-url-add input { grid-column: 1 / -1; }
   .post-media-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .composer-actions--sticky { display: grid; grid-template-columns: 1fr; }
-  .composer-actions--sticky > span { margin-right: 0; }
+  /* Sticky/fixed action bars float over composer content on narrow
+     screens — there isn't enough vertical space for the bar to sit at the
+     bottom of the viewport without covering fields, media controls, or
+     validation messages beneath it. Below this width the action row (and
+     the campaign Skip/Request row) drop into normal document flow,
+     directly after the composer's last section, and never overlap
+     anything regardless of scroll position. */
+  .composer-actions--sticky {
+    position: static;
+    bottom: auto;
+    z-index: auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    box-shadow: none;
+  }
+  .composer-actions--sticky > span { margin-right: 0; text-align: center; }
+  .composer-actions--sticky button,
+  .composer-actions button {
+    min-height: 2.75rem;
+    width: 100%;
+  }
+  .composer-actions {
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 @media (max-width: 340px) {
