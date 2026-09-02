@@ -9,6 +9,7 @@ import CountyContactsManager from "../components/admin/CountyContactsManager";
 import DocumentsManagementTable from "../components/admin/DocumentsManagementTable";
 import AdminCountyStatisticsWorkspace from "../components/admin/AdminCountyStatisticsWorkspace";
 import MeetingsManagementTable from "../components/admin/MeetingsManagementTable";
+import EmailCampaignsWorkspace from "../components/admin/EmailCampaignsWorkspace";
 import TabNav from "../components/admin/TabNav";
 import RecordsRequestGoalsManager from "../components/records-request-goals/RecordsRequestGoalsManager";
 import ChapterAccountSettings from "../components/portal/ChapterAccountSettings";
@@ -54,6 +55,7 @@ export default function PortalDashboard({ mode, initialEditPostId = null }) {
             {activeSection === "documents" && <DocumentsManagementTable />}
             {activeSection === "statistics" && <AdminCountyStatisticsWorkspace />}
             {activeSection === "meetings" && <MeetingsManagementTable />}
+            {activeSection === "email-campaigns" && <EmailCampaignsWorkspace />}
             {activeSection === "chapter-accounts" && <ChapterMasterManagementTable />}
             {activeSection === "contacts" && <CountyContactsManager />}
           </section>

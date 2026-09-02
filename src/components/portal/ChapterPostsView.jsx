@@ -90,6 +90,8 @@ export default function ChapterPostsView({ user, county }) {
         capabilities={CHAPTER_CAPABILITIES}
         uploadAdapter={adminUploadAdapter}
         user={user}
+        chapterCounty={county}
+        chapterAccount={account}
         onComplete={finishComposer}
         onCancel={() => { setCreationType(null); setEditingPost(null); }}
       />

@@ -6,6 +6,7 @@ const ADMIN_WORKSPACES = [
   { id: "documents", label: "Documents" },
   { id: "statistics", label: "County Statistics" },
   { id: "meetings", label: "Meetings" },
+  { id: "email-campaigns", label: "Email Campaigns" },
   { id: "chapter-accounts", label: "Chapter Master Management" },
   { id: "contacts", label: "Contact Emails / Phone Numbers" },
 ];

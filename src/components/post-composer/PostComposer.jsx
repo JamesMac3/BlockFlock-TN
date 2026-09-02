@@ -41,26 +41,35 @@ const EMPTY_POST = {
   massEmail: false,
 };
 
-function initialValues(post, creationType) {
-  if (!post) return { ...EMPTY_POST, contentType: creationType === "meeting" ? "meeting" : "announcement" };
-  return {
-    title: post.title ?? "",
-    scope: post.scope ?? "global",
-    countyId: post.county_id ? String(post.county_id) : "",
-    contentType: post.content_type ?? "announcement",
-    summary: post.summary ?? "",
-    body: post.body ?? "",
-    bodyRich: post.body_rich ?? null,
-    eventStart: post.event_start ? new Date(post.event_start).toISOString().slice(0, 16) : "",
-    eventLocation: post.event_location ?? "",
-    eventAddress: post.event_address ?? "",
-    locationName: "",
-    streetAddress: "",
-    city: "",
-    postalCode: "",
-    isPinned: Boolean(post.is_pinned),
-    massEmail: false,
-  };
+function initialValues(post, creationType, isChapterMode, chapterCounty) {
+  const base = !post
+    ? { ...EMPTY_POST, contentType: creationType === "meeting" ? "meeting" : "announcement" }
+    : {
+        title: post.title ?? "",
+        scope: post.scope ?? "global",
+        countyId: post.county_id ? String(post.county_id) : "",
+        contentType: post.content_type ?? "announcement",
+        summary: post.summary ?? "",
+        body: post.body ?? "",
+        bodyRich: post.body_rich ?? null,
+        eventStart: post.event_start ? new Date(post.event_start).toISOString().slice(0, 16) : "",
+        eventLocation: post.event_location ?? "",
+        eventAddress: post.event_address ?? "",
+        locationName: "",
+        streetAddress: "",
+        city: "",
+        postalCode: "",
+        isPinned: Boolean(post.is_pinned),
+        massEmail: false,
+      };
+  // A chapter master can never author a statewide or other-county post —
+  // any stale scope/county value already on the row (or left over from a
+  // prior form state) is overwritten here rather than trusted, since the
+  // authenticated account's own county is the only source of truth.
+  if (isChapterMode && chapterCounty) {
+    return { ...base, scope: "county", countyId: String(chapterCounty.id) };
+  }
+  return base;
 }
 
 export default function PostComposer({
@@ -71,10 +80,32 @@ export default function PostComposer({
   capabilities,
   uploadAdapter,
   user,
+  chapterCounty = null,
+  chapterAccount = null,
   onComplete,
   onCancel,
 }) {
-  const [form, setForm] = useState(() => initialValues(initialPost, creationType));
+  const isChapterMode = mode === "chapter";
+  // Trust status is read from the live portal_accounts row supplied by the
+  // caller (never inferred from any visible label) — false review_required
+  // plus an active status is the only combination that may request a
+  // county email campaign. This is a UX gate only; the backend RPC must
+  // enforce it independently (see final report).
+  const isTrustedChapterMaster = isChapterMode && chapterAccount?.status === "active" && chapterAccount?.review_required === false;
+  const [form, setForm] = useState(() => initialValues(initialPost, creationType, isChapterMode, chapterCounty));
+  const [publishedForCampaign, setPublishedForCampaign] = useState(null);
+  const [campaignSubject, setCampaignSubject] = useState("");
+  const [campaignSubmitting, setCampaignSubmitting] = useState(false);
+  const [campaignError, setCampaignError] = useState("");
+  const [campaignSuccess, setCampaignSuccess] = useState(false);
+  const campaignLockRef = useRef(false);
+  // The chapter master's own county/scope, reapplied at every point a
+  // value derived from form.scope/form.countyId is actually used for a
+  // save, publish, or preview — never trusting form state alone, since
+  // those fields are not rendered as editable controls in chapter mode but
+  // could still theoretically be stale from initialValues.
+  const effectiveScope = isChapterMode ? "county" : form.scope;
+  const effectiveCountyId = isChapterMode && chapterCounty ? String(chapterCounty.id) : form.countyId;
   const mediaAdapter = useMemo(() => createSupabaseMediaAdapter({ supabase, uploadAdapter }), [uploadAdapter]);
   const [media, setMedia] = useState(() => hydratePersistedMedia(initialPost?.post_media ?? [], mediaAdapter.getPublicUrl));
   const [previewing, setPreviewing] = useState(false);
@@ -86,7 +117,7 @@ export default function PostComposer({
   const [dirty, setDirty] = useState(false);
   const originalMediaIdsRef = useRef((initialPost?.post_media ?? []).map((item) => item.id).filter(Boolean));
   const submissionLockRef = useRef(false);
-  const selectedCounty = useMemo(() => counties.find((county) => String(county.id) === form.countyId), [counties, form.countyId]);
+  const selectedCounty = useMemo(() => counties.find((county) => String(county.id) === effectiveCountyId), [counties, effectiveCountyId]);
   const meetingOnly = creationType === "meeting";
   // Any post whose content type is "meeting" — whether created via the
   // quick "Create meeting without post" flow or by switching an ordinary
@@ -144,7 +175,7 @@ export default function PostComposer({
   function validate() {
     const result = baseSchema.safeParse(form);
     if (!result.success) return result.error.issues[0].message;
-    if (form.scope === "county" && !form.countyId) return "Select a county for a county post.";
+    if (effectiveScope === "county" && !effectiveCountyId) return "Select a county for a county post.";
     if (isMeetingPost) {
       if (!form.summary.trim()) return "A short description is required for a meeting post.";
       if (!form.eventStart) return "A meeting date and time are required.";
@@ -196,13 +227,13 @@ export default function PostComposer({
     // so a failure on either side rolls both back. This never falls through
     // to the ordinary insert/update-then-rrg_submit_post path below.
     if (isMeetingPost) {
-      const isPinned = form.scope === "global";
+      const isPinned = effectiveScope === "global";
       const { data: rpcResult, error: rpcError } = await supabase.rpc("rrg_save_post_with_meeting", {
         p_post_id: savedPost?.id ?? null,
         p_title: form.title,
         p_summary: form.summary,
         p_body: form.body?.trim() ? form.body : form.summary,
-        p_county_id: isPinned ? null : (form.countyId ? Number(form.countyId) : null),
+        p_county_id: isPinned ? null : (effectiveCountyId ? Number(effectiveCountyId) : null),
         p_starts_at: chicagoWallTimeToUtcIso(form.eventStart),
         p_location_name: form.locationName,
         p_street_address: form.streetAddress,
@@ -230,7 +261,7 @@ export default function PostComposer({
 
     let post;
     const payload = buildDraftPostPayload({
-      form,
+      form: isChapterMode ? { ...form, scope: effectiveScope, countyId: effectiveCountyId } : form,
       meetingOnly,
       authenticatedUser,
       existingPost: savedPost,
@@ -257,7 +288,7 @@ export default function PostComposer({
         originalMediaIds: originalMediaIdsRef.current,
         postTitle: form.title,
         userId: authenticatedUser.id,
-        storageSegment: form.scope === "global" ? "global" : selectedCounty.slug,
+        storageSegment: effectiveScope === "global" ? "global" : selectedCounty.slug,
         adapter: mediaAdapter,
         onProgress: setProgress,
       });
@@ -301,14 +332,58 @@ export default function PostComposer({
     setProgress(!publish ? "Draft saved" : submittedStatus === "pending" ? "Submitted for review" : "Published");
     setSubmitting(false);
     submissionLockRef.current = false;
+
+    // Email campaigns are only ever offered right here, inside the Publish
+    // flow, after the post has actually reached "approved" — never before
+    // publish succeeds, and never for a restricted chapter master (whose
+    // submission lands in "pending", not "approved"). onComplete is
+    // deliberately withheld until the chapter master requests a campaign
+    // or explicitly skips, so a successful publish is never abandoned
+    // mid-flow.
+    if (isChapterMode && isTrustedChapterMaster && !isMeetingPost && publish && post.status === "approved") {
+      setCampaignSubject(post.title ?? "");
+      setPublishedForCampaign(post);
+      return;
+    }
+
     onComplete?.(post);
+  }
+
+  async function requestEmailCampaign() {
+    if (campaignLockRef.current || !publishedForCampaign) return;
+    const subject = campaignSubject.trim();
+    if (!subject || subject.length > 180) {
+      setCampaignError("Subject must be between 1 and 180 characters.");
+      return;
+    }
+    campaignLockRef.current = true;
+    setCampaignError("");
+    setCampaignSubmitting(true);
+    const { error: campaignRpcError } = await supabase.rpc("rrg_request_post_email_campaign", {
+      p_post_id: publishedForCampaign.id,
+      p_subject: subject,
+    });
+    if (campaignRpcError) {
+      console.error("Email campaign request failed:", campaignRpcError);
+      const isDuplicate = campaignRpcError.code === "23505" || /already/i.test(campaignRpcError.message ?? "");
+      setCampaignError(
+        isDuplicate
+          ? "An email campaign for this post is already awaiting administrator review."
+          : "The email campaign request could not be submitted. Please try again.",
+      );
+      setCampaignSubmitting(false);
+      campaignLockRef.current = false;
+      return;
+    }
+    setCampaignSuccess(true);
+    setCampaignSubmitting(false);
   }
 
   const previewPost = {
     ...initialPost,
     title: form.title || "Untitled preview",
-    scope: form.scope,
-    county_id: form.countyId || null,
+    scope: effectiveScope,
+    county_id: effectiveCountyId || null,
     content_type: isMeetingPost ? "meeting" : form.contentType,
     summary: form.summary,
     body: isMeetingPost ? form.summary : form.body,
@@ -322,13 +397,52 @@ export default function PostComposer({
     post_media: media,
   };
 
+  if (publishedForCampaign) {
+    return (
+      <section className="post-composer post-composer--campaign" aria-labelledby="post-composer-title">
+        <header><div><p>{mode} composer</p><h2 id="post-composer-title">Published</h2></div></header>
+        <p className="composer-publish-success">"{publishedForCampaign.title}" is now published to {chapterCounty?.name} County.</p>
+        <div className="composer-email-campaign">
+          <h3>Email this update to county subscribers</h3>
+          <p>Sends this update by email to active subscribers in {chapterCounty?.name} County only. An administrator must approve the campaign before anything is sent.</p>
+          {!campaignSuccess ? (
+            <>
+              <label>Subject<input value={campaignSubject} onChange={(event) => setCampaignSubject(event.target.value)} maxLength={180} required disabled={campaignSubmitting} /></label>
+              <div className="composer-email-campaign__preview">
+                <StatusPostCard post={publishedForCampaign} countyName={chapterCounty?.name ?? "Tennessee"} />
+              </div>
+              {campaignError && <p className="composer-error" role="alert">{campaignError}</p>}
+              <div className="composer-actions">
+                <button type="button" onClick={() => onComplete?.(publishedForCampaign)} disabled={campaignSubmitting}>Skip</button>
+                <button type="button" onClick={requestEmailCampaign} disabled={campaignSubmitting || !campaignSubject.trim()}>{campaignSubmitting ? "Requesting…" : "Email this update to county subscribers"}</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="composer-campaign-success" role="status">Email campaign submitted for administrator approval.</p>
+              <div className="composer-actions">
+                <button type="button" onClick={() => onComplete?.(publishedForCampaign)}>Done</button>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="post-composer" aria-labelledby="post-composer-title">
       <header><div><p>{mode} composer</p><h2 id="post-composer-title">{initialPost ? "Edit" : meetingOnly ? "Create meeting without post" : "Publish update"}</h2>{meetingOnly && <span>Add a meeting to the schedule without publishing a full county update.</span>}</div><button type="button" onClick={onCancel} disabled={submitting}>Close</button></header>
       <fieldset disabled={submitting}>
         <div className="composer-metadata-row">
-          <label>Scope<select value={form.scope} onChange={(event) => update("scope", event.target.value)}><option value="global">Statewide</option><option value="county">County</option></select></label>
-          {form.scope === "county" && <label>County<select value={form.countyId} onChange={(event) => update("countyId", event.target.value)} required><option value="">Select county</option>{counties.map((county) => <option key={county.id} value={county.id}>{county.name}</option>)}</select></label>}
+          {isChapterMode ? (
+            <p className="composer-audience-line">Audience: {chapterCounty?.name}</p>
+          ) : (
+            <>
+              <label>Scope<select value={form.scope} onChange={(event) => update("scope", event.target.value)}><option value="global">Statewide</option><option value="county">County</option></select></label>
+              {form.scope === "county" && <label>County<select value={form.countyId} onChange={(event) => update("countyId", event.target.value)} required><option value="">Select county</option>{counties.map((county) => <option key={county.id} value={county.id}>{county.name}</option>)}</select></label>}
+            </>
+          )}
           {!meetingOnly && <label>Content type<select value={form.contentType} onChange={(event) => update("contentType", event.target.value)}>{["announcement", "meeting", "investigation", "records", "action"].map((type) => <option key={type} value={type}>{type}</option>)}</select></label>}
         </div>
         <div className={`post-composer-canvas ${isMeetingPost ? "is-meeting-only" : ""}`}>
