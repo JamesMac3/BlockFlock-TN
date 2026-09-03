@@ -42,50 +42,70 @@ describe("Chapter-master composer: scope/county are forced from the authenticate
   });
 });
 
-describe("Trusted chapter email campaigns: gated on the live portal_accounts row, not visible text", () => {
+describe("Trusted chapter email campaigns: one atomic Publish action, no second screen or RPC", () => {
   it("trust is exactly status === 'active' AND review_required === false, read from the chapterAccount prop", () => {
     expect(postComposerSource).toMatch(
       /const isTrustedChapterMaster = isChapterMode && chapterAccount\?\.status === "active" && chapterAccount\?\.review_required === false;/,
     );
   });
 
-  it("the campaign screen is only reachable after a successful Publish that reached 'approved', and never for meeting posts", () => {
-    expect(postComposerSource).toMatch(
-      /if \(isChapterMode && isTrustedChapterMaster && !isMeetingPost && publish && post\.status === "approved"\) \{/,
+  it("the campaign checkbox is rendered only when canRequestCampaign (trusted, no existing campaign), inside Publication settings, with the exact required label and hint text", () => {
+    const settingsBlock = postComposerSource.match(/<details className="composer-publication-settings">[\s\S]*?<\/details>/)?.[0] ?? "";
+    expect(settingsBlock).not.toBe("");
+    expect(settingsBlock).toMatch(/canRequestCampaign && \(/);
+    expect(settingsBlock).toMatch(/Request a county email campaign/);
+    expect(settingsBlock).toMatch(
+      /The post will be published now\. The email campaign will be sent to an administrator for approval before delivery\./,
     );
   });
 
-  it("onComplete is withheld (not called) when the campaign screen is shown, so the composer does not navigate away before the chapter master decides", () => {
-    expect(postComposerSource).toMatch(/setPublishedForCampaign\(post\);\s*\n\s*return;\s*\n\s*\}\s*\n\s*\n\s*onComplete\?\.\(post\);/);
+  it("a restricted (untrusted) chapter master renders nothing for the campaign option — it's a plain && guard (canRequestCampaign, which requires isTrustedChapterMaster), never a ternary with a disabled/explained alternate branch", () => {
+    expect(postComposerSource).toMatch(/canRequestCampaign && \(/);
+    expect(postComposerSource).not.toMatch(/isTrustedChapterMaster \? /);
   });
 
-  it("the subject defaults to the post title and is capped at 180 characters", () => {
-    expect(postComposerSource).toMatch(/setCampaignSubject\(post\.title \?\? ""\);/);
+  it("the subject defaults live to the post title and is capped at 180 characters, required after trimming", () => {
+    expect(postComposerSource).toMatch(/value=\{campaignSubject \|\| form\.title\}/);
     expect(postComposerSource).toMatch(/maxLength=\{180\}/);
-    expect(postComposerSource).toMatch(/subject\.length > 180/);
+    expect(postComposerSource).toMatch(/if \(subject\.length > 180\) return "Email subject must be 180 characters or fewer\.";/);
   });
 
-  it("only rrg_request_post_email_campaign is called — never the worker, never a direct delivery-row insert", () => {
-    expect(postComposerSource).toMatch(/supabase\.rpc\("rrg_request_post_email_campaign", \{/);
+  it("publishing (save()) calls exactly one atomic RPC — rrg_publish_post_with_email_campaign — and never rrg_request_post_email_campaign directly (that RPC is only ever called from the separate requestCampaignOnly action, see below); never the worker or a direct delivery-row insert", () => {
+    const saveBlock = postComposerSource.slice(
+      postComposerSource.indexOf("async function save(publish)"),
+      postComposerSource.indexOf("// Requesting a campaign for an already-published post"),
+    );
+    expect(saveBlock).toMatch(/supabase\.rpc\("rrg_publish_post_with_email_campaign", \{/);
+    expect(saveBlock).not.toMatch(/rrg_request_post_email_campaign/);
     expect(postComposerSource).not.toMatch(/email-worker/);
     expect(postComposerSource).not.toMatch(/\.from\("email_deliveries"\)/);
   });
 
-  it("a duplicate/already-active campaign is caught and shown as a friendly message, with the raw error only logged to the console", () => {
-    expect(postComposerSource).toMatch(/campaignRpcError\.code === "23505"/);
-    expect(postComposerSource).toMatch(/already awaiting administrator review/);
-    expect(postComposerSource).toMatch(/console\.error\("Email campaign request failed:", campaignRpcError\);/);
+  it("requestEmail is exactly isTrustedChapterMaster && wantsEmailCampaign && no campaign already exists, so a restricted account or a post with an existing campaign can never send p_request_email: true", () => {
+    expect(postComposerSource).toMatch(
+      /const requestEmail = isTrustedChapterMaster && wantsEmailCampaign && !campaignState\?\.requested;/,
+    );
   });
 
-  it("the exact required success message is shown verbatim on a successful request", () => {
-    expect(postComposerSource).toMatch(/Email campaign submitted for administrator approval\./);
+  it("unchecked publishing sends p_request_email: false and p_subject: null — the subject is only computed when requestEmail is true", () => {
+    expect(postComposerSource).toMatch(/const subject = requestEmail \? \(campaignSubject \|\| form\.title\)\.trim\(\) : null;/);
+    expect(postComposerSource).toMatch(/p_request_email: requestEmail,\s*\n\s*p_subject: subject,/);
   });
 
-  it("repeated clicks are guarded by a ref lock checked before the RPC call, not just a disabled button", () => {
-    const fnBlock = postComposerSource.match(/async function requestEmailCampaign\(\)[\s\S]*?\n  \}/)?.[0] ?? "";
-    expect(fnBlock).not.toBe("");
-    expect(fnBlock).toMatch(/if \(campaignLockRef\.current \|\| !publishedForCampaign\) return;/);
-    expect(fnBlock).toMatch(/campaignLockRef\.current = true;/);
+  it("a failed publish never claims success, keeps the composer open for another attempt, and never separately retries the campaign", () => {
+    const chapterBranch = postComposerSource.match(/if \(isChapterMode\) \{[\s\S]*?\n      \} else \{/)?.[0] ?? "";
+    expect(chapterBranch).not.toBe("");
+    expect(chapterBranch).toMatch(/console\.error\("Publish failed:", rpcError\);/);
+    expect(chapterBranch).toMatch(/setError\("The post could not be published\. Please try again\."\);/);
+    expect(chapterBranch).toMatch(/setRetryPublish\(publish\);/);
+    expect(chapterBranch).toMatch(/return;/);
+    expect(chapterBranch).not.toMatch(/rrg_request_post_email_campaign/);
+  });
+
+  it("success copy is exact for all three outcomes: approved without campaign, approved with campaign, and pending review", () => {
+    expect(postComposerSource).toMatch(/"Post submitted for administrator review\."/);
+    expect(postComposerSource).toMatch(/"Post published\. The email campaign was sent for administrator approval\."/);
+    expect(postComposerSource).toMatch(/: "Post published\.",/);
   });
 });
 
@@ -118,5 +138,118 @@ describe("Admin Email Campaigns workspace: correct RPC contract, no subscriber e
 
   it("is wired into the admin workspace switcher", () => {
     expect(adminWorkspaceSwitcherSource).toMatch(/\{ id: "email-campaigns", label: "Email Campaigns" \}/);
+  });
+});
+
+describe("Published-post email campaign indicator: immutable panel once requested, never a second control", () => {
+  it("campaign state is fetched only when opening an existing approved post — never for drafts/pending, and not gated to chapter mode, so admins see it too", () => {
+    expect(postComposerSource).toMatch(/if \(!initialPost \|\| initialPost\.status !== "approved"\) return undefined;/);
+    expect(postComposerSource).toMatch(/supabase\.rpc\("rrg_get_post_email_campaign_state", \{/);
+  });
+
+  it("a requested campaign renders the exact immutable panel copy, using Chicago-formatted date/time helpers — never a raw ISO string", () => {
+    const panelBlock = postComposerSource.match(/<div className="composer-campaign-status" role="status">[\s\S]*?<\/div>/)?.[0] ?? "";
+    expect(panelBlock).not.toBe("");
+    expect(panelBlock).toMatch(/Email batch requested/);
+    expect(panelBlock).toMatch(/Requested \{formatChicagoDate\(campaignState\.requested_at\)\} at \{formatChicagoTime\(campaignState\.requested_at\)\}/);
+    expect(panelBlock).toMatch(/Subject: \{campaignState\.subject\}/);
+    expect(panelBlock).toMatch(/Status: \{friendlyCampaignStatus\(campaignState\.status\)\}/);
+    expect(panelBlock).toMatch(/This email request cannot be changed, cancelled, or submitted again\./);
+    expect(panelBlock).not.toMatch(/requested_at\}<\/p>/);
+  });
+
+  it("no resend/retry/cancel/undo control exists anywhere inside the panel", () => {
+    const panelBlock = postComposerSource.match(/<div className="composer-campaign-status" role="status">[\s\S]*?<\/div>/)?.[0] ?? "";
+    expect(panelBlock).not.toMatch(/<button/);
+    expect(panelBlock).not.toMatch(/<input/);
+  });
+
+  it("the panel and the request checkbox/subject field are mutually exclusive branches of one ternary — a campaign can never coexist with a visible request control", () => {
+    expect(postComposerSource).toMatch(/\{campaignState\?\.requested \? \(/);
+    expect(postComposerSource).toMatch(/\) : \(\s*canRequestCampaign && \(/);
+  });
+
+  it("a draft trusted chapter master (no campaign yet) still sees the ordinary checkbox and subject field", () => {
+    expect(postComposerSource).toMatch(/Request a county email campaign/);
+    expect(postComposerSource).toMatch(/composer-campaign-option__subject/);
+  });
+
+  it("a fresh publish that requested a campaign updates local state immediately, so a still-mounted composer shows the panel — not the checkbox — right after", () => {
+    expect(postComposerSource).toMatch(/if \(campaignStatus\) \{\s*\n\s*setCampaignState\(\{/);
+    expect(postComposerSource).toMatch(/requested: true,/);
+  });
+
+  it("a stale-state uniqueness error refreshes the real campaign state and clears the checkbox instead of leaving it reusable", () => {
+    expect(postComposerSource).toMatch(/already been requested for this post/i);
+    expect(postComposerSource).toMatch(/setWantsEmailCampaign\(false\);/);
+    expect(postComposerSource).toMatch(/if \(refreshedState\) setCampaignState\(refreshedState\);/);
+  });
+});
+
+describe("Requesting an email campaign for an already-published post: standalone action, never touches the post row", () => {
+  it("an approved chapter post is detected, and the entire action bar branches on it — Save draft/Publish are structurally excluded from that branch", () => {
+    expect(postComposerSource).toMatch(/const isApprovedChapterPost = isChapterMode && initialPost\?\.status === "approved";/);
+    const actionsBlock = postComposerSource.match(/<div className="composer-actions composer-actions--sticky">[\s\S]*/)?.[0] ?? "";
+    expect(actionsBlock).toMatch(/\{isApprovedChapterPost \? \(/);
+    const [approvedBranch, restBranch] = actionsBlock.split(") : (");
+    expect(approvedBranch).not.toMatch(/Save draft/);
+    expect(approvedBranch).not.toMatch(/save\(true\)/);
+    expect(approvedBranch).not.toMatch(/save\(false\)/);
+    expect(restBranch).toMatch(/Save draft/);
+    expect(restBranch).toMatch(/save\(true\)/);
+  });
+
+  it("requestCampaignOnly calls exactly rrg_request_post_email_campaign with the post's own id and the trimmed subject, falling back to the post's title", () => {
+    const fnBlock = postComposerSource.match(/async function requestCampaignOnly\(\)[\s\S]*?\n  \}/)?.[0] ?? "";
+    expect(fnBlock).not.toBe("");
+    expect(fnBlock).toMatch(/const subject = campaignSubject\.trim\(\) \|\| savedPost\.title;/);
+    expect(fnBlock).toMatch(/supabase\.rpc\("rrg_request_post_email_campaign", \{/);
+    expect(fnBlock).toMatch(/p_post_id: savedPost\.id,/);
+    expect(fnBlock).toMatch(/p_subject: subject,/);
+  });
+
+  it("requestCampaignOnly never updates posts, persists media, or calls rrg_submit_post / rrg_publish_post_with_email_campaign", () => {
+    const fnBlock = postComposerSource.match(/async function requestCampaignOnly\(\)[\s\S]*?\n  \}/)?.[0] ?? "";
+    expect(fnBlock).not.toMatch(/\.from\("posts"\)/);
+    expect(fnBlock).not.toMatch(/persistPostMedia/);
+    expect(fnBlock).not.toMatch(/buildDraftPostPayload/);
+    expect(fnBlock).not.toMatch(/rrg_submit_post/);
+    expect(fnBlock).not.toMatch(/rrg_publish_post_with_email_campaign/);
+  });
+
+  it("the Request email campaign button is offered only when canRequestCampaign — trusted, no existing campaign, not still loading", () => {
+    expect(postComposerSource).toMatch(
+      /const canRequestCampaign = isTrustedChapterMaster && !campaignExists && !campaignLoading;/,
+    );
+    const actionsBlock = postComposerSource.match(/<div className="composer-actions composer-actions--sticky">[\s\S]*/)?.[0] ?? "";
+    expect(actionsBlock).toMatch(/canRequestCampaign && \(/);
+    expect(actionsBlock).toMatch(/onClick=\{requestCampaignOnly\}/);
+  });
+
+  it("an existing campaign (campaignExists) makes canRequestCampaign false, so the request button and checkbox can never appear once a campaign is already on record", () => {
+    expect(postComposerSource).toMatch(/const campaignExists = campaignState\?\.requested === true;/);
+  });
+
+  it("draft publishing (not yet approved) is unaffected — Publish still calls the atomic rrg_publish_post_with_email_campaign RPC", () => {
+    expect(postComposerSource).toMatch(/supabase\.rpc\("rrg_publish_post_with_email_campaign", \{/);
+  });
+
+  it("restricted chapter masters never see the request action, since canRequestCampaign requires isTrustedChapterMaster", () => {
+    const settingsBlock = postComposerSource.match(/<details className="composer-publication-settings">[\s\S]*?<\/details>/)?.[0] ?? "";
+    expect(settingsBlock).toMatch(/canRequestCampaign && \(/);
+    expect(settingsBlock).not.toMatch(/isTrustedChapterMaster && \(/);
+  });
+
+  it("the approved-post hint text says the post is already published, not that it will be published now", () => {
+    expect(postComposerSource).toMatch(
+      /This post is already published\. The email campaign will be sent to an administrator for approval before delivery\./,
+    );
+  });
+
+  it("a stale-state uniqueness error inside requestCampaignOnly refreshes the real campaign state and clears the checkbox instead of leaving it reusable", () => {
+    const fnBlock = postComposerSource.match(/async function requestCampaignOnly\(\)[\s\S]*?\n  \}/)?.[0] ?? "";
+    expect(fnBlock).toMatch(/already been requested for this post/i);
+    expect(fnBlock).toMatch(/setWantsEmailCampaign\(false\);/);
+    expect(fnBlock).toMatch(/if \(refreshedState\) setCampaignState\(refreshedState\);/);
   });
 });

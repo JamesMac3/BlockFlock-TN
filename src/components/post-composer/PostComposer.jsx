@@ -3,7 +3,12 @@ import { z } from "zod";
 import { supabase } from "../../lib/supabase";
 import { validateExternalUrl } from "../../utils/urlValidation";
 import { buildDraftPostPayload, runWithVerifiedUser } from "../../utils/postPayload";
-import { chicagoWallTimeToUtcIso, toChicagoDateTimeLocalValue } from "../../features/portal-admin/chicagoTime";
+import {
+  chicagoWallTimeToUtcIso,
+  toChicagoDateTimeLocalValue,
+  formatChicagoDate,
+  formatChicagoTime,
+} from "../../features/portal-admin/chicagoTime";
 import {
   MediaPersistenceError,
   createSupabaseMediaAdapter,
@@ -21,6 +26,11 @@ const baseSchema = z.object({
   contentType: z.enum(["announcement", "meeting", "investigation", "records", "action"]),
   summary: z.string().trim().max(600, "Keep the summary under 600 characters."),
 });
+
+function friendlyCampaignStatus(status) {
+  if (!status) return "";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
 
 const EMPTY_POST = {
   title: "",
@@ -93,12 +103,27 @@ export default function PostComposer({
   // enforce it independently (see final report).
   const isTrustedChapterMaster = isChapterMode && chapterAccount?.status === "active" && chapterAccount?.review_required === false;
   const [form, setForm] = useState(() => initialValues(initialPost, creationType, isChapterMode, chapterCounty));
-  const [publishedForCampaign, setPublishedForCampaign] = useState(null);
+  // Trusted-chapter email campaigns are folded into the single Publish
+  // action (see save()) rather than a separate post-publish screen/RPC —
+  // this is purely local UI state read at the moment Publish is clicked.
+  const [wantsEmailCampaign, setWantsEmailCampaign] = useState(false);
   const [campaignSubject, setCampaignSubject] = useState("");
-  const [campaignSubmitting, setCampaignSubmitting] = useState(false);
-  const [campaignError, setCampaignError] = useState("");
-  const [campaignSuccess, setCampaignSuccess] = useState(false);
-  const campaignLockRef = useRef(false);
+  // null = not checked yet (or not applicable — only approved posts have
+  // one). Once loaded, { requested: false } or the full requested record.
+  // requested/approved/sending/sent/rejected/cancelled/failed are all
+  // treated identically here: any of them means a campaign row already
+  // exists for this post, so the request control must never reappear.
+  const [campaignState, setCampaignState] = useState(null);
+  // Once a chapter master's post is approved, it is immutable — the plain
+  // insert/update save path (below) cannot write to it at all (approved
+  // rows reject non-admin updates server-side), so the composer never
+  // offers Save draft/Publish for this state and instead offers, at most,
+  // a standalone "request the campaign" action. Admin behavior is entirely
+  // unaffected — none of this applies outside isChapterMode.
+  const isApprovedChapterPost = isChapterMode && initialPost?.status === "approved";
+  const campaignLoading = isApprovedChapterPost && campaignState === null;
+  const campaignExists = campaignState?.requested === true;
+  const canRequestCampaign = isTrustedChapterMaster && !campaignExists && !campaignLoading;
   // The chapter master's own county/scope, reapplied at every point a
   // value derived from form.scope/form.countyId is actually used for a
   // save, publish, or preview — never trusting form state alone, since
@@ -156,6 +181,27 @@ export default function PostComposer({
     return () => { active = false; };
   }, [initialPost]);
 
+  // A campaign, once requested, is permanent — this is looked up only when
+  // opening an already-published (approved) post, for both admin and
+  // chapter-master callers alike; drafts and pending posts never show it.
+  useEffect(() => {
+    if (!initialPost || initialPost.status !== "approved") return undefined;
+    let active = true;
+    async function loadCampaignState() {
+      const { data, error: campaignStateError } = await supabase.rpc("rrg_get_post_email_campaign_state", {
+        p_post_id: initialPost.id,
+      });
+      if (!active) return;
+      if (campaignStateError) {
+        console.error("Email campaign state load failed:", campaignStateError);
+        return;
+      }
+      setCampaignState(data);
+    }
+    loadCampaignState();
+    return () => { active = false; };
+  }, [initialPost]);
+
   useEffect(() => {
     const hasLocalMedia = media.some((item) => item.file || item.uploadState === "failed");
     if (!submitting && !hasLocalMedia) return undefined;
@@ -189,6 +235,11 @@ export default function PostComposer({
       for (const value of [item.source_url, item.external_url]) {
         if (value && !validateExternalUrl(value).valid) return `Media item ${index + 1} contains an invalid HTTPS URL.`;
       }
+    }
+    if (isChapterMode && isTrustedChapterMaster && wantsEmailCampaign && !campaignState?.requested) {
+      const subject = (campaignSubject || form.title).trim();
+      if (!subject) return "An email subject is required to request a county email campaign.";
+      if (subject.length > 180) return "Email subject must be 180 characters or fewer.";
     }
     return null;
   }
@@ -308,75 +359,157 @@ export default function PostComposer({
     }
 
     let submittedStatus = null;
+    let campaignStatus = null;
     if (publish) {
       setProgress("Submitting...");
-      // Status transitions (immediate publish for admins/trusted chapter
-      // masters, pending review for restricted ones) are decided
-      // server-side by rrg_submit_post from the live portal_accounts row —
-      // never by a client-provided status.
-      const { data: submitted, error: submitError } = await supabase.rpc("rrg_submit_post", {
-        p_post_id: post.id,
-      });
-      if (submitError) {
-        setError(`${submitError.message} The post remains a draft.`);
-        setRetryPublish(publish);
-        setSubmitting(false);
-        submissionLockRef.current = false;
-        return;
+      if (isChapterMode) {
+        // One atomic RPC publishes/submits the post and, only when
+        // requested, creates its email campaign in the same server-side
+        // transaction — never two separate calls, so a chapter master can
+        // never end up with a published post and a missing or duplicated
+        // campaign request.
+        const requestEmail = isTrustedChapterMaster && wantsEmailCampaign && !campaignState?.requested;
+        const subject = requestEmail ? (campaignSubject || form.title).trim() : null;
+        const { data: rpcResult, error: rpcError } = await supabase.rpc("rrg_publish_post_with_email_campaign", {
+          p_post_id: post.id,
+          p_request_email: requestEmail,
+          p_subject: subject,
+        });
+        if (rpcError) {
+          console.error("Publish failed:", rpcError);
+          // A stale composer session (e.g. a campaign was already
+          // requested for this post through another tab/session since it
+          // was opened here) surfaces as the DB's uniqueness message —
+          // refresh the real campaign state and show the immutable panel
+          // instead of leaving a reusable checkbox on screen.
+          if (/already been requested for this post/i.test(rpcError.message ?? "")) {
+            const { data: refreshedState } = await supabase.rpc("rrg_get_post_email_campaign_state", {
+              p_post_id: post.id,
+            });
+            if (refreshedState) setCampaignState(refreshedState);
+            setWantsEmailCampaign(false);
+            setError("An email campaign for this post was already requested — see its status below. Publish again to continue without requesting a new one.");
+          } else {
+            setError("The post could not be published. Please try again.");
+          }
+          setRetryPublish(publish);
+          setSubmitting(false);
+          submissionLockRef.current = false;
+          return;
+        }
+        submittedStatus = rpcResult.post_status;
+        campaignStatus = rpcResult.campaign_status;
+        post = { ...post, status: submittedStatus };
+        setSavedPost(post);
+        if (campaignStatus) {
+          setCampaignState({
+            requested: true,
+            campaign_id: rpcResult.campaign_id,
+            status: campaignStatus,
+            subject,
+            requested_at: new Date().toISOString(),
+          });
+        }
+      } else {
+        // Status transitions for admins (always immediate publish; the
+        // restricted-vs-trusted chapter-master split is handled by the
+        // branch above) are decided server-side by rrg_submit_post — never
+        // by a client-provided status.
+        const { data: submitted, error: submitError } = await supabase.rpc("rrg_submit_post", {
+          p_post_id: post.id,
+        });
+        if (submitError) {
+          setError(`${submitError.message} The post remains a draft.`);
+          setRetryPublish(publish);
+          setSubmitting(false);
+          submissionLockRef.current = false;
+          return;
+        }
+        post = submitted;
+        submittedStatus = submitted.status;
+        setSavedPost(post);
       }
-      post = submitted;
-      submittedStatus = submitted.status;
-      setSavedPost(post);
     }
 
-    setProgress(!publish ? "Draft saved" : submittedStatus === "pending" ? "Submitted for review" : "Published");
+    if (!publish) {
+      setProgress("Draft saved");
+    } else if (isChapterMode) {
+      setProgress(
+        submittedStatus === "pending"
+          ? "Post submitted for administrator review."
+          : campaignStatus === "requested"
+            ? "Post published. The email campaign was sent for administrator approval."
+            : "Post published.",
+      );
+    } else {
+      setProgress(submittedStatus === "pending" ? "Submitted for review" : "Published");
+    }
     setSubmitting(false);
     submissionLockRef.current = false;
-
-    // Email campaigns are only ever offered right here, inside the Publish
-    // flow, after the post has actually reached "approved" — never before
-    // publish succeeds, and never for a restricted chapter master (whose
-    // submission lands in "pending", not "approved"). onComplete is
-    // deliberately withheld until the chapter master requests a campaign
-    // or explicitly skips, so a successful publish is never abandoned
-    // mid-flow.
-    if (isChapterMode && isTrustedChapterMaster && !isMeetingPost && publish && post.status === "approved") {
-      setCampaignSubject(post.title ?? "");
-      setPublishedForCampaign(post);
-      return;
-    }
-
     onComplete?.(post);
   }
 
-  async function requestEmailCampaign() {
-    if (campaignLockRef.current || !publishedForCampaign) return;
-    const subject = campaignSubject.trim();
+  // Requesting a campaign for an already-published post is a completely
+  // separate action from save()/Publish — it never touches the posts row,
+  // never runs media persistence, and never calls rrg_submit_post or
+  // rrg_publish_post_with_email_campaign, since the post is already
+  // approved and immutable. Only rrg_request_post_email_campaign is
+  // called, exactly as it already is for a trusted chapter master's own
+  // county post.
+  async function requestCampaignOnly() {
+    if (submissionLockRef.current || !wantsEmailCampaign || !savedPost) return;
+    submissionLockRef.current = true;
+    setError("");
+    setSubmitting(true);
+    setProgress("Requesting email campaign...");
+
+    const subject = campaignSubject.trim() || savedPost.title;
     if (!subject || subject.length > 180) {
-      setCampaignError("Subject must be between 1 and 180 characters.");
+      setError(!subject ? "An email subject is required to request a county email campaign." : "Email subject must be 180 characters or fewer.");
+      setSubmitting(false);
+      setProgress("");
+      submissionLockRef.current = false;
       return;
     }
-    campaignLockRef.current = true;
-    setCampaignError("");
-    setCampaignSubmitting(true);
-    const { error: campaignRpcError } = await supabase.rpc("rrg_request_post_email_campaign", {
-      p_post_id: publishedForCampaign.id,
+
+    const { data: campaignId, error: rpcError } = await supabase.rpc("rrg_request_post_email_campaign", {
+      p_post_id: savedPost.id,
       p_subject: subject,
     });
-    if (campaignRpcError) {
-      console.error("Email campaign request failed:", campaignRpcError);
-      const isDuplicate = campaignRpcError.code === "23505" || /already/i.test(campaignRpcError.message ?? "");
-      setCampaignError(
-        isDuplicate
-          ? "An email campaign for this post is already awaiting administrator review."
-          : "The email campaign request could not be submitted. Please try again.",
-      );
-      setCampaignSubmitting(false);
-      campaignLockRef.current = false;
+
+    if (rpcError) {
+      console.error("Email campaign request failed:", rpcError);
+      // A stale composer session (a campaign was already requested for
+      // this post elsewhere since it was opened here) surfaces as the
+      // DB's uniqueness message — refresh the real state and show the
+      // immutable panel instead of leaving a reusable request control up.
+      if (/already been requested for this post/i.test(rpcError.message ?? "")) {
+        const { data: refreshedState } = await supabase.rpc("rrg_get_post_email_campaign_state", {
+          p_post_id: savedPost.id,
+        });
+        if (refreshedState) setCampaignState(refreshedState);
+        setWantsEmailCampaign(false);
+        setError("An email campaign for this post was already requested — see its status below.");
+      } else {
+        setError("The email campaign request could not be submitted. Please try again.");
+      }
+      setSubmitting(false);
+      setProgress("");
+      submissionLockRef.current = false;
       return;
     }
-    setCampaignSuccess(true);
-    setCampaignSubmitting(false);
+
+    setCampaignState({
+      requested: true,
+      campaign_id: campaignId,
+      status: "requested",
+      subject,
+      requested_at: new Date().toISOString(),
+    });
+    setWantsEmailCampaign(false);
+    setProgress("The email campaign was sent for administrator approval.");
+    setSubmitting(false);
+    submissionLockRef.current = false;
   }
 
   const previewPost = {
@@ -396,39 +529,6 @@ export default function PostComposer({
     is_pinned: form.isPinned,
     post_media: media,
   };
-
-  if (publishedForCampaign) {
-    return (
-      <section className="post-composer post-composer--campaign" aria-labelledby="post-composer-title">
-        <header><div><p>{mode} composer</p><h2 id="post-composer-title">Published</h2></div></header>
-        <p className="composer-publish-success">"{publishedForCampaign.title}" is now published to {chapterCounty?.name} County.</p>
-        <div className="composer-email-campaign">
-          <h3>Email this update to county subscribers</h3>
-          <p>Sends this update by email to active subscribers in {chapterCounty?.name} County only. An administrator must approve the campaign before anything is sent.</p>
-          {!campaignSuccess ? (
-            <>
-              <label>Subject<input value={campaignSubject} onChange={(event) => setCampaignSubject(event.target.value)} maxLength={180} required disabled={campaignSubmitting} /></label>
-              <div className="composer-email-campaign__preview">
-                <StatusPostCard post={publishedForCampaign} countyName={chapterCounty?.name ?? "Tennessee"} />
-              </div>
-              {campaignError && <p className="composer-error" role="alert">{campaignError}</p>}
-              <div className="composer-actions">
-                <button type="button" onClick={() => onComplete?.(publishedForCampaign)} disabled={campaignSubmitting}>Skip</button>
-                <button type="button" onClick={requestEmailCampaign} disabled={campaignSubmitting || !campaignSubject.trim()}>{campaignSubmitting ? "Requesting…" : "Email this update to county subscribers"}</button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="composer-campaign-success" role="status">Email campaign submitted for administrator approval.</p>
-              <div className="composer-actions">
-                <button type="button" onClick={() => onComplete?.(publishedForCampaign)}>Done</button>
-              </div>
-            </>
-          )}
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="post-composer" aria-labelledby="post-composer-title">
@@ -461,17 +561,72 @@ export default function PostComposer({
             </div>
           )}
         </div>
-        {!isMeetingPost && <details className="composer-publication-settings"><summary>Publication settings</summary>{capabilities.canPin && <label className="composer-check"><input type="checkbox" checked={form.isPinned} onChange={(event) => update("isPinned", event.target.checked)} /> Pin this post</label>}{capabilities.canMassEmail && <label className="composer-check"><input type="checkbox" checked={form.massEmail} onChange={(event) => update("massEmail", event.target.checked)} /> Mark for a future mass-email job</label>}<p>This update will appear in the public status feed when published.</p></details>}
+        {!isMeetingPost && (
+          <details className="composer-publication-settings">
+            <summary>Publication settings</summary>
+            {capabilities.canPin && <label className="composer-check"><input type="checkbox" checked={form.isPinned} onChange={(event) => update("isPinned", event.target.checked)} /> Pin this post</label>}
+            {capabilities.canMassEmail && <label className="composer-check"><input type="checkbox" checked={form.massEmail} onChange={(event) => update("massEmail", event.target.checked)} /> Mark for a future mass-email job</label>}
+            {campaignState?.requested ? (
+              <div className="composer-campaign-status" role="status">
+                <strong>Email batch requested</strong>
+                <p>Requested {formatChicagoDate(campaignState.requested_at)} at {formatChicagoTime(campaignState.requested_at)}</p>
+                <p>Subject: {campaignState.subject}</p>
+                <p>Status: {friendlyCampaignStatus(campaignState.status)}</p>
+                <p className="composer-campaign-status__note">This email request cannot be changed, cancelled, or submitted again.</p>
+              </div>
+            ) : (
+              canRequestCampaign && (
+                <div className="composer-campaign-option">
+                  <label className="composer-check">
+                    <input type="checkbox" checked={wantsEmailCampaign} onChange={(event) => setWantsEmailCampaign(event.target.checked)} />
+                    Request a county email campaign
+                  </label>
+                  <p className="composer-campaign-option__hint">
+                    {isApprovedChapterPost
+                      ? "This post is already published. The email campaign will be sent to an administrator for approval before delivery."
+                      : "The post will be published now. The email campaign will be sent to an administrator for approval before delivery."}
+                  </p>
+                  {wantsEmailCampaign && (
+                    <label className="composer-campaign-option__subject">
+                      Email subject
+                      <input
+                        type="text"
+                        value={campaignSubject || form.title}
+                        onChange={(event) => setCampaignSubject(event.target.value)}
+                        maxLength={180}
+                        required
+                      />
+                    </label>
+                  )}
+                </div>
+              )
+            )}
+            <p>This update will appear in the public status feed when published.</p>
+          </details>
+        )}
       </fieldset>
       {error && <p className="composer-error" role="alert">{error}</p>}
       {retryPublish !== null && <div className="composer-retry-actions"><button type="button" onClick={() => save(retryPublish)}>Retry upload</button><button type="button" onClick={() => onComplete?.(savedPost)}>Return to draft</button></div>}
       {progress && <p className="submission-progress" role="status">{progress}</p>}
       {previewing && <div className="composer-preview"><StatusPostCard post={previewPost} countyName={selectedCounty?.name ?? "Tennessee"} /></div>}
       <div className="composer-actions composer-actions--sticky">
-        <span>{dirty ? "Unsaved changes" : "No unsaved changes"}</span>
-        <button type="button" onClick={() => save(false)} disabled={submitting}>Save draft</button>
-        {!isMeetingPost && <button type="button" onClick={() => setPreviewing((current) => !current)} disabled={submitting}>{previewing ? "Close preview" : "Preview"}</button>}
-        <button type="button" onClick={() => save(true)} disabled={submitting}>{isMeetingPost ? "Publish meeting" : "Publish"}</button>
+        {isApprovedChapterPost ? (
+          <>
+            {!isMeetingPost && <button type="button" onClick={() => setPreviewing((current) => !current)} disabled={submitting}>{previewing ? "Close preview" : "Preview"}</button>}
+            {canRequestCampaign && (
+              <button type="button" onClick={requestCampaignOnly} disabled={submitting || !wantsEmailCampaign}>
+                {submitting ? "Requesting…" : "Request email campaign"}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <span>{dirty ? "Unsaved changes" : "No unsaved changes"}</span>
+            <button type="button" onClick={() => save(false)} disabled={submitting}>Save draft</button>
+            {!isMeetingPost && <button type="button" onClick={() => setPreviewing((current) => !current)} disabled={submitting}>{previewing ? "Close preview" : "Preview"}</button>}
+            <button type="button" onClick={() => save(true)} disabled={submitting}>{isMeetingPost ? "Publish meeting" : "Publish"}</button>
+          </>
+        )}
       </div>
     </section>
   );

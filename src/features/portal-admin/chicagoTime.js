@@ -69,3 +69,19 @@ export function formatChicagoDateTime(isoOrDate) {
   }).format(date);
   return `${formatted} CT`;
 }
+
+// The date-only half of formatChicagoDateTime, e.g. "Sep 1, 2026" — for
+// copy that reads "Requested [date] at [time]" as two separate pieces.
+export function formatChicagoDate(isoOrDate) {
+  if (!isoOrDate) return "";
+  const date = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
+  return new Intl.DateTimeFormat("en-US", { timeZone: CHICAGO_TZ, dateStyle: "medium" }).format(date);
+}
+
+// The time-only half, e.g. "5:00 PM CT".
+export function formatChicagoTime(isoOrDate) {
+  if (!isoOrDate) return "";
+  const date = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
+  const formatted = new Intl.DateTimeFormat("en-US", { timeZone: CHICAGO_TZ, timeStyle: "short" }).format(date);
+  return `${formatted} CT`;
+}
