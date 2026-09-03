@@ -1,0 +1,31 @@
+.chapter-instructions { display: grid; gap: 1.25rem; max-width: 100%; }
+.chapter-instructions section { min-width: 0; }
+.chapter-instructions h4 { margin: 0 0 0.4rem; color: #55e1ff; }
+.chapter-instructions p { margin: 0.4rem 0; color: var(--text); line-height: 1.5; overflow-wrap: anywhere; }
+.chapter-instructions ul { margin: 0.4rem 0; padding-left: 1.25rem; color: var(--text); line-height: 1.55; }
+.chapter-instructions li { margin: 0.15rem 0; }
+
+.chapter-instructions__image-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 6rem;
+  margin-top: 0.6rem;
+  padding: 1rem;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.chapter-instructions__warning {
+  padding: 0.8rem;
+  border-left: 3px solid #f87171;
+  background: rgb(239 68 68 / 10%);
+  color: #f87171;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .chapter-instructions__image-slot { min-height: 4rem; }
+}

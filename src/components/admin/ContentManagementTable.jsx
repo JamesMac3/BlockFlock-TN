@@ -39,11 +39,39 @@ function Badges({ record }) {
   return badges.length ? <span className="management-badges">{badges.map((badge) => <small key={badge} title={badge}>{badge}</small>)}</span> : null;
 }
 
-function ManagementActions({ record, context, onEdit, getPreviewPath }) {
+const TRASH_ICON = (
+  <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false">
+    <path
+      fill="currentColor"
+      d="M8 2a1 1 0 0 0-1 1v1H4a1 1 0 1 0 0 2h.5l.7 10.1A2 2 0 0 0 7.2 18h5.6a2 2 0 0 0 2-1.9L15.5 6H16a1 1 0 1 0 0-2h-3V3a1 1 0 0 0-1-1H8Zm0 2h4V3H8v1ZM7 8a1 1 0 0 1 2 0v6a1 1 0 1 1-2 0V8Zm4-1a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Z"
+    />
+  </svg>
+);
+
+// onDelete is only ever passed by a caller that has already determined the
+// viewer is authorized to delete (trusted chapter master) — this component
+// never infers that itself. mass_email_requested is already present on
+// every loaded record, so a post with campaign history is disabled here
+// without a further query; the RPC's own rejection remains the actual
+// authorization/retention boundary.
+function ManagementActions({ record, context, onEdit, onDelete, getPreviewPath }) {
   const previewPath = getPreviewPath?.(record);
+  const hasCampaign = record.mass_email_requested === true;
   return <div className="management-actions">
     {previewPath && <Link to={previewPath}>Preview</Link>}
     {onEdit && <button type="button" onClick={() => onEdit(record)}>{context === "admin" && record.status === "pending" ? "Review" : "Edit"}</button>}
+    {onDelete && (
+      <button
+        type="button"
+        className="management-actions__delete"
+        onClick={() => onDelete(record)}
+        disabled={hasCampaign}
+        aria-label={hasCampaign ? `${record.title} has an email campaign and cannot be deleted` : `Delete ${record.title}`}
+        title={hasCampaign ? "This post has an email campaign and must be retained for delivery records." : "Delete this post"}
+      >
+        {TRASH_ICON}
+      </button>
+    )}
   </div>;
 }
 
@@ -58,6 +86,7 @@ export default function ContentManagementTable({
   error = "",
   showStatus = false,
   onEdit,
+  onDelete,
   getPreviewPath,
 }) {
   const [criteria, setCriteria] = useState({ search: "", county: "all", type: "all", sort: DEFAULT_SORT_BY_VIEW[activeView], page: 1 });
@@ -84,22 +113,22 @@ export default function ContentManagementTable({
     {!pageRecords.length ? <div className="management-state"><p>{records.length && filtersActive ? "No records match the current filters." : "No records are currently in this workflow."}</p>{filtersActive && <button type="button" onClick={() => setCriteria({ search: "", county: "all", type: "all", sort: DEFAULT_SORT_BY_VIEW[activeView], page: 1 })}>Clear filters</button>}</div> : <>
       <table className="management-table">
         <thead><tr>{variant === "posts" ? <><th>Title</th>{context === "admin" && <th>County</th>}<th>Type</th><th>Source</th><th>Activity</th><th>Media</th>{showStatus && <th>Status</th>}<th>Actions</th></> : <><th>Meeting</th>{context === "admin" && <th>County</th>}<th>Starts</th><th>Location</th><th>Source</th><th>Related post</th>{showStatus && <th>Status</th>}<th>Actions</th></>}</tr></thead>
-        <tbody>{pageRecords.map((record) => <ManagementTableRow key={record.id} record={record} variant={variant} context={context} activeView={activeView} sourceLookup={sourceLookup} showStatus={showStatus} onEdit={onEdit} getPreviewPath={getPreviewPath} />)}</tbody>
+        <tbody>{pageRecords.map((record) => <ManagementTableRow key={record.id} record={record} variant={variant} context={context} activeView={activeView} sourceLookup={sourceLookup} showStatus={showStatus} onEdit={onEdit} onDelete={onDelete} getPreviewPath={getPreviewPath} />)}</tbody>
       </table>
-      <div className="management-mobile-list">{pageRecords.map((record) => <ManagementMobileRecord key={record.id} record={record} variant={variant} context={context} activeView={activeView} sourceLookup={sourceLookup} showStatus={showStatus} onEdit={onEdit} getPreviewPath={getPreviewPath} />)}</div>
+      <div className="management-mobile-list">{pageRecords.map((record) => <ManagementMobileRecord key={record.id} record={record} variant={variant} context={context} activeView={activeView} sourceLookup={sourceLookup} showStatus={showStatus} onEdit={onEdit} onDelete={onDelete} getPreviewPath={getPreviewPath} />)}</div>
       {totalPages > 1 && <nav className="management-pagination" aria-label="Publishing queue pages"><button type="button" disabled={criteria.page === 1} onClick={() => setCriteria((current) => ({ ...current, page: current.page - 1 }))}>Previous</button><span>Page {criteria.page} of {totalPages}</span><button type="button" disabled={criteria.page === totalPages} onClick={() => setCriteria((current) => ({ ...current, page: current.page + 1 }))}>Next</button></nav>}
     </>}
   </div>;
 }
 
-function ManagementTableRow({ record, variant, context, activeView, sourceLookup, showStatus, onEdit, getPreviewPath }) {
+function ManagementTableRow({ record, variant, context, activeView, sourceLookup, showStatus, onEdit, onDelete, getPreviewPath }) {
   const activity = activityForView(record, activeView);
   const county = recordCountyLabel(record);
   const related = relatedPostLabel(record);
-  return <tr>{variant === "posts" ? <><td className="management-title"><strong>{record.title}</strong>{record.summary && <span>{record.summary}</span>}<Badges record={record} /></td>{context === "admin" && <td title={record.counties?.name ?? "Statewide"}>{county}</td>}<td>{CONTENT_TYPE_LABELS[record.content_type] ?? record.content_type}</td><td>{sourceLabel(record, sourceLookup)}</td><td><time dateTime={activity.value ?? undefined}>{formatActivity(activity.value)}</time><small>{activity.label}</small></td><td>{record.post_media?.length ?? 0}</td>{showStatus && <td>{record.status}</td>}<td><ManagementActions record={record} context={context} onEdit={onEdit} getPreviewPath={getPreviewPath} /></td></> : <><td className="management-title"><strong>{record.title}</strong></td>{context === "admin" && <td title={record.counties?.name ?? "Statewide"}>{county}</td>}<td><time dateTime={record.event_start}>{formatActivity(record.event_start)}</time></td><td>{record.event_location ?? "Not set"}</td><td>{sourceLabel(record, sourceLookup)}</td><td>{related}</td>{showStatus && <td>{record.status}</td>}<td><ManagementActions record={record} context={context} onEdit={onEdit} getPreviewPath={getPreviewPath} /></td></>}</tr>;
+  return <tr>{variant === "posts" ? <><td className="management-title"><strong>{record.title}</strong>{record.summary && <span>{record.summary}</span>}<Badges record={record} /></td>{context === "admin" && <td title={record.counties?.name ?? "Statewide"}>{county}</td>}<td>{CONTENT_TYPE_LABELS[record.content_type] ?? record.content_type}</td><td>{sourceLabel(record, sourceLookup)}</td><td><time dateTime={activity.value ?? undefined}>{formatActivity(activity.value)}</time><small>{activity.label}</small></td><td>{record.post_media?.length ?? 0}</td>{showStatus && <td>{record.status}</td>}<td><ManagementActions record={record} context={context} onEdit={onEdit} onDelete={onDelete} getPreviewPath={getPreviewPath} /></td></> : <><td className="management-title"><strong>{record.title}</strong></td>{context === "admin" && <td title={record.counties?.name ?? "Statewide"}>{county}</td>}<td><time dateTime={record.event_start}>{formatActivity(record.event_start)}</time></td><td>{record.event_location ?? "Not set"}</td><td>{sourceLabel(record, sourceLookup)}</td><td>{related}</td>{showStatus && <td>{record.status}</td>}<td><ManagementActions record={record} context={context} onEdit={onEdit} onDelete={onDelete} getPreviewPath={getPreviewPath} /></td></>}</tr>;
 }
 
-function ManagementMobileRecord({ record, variant, context, activeView, sourceLookup, showStatus, onEdit, getPreviewPath }) {
+function ManagementMobileRecord({ record, variant, context, activeView, sourceLookup, showStatus, onEdit, onDelete, getPreviewPath }) {
   const activity = activityForView(record, activeView);
-  return <article className="management-mobile-record"><strong>{record.title}</strong><span>{recordCountyLabel(record)} · {CONTENT_TYPE_LABELS[record.content_type] ?? record.content_type}</span><time dateTime={activity.value ?? undefined}>{activity.label}: {formatActivity(activity.value)}</time><span>Media: {record.post_media?.length ?? 0}</span><Badges record={record} /><details><summary>Details</summary><dl><div><dt>Source</dt><dd>{sourceLabel(record, sourceLookup)}</dd></div>{showStatus && <div><dt>Status</dt><dd>{record.status}</dd></div>}{variant === "meetings" && <><div><dt>Location</dt><dd>{record.event_location ?? "Not set"}</dd></div><div><dt>Related post</dt><dd>{relatedPostLabel(record)}</dd></div></>}</dl></details><ManagementActions record={record} context={context} onEdit={onEdit} getPreviewPath={getPreviewPath} /></article>;
+  return <article className="management-mobile-record"><strong>{record.title}</strong><span>{recordCountyLabel(record)} · {CONTENT_TYPE_LABELS[record.content_type] ?? record.content_type}</span><time dateTime={activity.value ?? undefined}>{activity.label}: {formatActivity(activity.value)}</time><span>Media: {record.post_media?.length ?? 0}</span><Badges record={record} /><details><summary>Details</summary><dl><div><dt>Source</dt><dd>{sourceLabel(record, sourceLookup)}</dd></div>{showStatus && <div><dt>Status</dt><dd>{record.status}</dd></div>}{variant === "meetings" && <><div><dt>Location</dt><dd>{record.event_location ?? "Not set"}</dd></div><div><dt>Related post</dt><dd>{relatedPostLabel(record)}</dd></div></>}</dl></details><ManagementActions record={record} context={context} onEdit={onEdit} onDelete={onDelete} getPreviewPath={getPreviewPath} /></article>;
 }

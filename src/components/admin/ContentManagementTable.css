@@ -26,6 +26,10 @@
 .management-actions button:focus-visible,
 .management-toolbar input:focus-visible,
 .management-toolbar select:focus-visible { outline: 3px solid #55e1ff; outline-offset: 2px; }
+.management-actions__delete { color: #f87171 !important; border-color: rgb(239 68 68 / 45%) !important; }
+.management-actions__delete:hover:not(:disabled) { border-color: #f87171 !important; background: rgb(239 68 68 / 10%) !important; }
+.management-actions__delete:disabled { opacity: 0.4; cursor: not-allowed; }
+.management-actions__delete svg { display: block; }
 .management-mobile-list { display: none; }
 .management-state { padding: 1rem; border: 1px dashed var(--border); color: var(--text-muted); }
 .management-state p { margin-top: 0; }

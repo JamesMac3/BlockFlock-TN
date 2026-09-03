@@ -4,6 +4,7 @@ import { usePortalAuth } from "../auth/portalAuth";
 import Header from "../components/Header";
 import AdminPostDashboard from "../components/admin/AdminPostDashboard";
 import AdminWorkspaceSwitcher from "../components/admin/AdminWorkspaceSwitcher";
+import AdminPopout from "../components/admin/AdminPopout";
 import ChapterMasterManagementTable from "../components/admin/ChapterMasterManagementTable";
 import CountyContactsManager from "../components/admin/CountyContactsManager";
 import DocumentsManagementTable from "../components/admin/DocumentsManagementTable";
@@ -13,6 +14,7 @@ import EmailCampaignsWorkspace from "../components/admin/EmailCampaignsWorkspace
 import TabNav from "../components/admin/TabNav";
 import RecordsRequestGoalsManager from "../components/records-request-goals/RecordsRequestGoalsManager";
 import ChapterAccountSettings from "../components/portal/ChapterAccountSettings";
+import ChapterInstructionsContent from "../components/portal/ChapterInstructionsContent";
 import ChapterPostsView from "../components/portal/ChapterPostsView";
 import CountyStatisticsPanel from "../components/portal/CountyStatisticsPanel";
 
@@ -34,6 +36,7 @@ export default function PortalDashboard({ mode, initialEditPostId = null }) {
   const { user, account, assignedCounty, signOut } = usePortalAuth();
   const isAdmin = mode === "admin";
   const [activeSection, setActiveSection] = useState(isAdmin ? "posts" : null);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
   const menuItems = chapterMenuItems;
 
   async function handleSignOut() {
@@ -98,12 +101,25 @@ export default function PortalDashboard({ mode, initialEditPostId = null }) {
             </div>
           </dl>
 
-          <TabNav
-            items={chapterMenuTabs}
-            activeId={activeSection}
-            onSelect={(id) => setActiveSection(activeSection === id ? null : id)}
-            label="Portal sections"
-          />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <TabNav
+              items={chapterMenuTabs}
+              activeId={activeSection}
+              onSelect={(id) => setActiveSection(activeSection === id ? null : id)}
+              label="Portal sections"
+            />
+            <nav className="tab-nav" aria-label="Portal help">
+              <button type="button" className="tab-nav__item" onClick={() => setInstructionsOpen(true)}>
+                Instructions
+              </button>
+            </nav>
+          </div>
+
+          {instructionsOpen && (
+            <AdminPopout title="Chapter Portal Instructions" onClose={() => setInstructionsOpen(false)}>
+              <ChapterInstructionsContent />
+            </AdminPopout>
+          )}
 
           {activeSection === "records-request-goals" && (
             <div style={{ marginTop: "2rem" }}>

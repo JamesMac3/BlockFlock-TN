@@ -9,10 +9,34 @@ import {
   getAdminDashboardItems,
 } from "../../utils/adminDashboardViews";
 import ContentManagementTable from "../admin/ContentManagementTable";
-import { describePostApprovalBehavior } from "../../features/portal-admin/chapterAccounts";
+import { describeAccountState, describePostApprovalBehavior } from "../../features/portal-admin/chapterAccounts";
 import "../admin/AdminPostDashboard.css";
 
 const CHAPTER_CAPABILITIES = { canPin: false, canMassEmail: false, canManageMedia: true };
+
+// "Admin Drafts" is renamed to "Drafts" on every chapter-master dashboard —
+// admin's own dashboard (AdminPostDashboard.jsx) keeps ADMIN_DASHBOARD_VIEWS
+// untouched, so this override only ever applies here.
+const CHAPTER_VIEW_TEXT_OVERRIDES = { drafts: { label: "Drafts", heading: "Drafts" } };
+
+// Trust is derived from the live portal_accounts row (see describeAccountState
+// — status === "active" && review_required === false/true), never from any
+// displayed label. A trusted chapter master's posts publish immediately and
+// never pass through Pending Review/Returned for Revision, so those queues
+// are hidden for them; a restricted chapter master sees the full review
+// lifecycle. Suspended accounts never reach this component (already denied
+// access upstream), so no separate case is needed for them.
+const CHAPTER_VIEW_IDS_BY_TRUST = {
+  trusted: ["drafts", "published", "meetings"],
+  restricted: ["drafts", "pending", "published", "returned", "meetings"],
+};
+
+function getChapterDashboardViews(trustState) {
+  const allowedIds = CHAPTER_VIEW_IDS_BY_TRUST[trustState] ?? CHAPTER_VIEW_IDS_BY_TRUST.trusted;
+  return ADMIN_DASHBOARD_VIEWS
+    .filter((view) => allowedIds.includes(view.id))
+    .map((view) => ({ ...view, ...CHAPTER_VIEW_TEXT_OVERRIDES[view.id] }));
+}
 
 const POST_LIST_FIELDS = [
   "id", "title", "summary", "county_id", "scope", "content_type", "status", "is_pinned",
@@ -27,7 +51,7 @@ async function loadEditablePost(postId) {
 
 export default function ChapterPostsView({ user, county }) {
   const { account } = usePortalAuth();
-  const [activeView, setActiveView] = useState("drafts");
+  const [rawActiveView, setActiveView] = useState("drafts");
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,9 +81,19 @@ export default function ChapterPostsView({ user, county }) {
     return () => clearTimeout(timer);
   }, [loadDashboard]);
 
+  const trustState = describeAccountState(account ?? {}).state;
+  const chapterViews = useMemo(() => getChapterDashboardViews(trustState), [trustState]);
+  // If the account's trust state resolves (or changes) after a view was
+  // already selected — e.g. Pending Review was active and the account turns
+  // out to be trusted — fall back to a view that's actually visible. This is
+  // derived directly during render (never via a corrective effect calling
+  // setActiveView), so it takes effect on the very next render with no extra
+  // render pass and no page refresh; the underlying activeView state is only
+  // ever changed by an explicit click.
+  const activeView = chapterViews.some((view) => view.id === rawActiveView) ? rawActiveView : (chapterViews[0]?.id ?? "drafts");
   const counts = useMemo(() => getAdminDashboardCounts(posts), [posts]);
   const activeItems = useMemo(() => getAdminDashboardItems(posts, activeView), [activeView, posts]);
-  const activeDefinition = ADMIN_DASHBOARD_VIEWS.find((view) => view.id === activeView);
+  const activeDefinition = chapterViews.find((view) => view.id === activeView) ?? chapterViews[0];
   const approvalBehavior = describePostApprovalBehavior(account ?? {});
 
   async function beginEdit(post) {
@@ -77,6 +111,34 @@ export default function ChapterPostsView({ user, county }) {
     setCreationType(null);
     setEditingPost(null);
     loadDashboard();
+  }
+
+  // Deletion is offered only to trusted chapter masters (server-enforced —
+  // rrg_delete_post independently checks role/trust/county ownership; this
+  // is a UX gate, not the authorization boundary). mass_email_requested is
+  // already present in every loaded row, so a post with campaign history is
+  // disabled client-side without any extra query; the RPC's own rejection
+  // (errcode 23503) is still handled for any race/edge case.
+  async function handleDeletePost(post) {
+    if (post.mass_email_requested) return;
+    const confirmed = window.confirm(`Delete "${post.title}"? This post will be permanently removed from the public feed.`);
+    if (!confirmed) return;
+    setError("");
+    const { error: rpcError } = await supabase.rpc("rrg_delete_post", { p_post_id: post.id });
+    if (rpcError) {
+      console.error("Post deletion failed:", rpcError);
+      setError(
+        rpcError.code === "23503" || /email campaign/i.test(rpcError.message ?? "")
+          ? "This post has an email campaign and must be retained for delivery records."
+          : "This post could not be deleted. Please try again."
+      );
+      return;
+    }
+    setPosts((current) => current.filter((item) => item.id !== post.id));
+    if (editingPost?.id === post.id) {
+      setCreationType(null);
+      setEditingPost(null);
+    }
   }
 
   if (creationType) {
@@ -109,7 +171,7 @@ export default function ChapterPostsView({ user, county }) {
 
       {!loading && !error && <>
         <div className="admin-overview-grid" aria-label="Publishing queues">
-          {ADMIN_DASHBOARD_VIEWS.map((view) => (
+          {chapterViews.map((view) => (
             <button
               key={view.id}
               type="button"
@@ -147,6 +209,7 @@ export default function ChapterPostsView({ user, county }) {
             activeView={activeView}
             sourceLookup={{}}
             onEdit={beginEdit}
+            onDelete={trustState === "trusted" ? handleDeletePost : undefined}
             getPreviewPath={() => null}
           />
         </section>
