@@ -164,6 +164,49 @@ img {
   text-decoration: none;
 }
 
+.site-nav__link:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 2px;
+}
+
+/* Hamburger toggle: hidden by default (desktop keeps the plain horizontal
+   .site-nav row and never shows this button); the mobile media query below
+   is the only place that reveals it. */
+.site-header__toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.site-header__toggle:hover {
+  border-color: var(--text);
+  background: var(--surface-muted);
+}
+
+.site-header__toggle:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 2px;
+}
+
+.site-header__toggle-bar {
+  display: block;
+  width: 1.2rem;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
 /* Matches the neighboring nav links rather than reading as a large red
    call-to-action — transparent background with a light outline border, red
    (var(--accent)) stays reserved for destructive/primary-publishing
@@ -804,23 +847,56 @@ img {
 /* Responsive */
 
 @media (max-width: 980px) {
+  /* One compact row (logo far left, hamburger far right) replaces the old
+     stacked/wrapped layout — position: relative so the open dropdown below
+     can anchor to this row rather than the full sticky header width. */
   .site-header__inner {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.6rem;
-    padding-block: 0.8rem;
+    position: relative;
+    min-height: auto;
+    padding-block: 0.5rem;
+  }
+
+  .brand img {
+    height: 46px;
+  }
+
+  .site-header__toggle {
+    display: inline-flex;
   }
 
   .site-nav {
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
+    display: none;
   }
 
-  .site-nav__link,
-  .site-nav__login,
-  .site-nav__logout {
-    white-space: nowrap;
+  /* The dropdown panel: same .site-nav element as desktop, restyled. Sits
+     below the header row (top: 100%), not underneath it; its own
+     max-height + overflow-y is the only scroll boundary it introduces —
+     the page itself is never scroll-locked while it's open. */
+  .site-nav.site-nav--open {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 0.6rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    max-height: calc(100dvh - var(--site-header-height, 4.75rem));
+    overflow-y: auto;
+  }
+
+  .site-nav--open .site-nav__link,
+  .site-nav--open .site-nav__login,
+  .site-nav--open .site-nav__logout {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+    margin-left: 0;
+    text-align: left;
   }
 
   .hero__content,
@@ -839,44 +915,6 @@ img {
 
   .jurisdiction-card__summary {
     min-height: auto;
-  }
-
-  @media (max-width: 600px) {
-    .site-header__inner {
-      align-items: center;
-      gap: 0.45rem;
-      padding-block: 0.65rem;
-    }
-
-    .brand img {
-      height: 46px;
-    }
-
-    /* Centered as a group (not left-aligned/ragged), so the Login button
-       never stands apart from the other nav pills. */
-    .site-nav {
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.4rem;
-      overflow-x: visible;
-      padding-bottom: 0;
-      width: 100%;
-    }
-
-    .site-nav__link,
-    .site-nav__login,
-    .site-nav__logout {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 5.5rem;
-      /* ~44px tap target */
-      min-height: 2.75rem;
-      margin-left: 0;
-      padding: 0.5rem 0.9rem;
-      font-size: 0.78rem;
-      text-align: center;
-    }
   }
 }
 

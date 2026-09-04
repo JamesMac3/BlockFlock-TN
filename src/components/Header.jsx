@@ -13,9 +13,14 @@ const navigation = [
   { label: "Archive", path: "/archive" },
 ];
 
+const MOBILE_BREAKPOINT_QUERY = "(min-width: 981px)";
+
 export default function Header() {
   const navigate = useNavigate();
   const headerRef = useRef(null);
+  const navRef = useRef(null);
+  const toggleRef = useRef(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { account, authenticated, signOut } = usePortalAuth();
   const portalPath =
     account?.role === "admin" ? "/portal/admin" : "/portal/chapter";
@@ -66,7 +71,50 @@ export default function Header() {
     return () => observer.disconnect();
   }, []);
 
+  function closeMobileMenu() {
+    setMobileMenuOpen(false);
+  }
+
+  // Escape and outside-click both close the panel while it's open; neither
+  // listener is attached otherwise, so this never runs (or locks scroll,
+  // or interferes with any other overlay) while the menu is closed.
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key !== "Escape") return;
+      setMobileMenuOpen(false);
+      toggleRef.current?.focus();
+    }
+
+    function handlePointerDown(event) {
+      if (navRef.current?.contains(event.target) || toggleRef.current?.contains(event.target)) return;
+      setMobileMenuOpen(false);
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, [mobileMenuOpen]);
+
+  // A panel left open while the viewport crosses back to desktop width
+  // would otherwise sit open-but-hidden (desktop CSS ignores the open
+  // class) until the next mobile-width toggle — close it the moment the
+  // breakpoint changes instead.
+  useEffect(() => {
+    const query = window.matchMedia(MOBILE_BREAKPOINT_QUERY);
+    function handleChange(event) {
+      if (event.matches) setMobileMenuOpen(false);
+    }
+    query.addEventListener("change", handleChange);
+    return () => query.removeEventListener("change", handleChange);
+  }, []);
+
   async function handleSignOut() {
+    closeMobileMenu();
     await signOut();
     navigate("/portal/login");
   }
@@ -76,12 +124,39 @@ export default function Header() {
       <div className="site-header__inner">
         <NavLink to="/" className="brand" aria-label="Flock Block home">
           <picture>
-            <source media="(max-width: 600px)" srcSet={logoLong} />
+            {/* Aligned with the hamburger-menu breakpoint (980px, see
+                HomePage.css) rather than the old 600px logo-swap point, so
+                the compact logo variant is used for the whole single-row
+                mobile header, not just its narrowest slice. */}
+            <source media="(max-width: 980px)" srcSet={logoLong} />
             <img src={logo} alt="Flock Block Middle Tennessee" />
           </picture>
         </NavLink>
 
-        <nav className="site-nav" aria-label="Primary navigation">
+        <button
+          type="button"
+          ref={toggleRef}
+          className="site-header__toggle"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="site-nav"
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMobileMenuOpen((current) => !current)}
+        >
+          <span className="site-header__toggle-bar" />
+          <span className="site-header__toggle-bar" />
+          <span className="site-header__toggle-bar" />
+        </button>
+
+        {/* Same nav element, same data, at both breakpoints — desktop CSS
+            lays it out as a horizontal row and mobile CSS turns it into a
+            dropdown panel gated by .site-nav--open; there is no second copy
+            of these links or of the auth/route logic that builds them. */}
+        <nav
+          id="site-nav"
+          ref={navRef}
+          className={`site-nav ${mobileMenuOpen ? "site-nav--open" : ""}`}
+          aria-label="Primary navigation"
+        >
           {navigation.map((item) => (
             <NavLink
               key={item.path}
@@ -91,6 +166,7 @@ export default function Header() {
                   ? "site-nav__link site-nav__link--active"
                   : "site-nav__link"
               }
+              onClick={closeMobileMenu}
             >
               {item.label}
             </NavLink>
@@ -105,6 +181,7 @@ export default function Header() {
                     ? "site-nav__link site-nav__link--active"
                     : "site-nav__link"
                 }
+                onClick={closeMobileMenu}
               >
                 {portalLabel}
               </NavLink>
@@ -117,7 +194,7 @@ export default function Header() {
               </button>
             </>
           ) : (
-            <NavLink to="/portal/login" className="site-nav__login">
+            <NavLink to="/portal/login" className="site-nav__login" onClick={closeMobileMenu}>
               Login
             </NavLink>
           )}
