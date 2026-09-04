@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { usePortalAuth } from "../auth/portalAuth";
 import { supabase } from "../lib/supabase";
 import { normalizeLoginIdentity, MAX_LOGIN_FIELD_LENGTH } from "../features/portal-admin/loginIdentity";
 import { resolvePostLoginDestination } from "../features/portal-admin/loginRouting";
 import Header from "./Header";
+import Turnstile from "./Turnstile";
 import "./PortalLogin.css";
 
 const GENERIC_LOGIN_ERROR =
@@ -19,12 +20,20 @@ export default function PortalLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState(null);
+  const turnstileRef = useRef(null);
+
+  function resetTurnstile() {
+    turnstileRef.current?.reset();
+    setTurnstileToken(null);
+  }
 
   async function failLogin() {
     await signOut();
     setPassword("");
     setSigningIn(false);
     setErrorMessage(GENERIC_LOGIN_ERROR);
+    resetTurnstile();
   }
 
   async function handleSubmit(event) {
@@ -45,12 +54,22 @@ export default function PortalLogin() {
       return;
     }
 
+    // Defensive re-check, not just the disabled button — pressing Enter
+    // submits the form even while a button is disabled.
+    if (!turnstileToken) {
+      setErrorMessage(GENERIC_LOGIN_ERROR);
+      return;
+    }
+
     setSigningIn(true);
 
     const { data: authData, error: authError } =
       await supabase.auth.signInWithPassword({
         email: normalized.email,
         password,
+        options: {
+          captchaToken: turnstileToken,
+        },
       });
 
     if (authError || !authData.user || !authData.session) {
@@ -144,6 +163,8 @@ export default function PortalLogin() {
               </span>
             </label>
 
+            <Turnstile ref={turnstileRef} action="portal_login" onToken={setTurnstileToken} />
+
             {errorMessage && (
               <p className="portal-login-error" role="alert">
                 {errorMessage}
@@ -153,7 +174,7 @@ export default function PortalLogin() {
             <button
               type="submit"
               className="portal-login-submit"
-              disabled={signingIn}
+              disabled={signingIn || !turnstileToken}
             >
               {signingIn ? "Signing in..." : "Sign In"}
             </button>

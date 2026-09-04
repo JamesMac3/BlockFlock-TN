@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { subscribeToCountyUpdates } from "../../features/document-request/countyContactSubscription";
 import { requestChapterReminder } from "../../features/document-request/reminderService";
 import { formatCountyLabel } from "../../features/document-request/countyLabel";
 import PdfPreview from "../pdf/PdfPreview";
+import Turnstile from "../Turnstile";
 import "./RequestDeliveryPanel.css";
+
+const RESUBMIT_COOLDOWN_SECONDS = 10;
 
 const DELIVERY_METHOD_LABELS = {
   electronic: "Electronic delivery",
@@ -35,6 +38,10 @@ export default function RequestDeliveryPanel({
   const [reminderChecked, setReminderChecked] = useState(false);
   const [reminderState, setReminderState] = useState({ phase: "idle", message: "" });
   const [subscribeState, setSubscribeState] = useState({ phase: "idle", message: "" });
+  const [turnstileToken, setTurnstileToken] = useState(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const turnstileRef = useRef(null);
+  const cooldownIntervalRef = useRef(null);
   // The blob: URL's whole lifecycle (create-once, revoke-on-cleanup,
   // StrictMode-safe deferred creation) now lives inside PdfPreview, which
   // reports it back here via onUrlReady once it exists — this panel never
@@ -62,14 +69,40 @@ export default function RequestDeliveryPanel({
     }
   }
 
+  useEffect(() => () => clearInterval(cooldownIntervalRef.current), []);
+
+  function resetTurnstile() {
+    turnstileRef.current?.reset();
+    setTurnstileToken(null);
+  }
+
+  function startResubmitCooldown() {
+    clearInterval(cooldownIntervalRef.current);
+    setCooldownSeconds(RESUBMIT_COOLDOWN_SECONDS);
+    cooldownIntervalRef.current = setInterval(() => {
+      setCooldownSeconds((current) => {
+        if (current <= 1) {
+          clearInterval(cooldownIntervalRef.current);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+  }
+
   async function handleSubscribe() {
+    // Defensive re-check alongside the disabled button.
+    if (!turnstileToken || cooldownSeconds > 0) return;
     setSubscribeState({ phase: "working", message: "" });
-    const result = await subscribeToCountyUpdates({ supabase, countyId: county.id, email });
+    const result = await subscribeToCountyUpdates({ supabase, countyId: county.id, email, turnstileToken });
+    // Single-use token — reset after every attempt, success or failure.
+    resetTurnstile();
     setSubscribeState(
       result.subscribed
         ? { phase: "done", message: "Your email is registered for county updates." }
         : { phase: "error", message: result.error }
     );
+    if (result.subscribed) startResubmitCooldown();
   }
 
   // The reminder request only ever fires from this explicit user action
@@ -342,12 +375,20 @@ export default function RequestDeliveryPanel({
             autoComplete="email"
           />
 
+          {isEmailValid && (
+            <Turnstile ref={turnstileRef} action="newsletter_signup" onToken={setTurnstileToken} />
+          )}
+
           <button
             type="button"
             onClick={handleSubscribe}
-            disabled={!isEmailValid || subscribeState.phase === "working"}
+            disabled={!isEmailValid || !turnstileToken || subscribeState.phase === "working" || cooldownSeconds > 0}
           >
-            {subscribeState.phase === "working" ? "Submitting…" : "Subscribe to county updates"}
+            {subscribeState.phase === "working"
+              ? "Submitting…"
+              : cooldownSeconds > 0
+                ? `Subscribe again in ${cooldownSeconds}s`
+                : "Subscribe to county updates"}
           </button>
           {subscribeState.message && <p role="status">{subscribeState.message}</p>}
 

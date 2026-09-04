@@ -1,6 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { subscribeToCountyUpdates } from "../features/document-request/countyContactSubscription";
+import Turnstile from "./Turnstile";
 import "./CountyContactForm.css";
+
+const RESUBMIT_COOLDOWN_SECONDS = 10;
 
 const INITIAL_FORM = {
   email: "",
@@ -23,6 +27,31 @@ export default function CountyContactForm({
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const turnstileRef = useRef(null);
+  const cooldownIntervalRef = useRef(null);
+
+  useEffect(() => () => clearInterval(cooldownIntervalRef.current), []);
+
+  function resetTurnstile() {
+    turnstileRef.current?.reset();
+    setTurnstileToken(null);
+  }
+
+  function startResubmitCooldown() {
+    clearInterval(cooldownIntervalRef.current);
+    setCooldownSeconds(RESUBMIT_COOLDOWN_SECONDS);
+    cooldownIntervalRef.current = setInterval(() => {
+      setCooldownSeconds((current) => {
+        if (current <= 1) {
+          clearInterval(cooldownIntervalRef.current);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+  }
 
   useEffect(() => {
     let active = true;
@@ -79,32 +108,35 @@ export default function CountyContactForm({
       setErrorMessage("Email and county are required.");
       return;
     }
+    // Defensive re-check, not just the disabled button — pressing Enter
+    // submits the form even while a button is disabled.
+    if (!turnstileToken || cooldownSeconds > 0) {
+      setErrorMessage("Complete the verification challenge before submitting.");
+      return;
+    }
 
     setSubmitting(true);
 
-    const { error } = await supabase.from("county_contacts").insert({
+    const result = await subscribeToCountyUpdates({
+      supabase,
+      countyId,
       email,
       phone,
-      county_id: countyId,
+      turnstileToken,
     });
 
     setSubmitting(false);
+    // A Turnstile token is single-use — reset it after every attempt,
+    // success or failure, so a stale/consumed token can never be resent.
+    resetTurnstile();
 
-    if (error) {
-      console.error("Submission failed:", error);
-
-      if (error.code === "23505") {
-        setErrorMessage(
-          "That email has already been registered for this county."
-        );
-        return;
-      }
-
-      setErrorMessage("The submission could not be saved.");
+    if (!result.subscribed) {
+      setErrorMessage(result.error);
       return;
     }
 
     setMessage("Your contact information was submitted.");
+    startResubmitCooldown();
 
     setForm({
       ...INITIAL_FORM,
@@ -225,12 +257,20 @@ export default function CountyContactForm({
           </select>
         </div>
 
+        <div>
+          <Turnstile ref={turnstileRef} action="newsletter_signup" onToken={setTurnstileToken} />
+        </div>
+
         <button
           type="submit"
-          disabled={submitting || loadingCounties}
+          disabled={submitting || loadingCounties || !turnstileToken || cooldownSeconds > 0}
           tabIndex={isOpen ? 0 : -1}
         >
-          {submitting ? "Submitting..." : "Submit"}
+          {submitting
+            ? "Submitting..."
+            : cooldownSeconds > 0
+              ? `Submit again in ${cooldownSeconds}s`
+              : "Submit"}
         </button>
 
         {message && (

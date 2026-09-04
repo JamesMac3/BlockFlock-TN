@@ -1,0 +1,14 @@
+.turnstile-widget {
+  width: 100%;
+  min-height: 65px;
+}
+
+.turnstile-widget > div:first-child {
+  width: 100%;
+}
+
+.turnstile-widget__error {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: #ff9b9b;
+}
