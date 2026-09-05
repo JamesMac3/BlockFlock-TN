@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { HashRouter, Route, Routes, useParams } from "react-router-dom";
+import { HashRouter, Link, Route, Routes, useParams } from "react-router-dom";
 import HomePage from "./pages/Home/HomePage";
 import EducationPage from "./pages/EducationPage";
 import { PortalAuthProvider } from "./auth/PortalAuthContext";
@@ -26,12 +26,17 @@ function AdminPostEditRoute() {
 }
 
 
-function PlaceholderPage({ title }) {
+function PlaceholderPage({ title, body = "This section will be built next.", backLink = false }) {
   return (
     <main style={{ padding: "8rem 1.5rem 4rem" }}>
       <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-        <h1>{title}</h1>
-        <p>This section will be built next.</p>
+        {title && <h1>{title}</h1>}
+        <p>{body}</p>
+        {backLink && (
+          <Link to="/" className="button button--secondary-dark" style={{ marginTop: "1.5rem" }}>
+            Go back
+          </Link>
+        )}
       </div>
     </main>
   );
@@ -96,7 +101,7 @@ export default function App() {
 
         <Route
           path="/strategies"
-          element={<PlaceholderPage title="Paths to Positive Outcomes" />}
+          element={<PlaceholderPage body="There are no options currently listed." backLink />}
         />
 
 

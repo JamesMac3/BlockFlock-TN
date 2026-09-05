@@ -9,40 +9,90 @@ import skyline from "../../assets/MTN_skyrise.jpg";
 import TennesseeCountyMapContainer from "../../components/jurisdiction-map/TennesseeCountyMapContainer";
 import PrivacyTicker from "../../components/PrivacyTicker";
 import NextMeetingBanner from "../../components/NextMeetingBanner";
+import { useSavedCountyHref } from "../../utils/useSavedCountyHref";
 
-const investigations = [
+// Independent, third-party projects — never fetched/embedded, only linked
+// out to in a new tab. No logos are downloaded or bundled for these. Each
+// card supports one or more links (Tennessee Sites has three independent
+// local organizations rather than a single destination).
+const externalResources = [
   {
-    number: "01",
-    title: "Technology",
+    title: "DeFlock",
     description:
-      "Explain what surveillance systems do, how they collect information, and how separate technologies may be connected.",
-    topics: ["ALPR", "RTCC", "Drones", "Analytics"],
+      "Explore a crowdsourced national map of automated license plate readers and report cameras found in your community.",
+    links: [{ label: "Open DeFlock Map", url: "https://maps.deflock.org/" }],
   },
   {
-    number: "02",
-    title: "Infrastructure",
+    title: "Atlas of Surveillance",
     description:
-      "Document the hardware, software, vendors, procurement methods, funding, communications, and data flows behind each deployment.",
-    topics: ["Hardware", "Vendors", "Contracts", "Funding"],
+      "Research which surveillance technologies law-enforcement agencies use across the United States and examine the sources behind each entry.",
+    links: [{ label: "Explore the Atlas", url: "https://www.atlasofsurveillance.org/" }],
   },
   {
-    number: "03",
-    title: "Governance",
+    title: "MuckRock",
     description:
-      "Track policies, retention rules, sharing arrangements, audit controls, public votes, and the officials responsible for oversight.",
-    topics: ["Policies", "Votes", "Retention", "Audits"],
+      "File and track public-records requests, review previously released records, and learn from requests submitted in other jurisdictions.",
+    links: [{ label: "Visit MuckRock", url: "https://www.muckrock.com/" }],
   },
   {
-    number: "04",
-    title: "Public Records",
+    title: "Tennessee Sites",
     description:
-      "Organise contracts, meeting records, requests, timelines, source links, and archived evidence into a usable public record.",
-    topics: ["TPRA", "Timelines", "Sources", "Archives"],
+      "Connect with local Tennessee organizations documenting surveillance and organizing for community safety in their own cities.",
+    links: [
+      { label: "Crossville Privacy", url: "https://crossvilleprivacy.org/" },
+      { label: "Maryville Privacy", url: "https://www.maryvilleprivacy.org/" },
+      { label: "Nashville Community Safety", url: "https://nashvillecommunitysafety.net/" },
+    ],
   },
 ];
 
 export default function HomePage() {
   const [contactFormOpen, setContactFormOpen] = useState(false);
+
+  // Both destinations respect the visitor's remembered county exactly like
+  // Header.jsx's own "Status" link does — a saved county skips straight to
+  // that county's page (or its Records Request Roadmap); anyone without one
+  // yet lands on the general county chooser first, never a guessed page.
+  const savedCountyStatusHref = useSavedCountyHref("/status", (slug) => `/status/${slug}`);
+  const savedCountyGoalsHref = useSavedCountyHref("/status", (slug) => `/status/${slug}/records-request-goals`);
+
+  const investigations = [
+    {
+      number: "01",
+      title: "Examine the Technology",
+      description:
+        "Learn how surveillance tools, supporting infrastructure, vendors, contracts, and data-sharing systems operate in Tennessee.",
+      buttonLabel: "Explore the Technology",
+      to: "/education",
+    },
+    {
+      number: "02",
+      title: "Get Involved Locally",
+      description:
+        "Find your county chapter, attend upcoming meetings, receive local updates, and connect with people organizing in your community.",
+      buttonLabel: "Find Your County",
+      to: savedCountyStatusHref,
+    },
+    {
+      number: "03",
+      title: "Show Up and Speak Out",
+      description:
+        "Support local action by attending demonstrations, speaking during public comment, and showing officials that their decisions are being watched.",
+      buttonLabel: "View Upcoming Meetings",
+      // No dedicated meetings route exists yet — the county Status page is
+      // where meeting banners actually render, so this intentionally
+      // resolves to the same destination as "Find Your County" above.
+      to: savedCountyStatusHref,
+    },
+    {
+      number: "04",
+      title: "Help Investigate",
+      description:
+        "Use public-records goals, prepared request forms, and archived evidence to help document surveillance systems across Tennessee.",
+      buttonLabel: "Explore Investigations",
+      to: savedCountyGoalsHref,
+    },
+  ];
 
   return (
     <div className="site-shell">
@@ -158,85 +208,39 @@ export default function HomePage() {
 </section>
 
         <section className="section">
-          <div className="container split-section">
-            <div>
-              <SectionHeading
-                eyebrow="Education"
-                title="Learn it. Verify it. Share it."
-                description="The education library will convert technical findings and vendor claims into clear, reusable learning materials supported by primary sources."
-              />
+          <div className="container">
+            <SectionHeading
+              eyebrow="Related Resources"
+              title="Map it. Research it. Challenge it."
+              description="FLOCKBLOCK focuses on surveillance across Tennessee. These independent projects provide national mapping, public-records tools, research, and policy resources that can strengthen local investigations."
+            />
 
-              <div className="feature-list">
-                <article>
-                  <h3>Technology explainers</h3>
-                  <p>
-                    Understand the dangers of ALPRs, real-time crime centres, video platforms,
-                    drones, analytics, integrations, and data sharing.
-                  </p>
+            <div className="resource-grid">
+              {externalResources.map((resource) => (
+                <article className="resource-card" key={resource.title}>
+                  <h3>{resource.title}</h3>
+                  <p>{resource.description}</p>
+                  <div className="resource-card__links">
+                    {resource.links.map((link) => (
+                      <a
+                        key={link.url}
+                        href={link.url}
+                        className="button button--secondary-dark resource-card__button"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {link.label}
+                        <span className="resource-card__button-icon" aria-hidden="true">↗</span>
+                      </a>
+                    ))}
+                  </div>
                 </article>
-
-                <article>
-                  <h3>Infrastructure research</h3>
-                  <p>
-                    Follow the hardware, vendors, installers, contracts,
-                    purchasing routes, funding sources, and the data custody chain so you can identify who is responsible for the surveillance in your area and who to hold accountable.
-                  </p>
-                </article>
-
-                <article>
-                  <h3>Distributable materials</h3>
-                  <p>
-                    Speak with high confidence on the technology and clearly dictate the problems to your community and officials. It's not enough to complain; we must educate them.
-                  </p>
-                </article>
-              </div>
-
-              <Link to="/education" className="button button--dark">
-                Visit education library
-              </Link>
+              ))}
             </div>
 
-            <div className="evidence-card">
-              <p className="evidence-card__label">Evidence structure</p>
-
-              <div className="evidence-step">
-                <span>1</span>
-                <div>
-                  <strong>Claim</strong>
-                  <p>A clear factual statement.</p>
-                </div>
-              </div>
-
-              <div className="evidence-connector" />
-
-              <div className="evidence-step">
-                <span>2</span>
-                <div>
-                  <strong>Source</strong>
-                  <p>The contract, vote, policy, statement, or public record.</p>
-                </div>
-              </div>
-
-              <div className="evidence-connector" />
-
-              <div className="evidence-step">
-                <span>3</span>
-                <div>
-                  <strong>Context</strong>
-                  <p>Providing counters to false claims of safety over liberty.</p>
-                </div>
-              </div>
-
-              <div className="evidence-connector" />
-
-              <div className="evidence-step">
-                <span>4</span>
-                <div>
-                  <strong>Document</strong>
-                  <p>Pooling evidence of abuses of indiscriminate surveillance activity, abuses and those responsible so they can be held accountable.</p>
-                </div>
-              </div>
-            </div>
+            <p className="resource-grid__note">
+              External sites are maintained by their respective organizations. FLOCKBLOCK does not control their content.
+            </p>
           </div>
         </section>
 
@@ -251,7 +255,7 @@ export default function HomePage() {
             </div>
 
             <Link to="/strategies" className="button button--light">
-              Explore outcome vectors
+              Explore options
             </Link>
           </div>
         </section>

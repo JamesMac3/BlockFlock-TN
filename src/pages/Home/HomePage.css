@@ -357,8 +357,7 @@ img {
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
 }
 
-.hero-panel__label,
-.evidence-card__label {
+.hero-panel__label {
   margin: 0 0 1.15rem;
   font-size: 0.73rem;
   font-weight: 800;
@@ -419,6 +418,11 @@ img {
 
 .button:hover {
   transform: translateY(-1px);
+}
+
+.button:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 2px;
 }
 
 .button--primary {
@@ -578,27 +582,17 @@ img {
 }
 
 .investigation-card p {
-  margin: 0;
+  margin: 0 0 1.5rem;
   color: var(--text-muted);
   font-size: 0.91rem;
 }
 
-.tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin: auto 0 0;
-  padding: 1.5rem 0 0;
-  list-style: none;
-}
-
-.tag-list li {
-  padding: 0.28rem 0.5rem;
-  border-radius: 999px;
-  background: var(--surface-muted);
-  color: #4d534c;
-  font-size: 0.7rem;
-  font-weight: 700;
+/* Pushed to the bottom of the card's flex column regardless of how long
+   the description above it runs — the same margin-top: auto technique the
+   removed .tag-list used to keep its own row pinned to the bottom edge. */
+.investigation-card__button {
+  margin-top: auto;
+  align-self: flex-start;
 }
 
 /* Jurisdictions */
@@ -682,82 +676,69 @@ img {
   margin-bottom: 2.5rem;
 }
 
-/* Education split */
+/* External resources */
 
-.split-section {
+.resource-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.75fr);
-  gap: 5rem;
-  align-items: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 2.5rem;
 }
 
-.feature-list {
-  display: grid;
-  gap: 1.1rem;
-}
-
-.feature-list article {
-  padding-left: 1rem;
-  border-left: 3px solid var(--accent);
-}
-
-.feature-list h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.feature-list p {
-  margin: 0.3rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.evidence-card {
-  padding: 2rem;
-  border-radius: var(--radius-lg);
-  background: var(--dark);
-  color: var(--text);
-  box-shadow: var(--shadow);
-}
-
-.evidence-card__label {
-  color: var(--accent);
-}
-
-.evidence-step {
+.resource-card {
   display: flex;
-  align-items: start;
-  gap: 1rem;
+  flex-direction: column;
+  min-height: 260px;
+  padding: 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
 }
 
-.evidence-step > span {
-  width: 2rem;
-  height: 2rem;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--dark);
-  font-size: 0.75rem;
-  font-weight: 900;
+.resource-card h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.2rem;
 }
 
-.evidence-step strong {
-  display: block;
-}
-
-.evidence-step p {
-  margin: 0.15rem 0 0;
+.resource-card p {
+  margin: 0 0 1.5rem;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.91rem;
 }
 
-.evidence-connector {
-  width: 1px;
-  height: 1.4rem;
-  margin: 0.45rem 0 0.45rem 1rem;
-  background: rgba(255, 255, 255, 0.2);
+/* Pushed to the bottom of the card's flex column regardless of how long
+   the description above it runs — same technique used by
+   .investigation-card__button. A card may have more than one link (e.g.
+   Tennessee Sites), so the group as a whole is bottom-aligned and each
+   link stacks with a small gap rather than wrapping into a crowded row. */
+.resource-card__links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.resource-card__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+}
+
+.resource-card__button-icon {
+  font-size: 1rem;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.resource-card__button:hover .resource-card__button-icon {
+  transform: translate(2px, -2px);
+}
+
+.resource-grid__note {
+  margin: 1.5rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
 }
 
 /* Outcome */
@@ -899,8 +880,7 @@ img {
     text-align: left;
   }
 
-  .hero__content,
-  .split-section {
+  .hero__content {
     grid-template-columns: 1fr;
     gap: 3rem;
   }
@@ -932,7 +912,8 @@ img {
   }
 
   .trust-strip__inner,
-  .investigation-grid {
+  .investigation-grid,
+  .resource-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1029,8 +1010,7 @@ main {
 
 .eyebrow,
 .section-heading__eyebrow,
-.hero-panel__label,
-.evidence-card__label {
+.hero-panel__label {
   color: var(--accent);
 }
 
@@ -1141,8 +1121,7 @@ main {
 
 .investigation-card,
 .jurisdiction-card,
-.feature-list article,
-.evidence-card {
+.resource-card {
   background: var(--surface-muted);
   border-color: rgba(242, 239, 231, 0.14);
   box-shadow: 0 14px 35px rgba(0, 0, 0, 0.22);
@@ -1150,7 +1129,7 @@ main {
 
 .investigation-card:hover,
 .jurisdiction-card:hover,
-.feature-list article:hover {
+.resource-card:hover {
   border-color: rgba(216, 138, 45, 0.6);
 }
 
@@ -1160,13 +1139,10 @@ main {
 
 .investigation-card p,
 .jurisdiction-card__header p,
-.jurisdiction-card__summary,
-.feature-list p,
-.evidence-step p {
+.jurisdiction-card__summary {
   color: var(--text-muted);
 }
 
-.tag-list li,
 .status-badge {
   background: #162b40;
   color: var(--text-muted);
@@ -1185,20 +1161,6 @@ main {
 .status-badge--organising {
   background: rgba(75, 113, 139, 0.24);
   color: #a8ccdf;
-}
-
-.feature-list article {
-  padding: 1rem 1rem 1rem 1.25rem;
-  border-left: 3px solid var(--accent);
-}
-
-.evidence-step > span {
-  background: var(--accent);
-  color: var(--background);
-}
-
-.evidence-connector {
-  background: rgba(242, 239, 231, 0.14);
 }
 
 #join-map {

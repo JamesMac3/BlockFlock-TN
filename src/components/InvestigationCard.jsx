@@ -1,8 +1,11 @@
+import { Link } from "react-router-dom";
+
 export default function InvestigationCard({
   number,
   title,
   description,
-  topics = [],
+  buttonLabel,
+  to,
 }) {
   return (
     <article className="investigation-card">
@@ -11,11 +14,9 @@ export default function InvestigationCard({
       <h3>{title}</h3>
       <p>{description}</p>
 
-      <ul className="tag-list" aria-label={`${title} topics`}>
-        {topics.map((topic) => (
-          <li key={topic}>{topic}</li>
-        ))}
-      </ul>
+      <Link to={to} className="button button--secondary-dark investigation-card__button">
+        {buttonLabel}
+      </Link>
     </article>
   );
 }
