@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import "./EducationPage.css";
 import EducationSidebar from "../components/education/EducationSidebar";
-import EducationEntryCards from "../components/education/EducationEntryCards";
 import InteractiveModule from "../components/education/InteractiveModule";
 import TopicPager from "../components/education/TopicPager";
 import { getAdjacentEducationTopics, getEducationTopicBySlug, getEducationTopics } from "../data/education/registry";
@@ -50,12 +49,6 @@ export default function EducationPage() {
         <header className="education-header">
 
         </header>
-
-
-          <EducationEntryCards />
-
-
-
 
         {/* Documentation Layout */}
 
