@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { Navigate, useParams } from "react-router-dom";
 import Header from "../components/Header";
 import "./EducationPage.css";
 import EducationSidebar from "../components/education/EducationSidebar";
@@ -6,37 +7,22 @@ import InteractiveModule from "../components/education/InteractiveModule";
 import TopicPager from "../components/education/TopicPager";
 import { getAdjacentEducationTopics, getEducationTopicBySlug, getEducationTopics } from "../data/education/registry";
 
-function resolveInitialSlug() {
-  const topics = getEducationTopics();
-  const hashSlug = window.location.hash.replace("#", "");
-  if (hashSlug && getEducationTopicBySlug(hashSlug)) {
-    return hashSlug;
-  }
-  return topics[0]?.slug;
-}
-
 export default function EducationPage() {
-  const [activeSlug, setActiveSlug] = useState(resolveInitialSlug);
-  const activeTopic = getEducationTopicBySlug(activeSlug) ?? getEducationTopics()[0];
-  const { previous, next } = getAdjacentEducationTopics(activeTopic?.slug);
+  const { topicSlug } = useParams();
+  const topics = getEducationTopics();
+  const activeTopic = topicSlug ? getEducationTopicBySlug(topicSlug) : undefined;
 
   useEffect(() => {
-    function handleHashChange() {
-      const hashSlug = window.location.hash.replace("#", "");
-      if (hashSlug && getEducationTopicBySlug(hashSlug)) {
-        setActiveSlug(hashSlug);
-      }
+    if (activeTopic) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  }, [activeTopic]);
 
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
-  function handleSelectTopic(slug) {
-    setActiveSlug(slug);
-    window.history.replaceState(null, "", `#${slug}`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  if (!activeTopic) {
+    return <Navigate to={`/education/${topics[0]?.slug}`} replace />;
   }
+
+  const { previous, next } = getAdjacentEducationTopics(activeTopic.slug);
 
   return (
     <>
@@ -54,13 +40,13 @@ export default function EducationPage() {
 
         <section className="education-layout">
 
-          <EducationSidebar activeSlug={activeSlug} onSelect={handleSelectTopic} />
+          <EducationSidebar activeSlug={activeTopic.slug} />
 
           <section className="education-content">
 
             <div className="content-placeholder">
               <InteractiveModule module={activeTopic} />
-              <TopicPager previous={previous} next={next} onSelect={handleSelectTopic} />
+              <TopicPager previous={previous} next={next} />
             </div>
 
           </section>

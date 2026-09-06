@@ -55,6 +55,11 @@ export default function App() {
         />
 
         <Route
+          path="/education/:topicSlug"
+          element={<EducationPage />}
+        />
+
+        <Route
           path="/status"
           element={<StatewideStatusPage />}
         />

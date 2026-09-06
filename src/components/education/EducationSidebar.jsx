@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { getGroupedEducationTopics } from "../../data/education/registry";
 
-export default function EducationSidebar({ activeSlug, onSelect }) {
+export default function EducationSidebar({ activeSlug }) {
   const [isMobile, setIsMobile] = useState(() =>
     window.matchMedia("(max-width: 768px)").matches
   );
@@ -30,9 +31,7 @@ export default function EducationSidebar({ activeSlug, onSelect }) {
         .filter((group) => group.topics.length > 0)
     : groups;
 
-  function handleSelect(event, slug) {
-    event.preventDefault();
-    onSelect(slug);
+  function handleNavigate() {
     if (isMobile) {
       setIsOpen(false);
     }
@@ -90,15 +89,15 @@ export default function EducationSidebar({ activeSlug, onSelect }) {
               <ul>
                 {group.topics.map((topic) => (
                   <li key={topic.slug}>
-                    <a
-                      href={`#${topic.slug}`}
+                    <Link
+                      to={`/education/${topic.slug}`}
                       className={topic.slug === activeSlug ? "active" : ""}
                       aria-current={topic.slug === activeSlug ? "page" : undefined}
                       tabIndex={isVisible ? 0 : -1}
-                      onClick={(event) => handleSelect(event, topic.slug)}
+                      onClick={handleNavigate}
                     >
                       {topic.navLabel}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
