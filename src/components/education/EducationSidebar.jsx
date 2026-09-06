@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getGroupedEducationTopics } from "../../data/education/registry";
 
-export default function EducationSidebar() {
+export default function EducationSidebar({ activeSlug, onSelect }) {
   const [isMobile, setIsMobile] = useState(() =>
     window.matchMedia("(max-width: 768px)").matches
   );
   const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const isVisible = !isMobile || isOpen;
+  const groups = useMemo(() => getGroupedEducationTopics(), []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
@@ -15,8 +18,22 @@ export default function EducationSidebar() {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  function handleNavigation(event) {
-    if (isMobile && event.target.closest("a")) {
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleGroups = normalizedQuery
+    ? groups
+        .map((group) => ({
+          ...group,
+          topics: group.topics.filter((topic) =>
+            topic.navLabel.toLowerCase().includes(normalizedQuery)
+          ),
+        }))
+        .filter((group) => group.topics.length > 0)
+    : groups;
+
+  function handleSelect(event, slug) {
+    event.preventDefault();
+    onSelect(slug);
+    if (isMobile) {
       setIsOpen(false);
     }
   }
@@ -50,107 +67,48 @@ export default function EducationSidebar() {
       </button>
 
       <div className="education-sidebar-content">
-<div className="sidebar-header">
-    <span className="sidebar-label">EDUCATION</span>
+        <div className="sidebar-header">
+          <span className="sidebar-label">EDUCATION</span>
 
-    <h3>Documentation</h3>
+          <h3>Topics</h3>
 
-    <input
-        type="text"
-        placeholder="Search topics..."
-        className="sidebar-search"
-        tabIndex={isVisible ? 0 : -1}
-    />
-</div>
-      <h3>Education</h3>
+          <input
+            type="text"
+            placeholder="Search topics..."
+            className="sidebar-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            tabIndex={isVisible ? 0 : -1}
+          />
+        </div>
 
-      <nav className="education-nav" onClick={handleNavigation}>
+        <nav className="education-nav" aria-label="Interactive education modules">
+          {visibleGroups.map((group) => (
+            <details key={group.name} open>
+              <summary tabIndex={isVisible ? 0 : -1}>{group.name}</summary>
 
-        <details open>
+              <ul>
+                {group.topics.map((topic) => (
+                  <li key={topic.slug}>
+                    <a
+                      href={`#${topic.slug}`}
+                      className={topic.slug === activeSlug ? "active" : ""}
+                      aria-current={topic.slug === activeSlug ? "page" : undefined}
+                      tabIndex={isVisible ? 0 : -1}
+                      onClick={(event) => handleSelect(event, topic.slug)}
+                    >
+                      {topic.navLabel}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
 
-          <summary tabIndex={isVisible ? 0 : -1}>Vendors</summary>
-
-          <ul>
-
-            <li>
-              <a href="#flock" tabIndex={isVisible ? 0 : -1}>Flock Safety</a>
-            </li>
-
-            <li>
-              <a href="#motorola" tabIndex={isVisible ? 0 : -1}>Motorola Solutions</a>
-            </li>
-
-            <li>
-              <a href="#leonardo" tabIndex={isVisible ? 0 : -1}>Leonardo</a>
-            </li>
-
-          </ul>
-
-        </details>
-
-        <details>
-
-          <summary tabIndex={isVisible ? 0 : -1}>Oversight Issues</summary>
-
-          <ul>
-
-            <li>
-              <a href="#procurement" tabIndex={isVisible ? 0 : -1}>Procurement</a>
-            </li>
-
-            <li>
-              <a href="#auditing" tabIndex={isVisible ? 0 : -1}>Auditing</a>
-            </li>
-
-            <li>
-              <a href="#data-sharing" tabIndex={isVisible ? 0 : -1}>Data Sharing</a>
-            </li>
-
-          </ul>
-
-        </details>
-
-        <details>
-
-          <summary tabIndex={isVisible ? 0 : -1}>Data Fusion</summary>
-
-          <ul>
-
-            <li>
-              <a href="#rtcc" tabIndex={isVisible ? 0 : -1}>RTCC</a>
-            </li>
-
-            <li>
-              <a href="#signal-trace" tabIndex={isVisible ? 0 : -1}>Signal Trace</a>
-            </li>
-
-            <li>
-              <a href="#pattern-of-life" tabIndex={isVisible ? 0 : -1}>Pattern of Life</a>
-            </li>
-
-          </ul>
-
-        </details>
-
-        <details>
-
-          <summary tabIndex={isVisible ? 0 : -1}>Dangers of Indiscriminate Surveillance</summary>
-
-          <ul>
-
-            <li>
-              <a href="#function-creep" tabIndex={isVisible ? 0 : -1}>Function Creep</a>
-            </li>
-
-            <li>
-              <a href="#privacy" tabIndex={isVisible ? 0 : -1}>Privacy</a>
-            </li>
-
-          </ul>
-
-        </details>
-
-      </nav>
+          {visibleGroups.length === 0 && (
+            <p className="education-nav-empty">No topics match “{query}”.</p>
+          )}
+        </nav>
       </div>
     </aside>
   );

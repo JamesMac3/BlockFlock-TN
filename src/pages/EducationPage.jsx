@@ -1,11 +1,44 @@
+import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import "./EducationPage.css";
 import EducationSidebar from "../components/education/EducationSidebar";
 import EducationEntryCards from "../components/education/EducationEntryCards";
-import flockSafety from "../data/education/FlockSafety";
-import EducationTopic from "../components/education/EducationTopic";
+import InteractiveModule from "../components/education/InteractiveModule";
+import TopicPager from "../components/education/TopicPager";
+import { getAdjacentEducationTopics, getEducationTopicBySlug, getEducationTopics } from "../data/education/registry";
+
+function resolveInitialSlug() {
+  const topics = getEducationTopics();
+  const hashSlug = window.location.hash.replace("#", "");
+  if (hashSlug && getEducationTopicBySlug(hashSlug)) {
+    return hashSlug;
+  }
+  return topics[0]?.slug;
+}
 
 export default function EducationPage() {
+  const [activeSlug, setActiveSlug] = useState(resolveInitialSlug);
+  const activeTopic = getEducationTopicBySlug(activeSlug) ?? getEducationTopics()[0];
+  const { previous, next } = getAdjacentEducationTopics(activeTopic?.slug);
+
+  useEffect(() => {
+    function handleHashChange() {
+      const hashSlug = window.location.hash.replace("#", "");
+      if (hashSlug && getEducationTopicBySlug(hashSlug)) {
+        setActiveSlug(hashSlug);
+      }
+    }
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  function handleSelectTopic(slug) {
+    setActiveSlug(slug);
+    window.history.replaceState(null, "", `#${slug}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
     <>
       <Header />
@@ -15,7 +48,7 @@ export default function EducationPage() {
         {/* Hero Section */}
 
         <header className="education-header">
-  
+
         </header>
 
 
@@ -28,16 +61,13 @@ export default function EducationPage() {
 
         <section className="education-layout">
 
-          <EducationSidebar />
+          <EducationSidebar activeSlug={activeSlug} onSelect={handleSelectTopic} />
 
           <section className="education-content">
 
             <div className="content-placeholder">
-              <h2>Documentation</h2>
-                <EducationTopic topic={flockSafety} />
-              <p>
-                Content Coming Soon
-              </p>
+              <InteractiveModule module={activeTopic} />
+              <TopicPager previous={previous} next={next} onSelect={handleSelectTopic} />
             </div>
 
           </section>
