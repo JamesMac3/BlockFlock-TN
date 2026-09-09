@@ -364,6 +364,8 @@ function Block({ block }) {
 
 export default function InteractiveModule({ module }) {
   if (!module) return null;
+  const LessonComponent = module.component;
+  if (LessonComponent) return <LessonComponent />;
 
   return (
     <article className="interactive-module">
