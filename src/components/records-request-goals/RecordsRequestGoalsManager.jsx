@@ -9,6 +9,7 @@ import FillPayloadFields from "./FillPayloadFields";
 import TabNav from "../admin/TabNav";
 import AdminPopout from "../admin/AdminPopout";
 import { classifyRpcError } from "../../features/portal-admin/rpcErrors";
+import { cloneTemplateToCounty, formatCloneResultMessage } from "../../features/portal-admin/cloneTemplateResult";
 import {
   publicVisibilityAllowed,
   publicVisibilityForcedValue,
@@ -71,6 +72,13 @@ export default function RecordsRequestGoalsManager() {
   // in-progress state. Only the genuine first load still shows that
   // full-page state.
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  // Set only when the operator clicks "Open Goal" after a successful clone
+  // (see TemplateCloneForm). Threaded down to AdminGoalsManager, which
+  // switches its county selector to goalFocus.countyId, and from there to
+  // GoalsTable, which opens the matching goal's edit popout once it
+  // appears in that county's freshly refetched goals — then clears this
+  // via onGoalFocusHandled so it never reopens on a later refresh.
+  const [goalFocus, setGoalFocus] = useState(null);
 
   const isAdmin = account?.role === "admin";
   const countyId = isAdmin ? null : assignedCounty?.id;
@@ -167,6 +175,11 @@ export default function RecordsRequestGoalsManager() {
     }
   }
 
+  function handleOpenClonedGoal(result) {
+    setActiveTab("county-goals");
+    setGoalFocus({ countyId: result.countyId, goalId: result.goalId });
+  }
+
   if (state.phase === "loading" && !hasLoadedOnce) {
     return <div className="rrg-manager__status">Loading records-request goals...</div>;
   }
@@ -198,13 +211,20 @@ export default function RecordsRequestGoalsManager() {
         <>
           <TabNav items={GOAL_MANAGEMENT_TABS} activeId={activeTab} onSelect={setActiveTab} label="Goal Management sections" />
           {activeTab === "county-goals" && (
-            <AdminGoalsManager counties={state.counties} entities={state.entities} onRefresh={loadData} />
+            <AdminGoalsManager
+              counties={state.counties}
+              entities={state.entities}
+              onRefresh={loadData}
+              goalFocus={goalFocus}
+              onGoalFocusHandled={() => setGoalFocus(null)}
+            />
           )}
           {activeTab === "goal-templates" && (
             <AdminTemplateManager
               templates={state.templates}
               counties={state.counties}
               onRefresh={loadData}
+              onOpenClonedGoal={handleOpenClonedGoal}
             />
           )}
         </>
@@ -220,7 +240,7 @@ export default function RecordsRequestGoalsManager() {
   );
 }
 
-function AdminTemplateManager({ templates, counties, onRefresh }) {
+function AdminTemplateManager({ templates, counties, onRefresh, onOpenClonedGoal }) {
   const [creating, setCreating] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [cloneTarget, setCloneTarget] = useState(null);
@@ -299,6 +319,7 @@ function AdminTemplateManager({ templates, counties, onRefresh }) {
             counties={counties}
             onSuccess={() => { setCloneTarget(null); onRefresh(); }}
             onCancel={() => setCloneTarget(null)}
+            onOpenGoal={onOpenClonedGoal}
           />
         </AdminPopout>
       )}
@@ -502,36 +523,78 @@ function TemplateEditor({ template, onUpdate, onCancel }) {
   );
 }
 
-function TemplateCloneForm({ template, counties, onSuccess, onCancel }) {
+function TemplateCloneForm({ template, counties, onSuccess, onCancel, onOpenGoal }) {
   const [selectedCountyId, setSelectedCountyId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  // Set only on a successful clone. Once set, the form is replaced with a
+  // result panel driven entirely by the server's own response (result and
+  // the county it names) rather than by whatever the <select> currently
+  // shows — so a selection changed after submit can never mislabel the
+  // outcome.
+  const [result, setResult] = useState(null);
 
   async function handleClone() {
-    if (!selectedCountyId) {
-      setError("Please select a county");
+    if (!template?.id) {
+      setError("No template selected.");
       return;
     }
+    const targetCounty = counties.find((county) => county.id === selectedCountyId);
+    if (!targetCounty) {
+      setError("Please select a target county.");
+      return;
+    }
+    if (submitting) return;
 
     setSubmitting(true);
     setError(null);
 
-    try {
-      const { error: rpcError } = await supabase.rpc(
-        "rrg_clone_template_to_county",
-        {
-          p_template_id: template.id,
-          p_county_id: selectedCountyId,
-        }
-      );
+    const outcome = await cloneTemplateToCounty(supabase, {
+      countyId: targetCounty.id,
+      templateId: template.id,
+    });
 
-      if (rpcError) throw rpcError;
+    setSubmitting(false);
 
-      onSuccess();
-    } catch (err) {
-      setError(err.message);
-      setSubmitting(false);
+    if (outcome.error) {
+      setError(outcome.error);
+      return;
     }
+
+    setResult(outcome.result);
+  }
+
+  if (result) {
+    const resultCounty = counties.find((county) => county.id === result.countyId);
+    const countyName = resultCounty?.name ?? `county #${result.countyId}`;
+
+    return (
+      <div className="rrg-clone-form">
+        <h4>Clone "{template.title}" to County</h4>
+
+        <div className="rrg-success-message" role="status">
+          {formatCloneResultMessage(result, countyName)}
+        </div>
+
+        <div className="rrg-clone-actions">
+          {onOpenGoal && (
+            <button
+              type="button"
+              className="rrg-btn rrg-btn--primary"
+              onClick={() => {
+                onOpenGoal(result);
+                onSuccess();
+              }}
+            >
+              Open Goal
+            </button>
+          )}
+          <button type="button" className="rrg-btn" onClick={onSuccess}>
+            Done
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -546,6 +609,7 @@ function TemplateCloneForm({ template, counties, onSuccess, onCancel }) {
           id="clone-county"
           value={selectedCountyId ?? ""}
           onChange={(e) => setSelectedCountyId(e.target.value ? parseInt(e.target.value) : null)}
+          disabled={submitting}
         >
           <option value="">-- Select a county --</option>
           {counties.map((county) => (
@@ -565,7 +629,7 @@ function TemplateCloneForm({ template, counties, onSuccess, onCancel }) {
         >
           {submitting ? "Cloning..." : "Clone"}
         </button>
-        <button type="button" className="rrg-btn" onClick={onCancel}>
+        <button type="button" className="rrg-btn" onClick={onCancel} disabled={submitting}>
           Cancel
         </button>
       </div>
@@ -573,7 +637,7 @@ function TemplateCloneForm({ template, counties, onSuccess, onCancel }) {
   );
 }
 
-function AdminGoalsManager({ counties, entities, onRefresh }) {
+function AdminGoalsManager({ counties, entities, onRefresh, goalFocus, onGoalFocusHandled }) {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   // Same reasoning as RecordsRequestGoalsManager's hasLoadedOnce: a
@@ -588,6 +652,24 @@ function AdminGoalsManager({ counties, entities, onRefresh }) {
   useEffect(() => {
     loadGoals();
   }, [selectedCountyId]);
+
+  // A just-cloned goal's county (e.g. via "Open Goal" on the clone
+  // template form) can be any county, not necessarily the one already
+  // selected here — switch to it so GoalsTable's own focus logic (below)
+  // has the right county's goals to find the new row in. This adjusts
+  // local state during render — React's recommended pattern for syncing
+  // state to a prop change — rather than inside an effect. appliedGoalFocus
+  // only guards against reapplying the same goalFocus object on every
+  // subsequent render, since a genuinely new "Open Goal" always produces a
+  // fresh object; refs are intentionally not used here, since React
+  // disallows reading or writing a ref during render.
+  const [appliedGoalFocus, setAppliedGoalFocus] = useState(null);
+  if (goalFocus && appliedGoalFocus !== goalFocus) {
+    setAppliedGoalFocus(goalFocus);
+    if (goalFocus.countyId !== selectedCountyId) {
+      setSelectedCountyId(goalFocus.countyId);
+    }
+  }
 
   async function loadGoals() {
     if (!selectedCountyId) return;
@@ -680,6 +762,8 @@ function AdminGoalsManager({ counties, entities, onRefresh }) {
             loadGoals();
             onRefresh();
           }}
+          focusGoalId={goalFocus?.countyId === selectedCountyId ? goalFocus.goalId : null}
+          onFocusHandled={onGoalFocusHandled}
         />
       )}
     </section>
@@ -1340,9 +1424,33 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
   );
 }
 
-function GoalsTable({ goals, county, entities, isAdmin, onUpdate }) {
+function GoalsTable({ goals, county, entities, isAdmin, onUpdate, focusGoalId, onFocusHandled }) {
   const [managingGoalId, setManagingGoalId] = useState(null);
   const [filters, setFilters] = useState({ tier: "all", status: "all", locked: "all", completed: "all", search: "" });
+
+  // Opens a goal's edit popout once it actually appears in this county's
+  // fetched goals — e.g. right after "Open Goal" on a successful clone,
+  // whose new row only exists once the parent's onRefresh/loadGoals round
+  // trip completes. The local popout state is adjusted during render —
+  // React's recommended pattern for syncing state to a prop/data change,
+  // guarded by openedFocusGoalId so it fires at most once per distinct
+  // focusGoalId (refs are intentionally not used here, since React
+  // disallows reading or writing a ref during render). Notifying the
+  // parent that the request was fulfilled is a real side effect on a
+  // different component's state, so it stays in the effect below, keyed
+  // off openedFocusGoalId rather than `goals` — that way it still fires
+  // correctly however long the county's goals take to include the new row.
+  const [openedFocusGoalId, setOpenedFocusGoalId] = useState(null);
+  if (focusGoalId && openedFocusGoalId !== focusGoalId && goals.some((goal) => goal.id === focusGoalId)) {
+    setOpenedFocusGoalId(focusGoalId);
+    setManagingGoalId(focusGoalId);
+  }
+
+  useEffect(() => {
+    if (focusGoalId && openedFocusGoalId === focusGoalId) {
+      onFocusHandled?.();
+    }
+  }, [focusGoalId, openedFocusGoalId, onFocusHandled]);
 
   const entitiesById = Object.fromEntries(entities.map((entity) => [entity.id, entity]));
 

@@ -10,6 +10,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { isFillDataValid } from "../src/features/document-request/documentFiller.js";
 
 test("Document Filler - Payload Validation", async (t) => {
@@ -457,34 +458,51 @@ test("Records Request Goals - Evidence Resolution", async (t) => {
 });
 
 test("Records Request Goals - Template Cloning", async (t) => {
-  await t.test("should clone template idempotently to county", () => {
-    const template = {
-      id: 1,
-      seed_key: "birth_certificate",
-      title: "Birth Certificate Request",
-    };
+  // Idempotency (cloning the same template to the same county twice
+  // resulting in one goal) is enforced by the database RPC function and
+  // is out of scope for a frontend test — these instead prove the real
+  // frontend calls that RPC correctly. The full response contract
+  // (parsing, error mapping) is unit-tested directly in
+  // src/features/portal-admin/cloneTemplateResult.test.ts (via vitest,
+  // since it's TypeScript); source-shape assertions on the actual
+  // component live in clone-template-workflow-shape.test.ts. Node's test
+  // runner can't import TypeScript, so this file — which node:test can
+  // run directly — instead reads the shipped component source as plain
+  // text to confirm the exact RPC name and argument keys it actually
+  // calls, rather than a hand-built stand-in object that never exercises
+  // any real code path.
+  const componentPath = new URL(
+    "../src/components/records-request-goals/RecordsRequestGoalsManager.jsx",
+    import.meta.url
+  );
+  const source = readFileSync(componentPath, "utf8");
 
-    const county = { id: 10, name: "County Name" };
-
-    // Idempotent means: cloning same template to same county twice should result in one goal
-    // This is enforced by the database RPC function
-    const clonedGoal = {
-      template_id: template.id,
-      county_id: county.id,
-      title: template.title,
-      status: "profile_needed",
-    };
-
-    assert.strictEqual(
-      clonedGoal.county_id,
-      10,
-      "Cloned goal should belong to target county"
+  await t.test("clones via the shared cloneTemplateToCounty helper, not a raw supabase.rpc call", () => {
+    assert.match(
+      source,
+      /cloneTemplateToCounty\(supabase, \{/,
+      "TemplateCloneForm should call the tested cloneTemplateToCounty helper"
     );
-    assert.strictEqual(
-      clonedGoal.status,
-      "profile_needed",
-      "Cloned goal should start in profile_needed status"
+    assert.doesNotMatch(
+      source,
+      /supabase\.rpc\(\s*["']rrg_clone_template_to_county["']/,
+      "The RPC should be called through cloneTemplateToCounty, not inline"
     );
+  });
+
+  await t.test("the shared helper calls rrg_clone_template_to_county with exactly p_county_id and p_template_id", () => {
+    const helperPath = new URL("../src/features/portal-admin/cloneTemplateResult.ts", import.meta.url);
+    const helperSource = readFileSync(helperPath, "utf8");
+    assert.match(helperSource, /"rrg_clone_template_to_county"/);
+    assert.match(helperSource, /p_county_id: params\.countyId,/);
+    assert.match(helperSource, /p_template_id: params\.templateId,/);
+  });
+
+  await t.test("never assumes .single() or a data[0] row shape for the clone response", () => {
+    const cloneFormBlock = source.match(/function TemplateCloneForm\([\s\S]*?\n^}/m)?.[0] ?? "";
+    assert.notEqual(cloneFormBlock, "", "TemplateCloneForm should still be present in this file");
+    assert.doesNotMatch(cloneFormBlock, /\.single\(\)/);
+    assert.doesNotMatch(cloneFormBlock, /data\[0\]/);
   });
 });
 
