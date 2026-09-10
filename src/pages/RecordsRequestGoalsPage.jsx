@@ -4,6 +4,7 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 import CountyStatusChooser from "../components/CountyStatusChooser";
 import RecordsRequestGoalsTiers from "../components/records-request-goals/RecordsRequestGoalsTiers";
+import HaveRecordsCard from "../components/records-request-goals/HaveRecordsCard";
 import { formatCountyLabel } from "../features/document-request/countyLabel";
 import { supabase } from "../lib/supabase";
 import { setStoredCountySlug } from "../utils/countyPreference";
@@ -154,6 +155,8 @@ export default function RecordsRequestGoalsPage() {
             </p>
           </div>
         </header>
+
+        <HaveRecordsCard county={state.county} />
 
         {state.goals && state.goals.length > 0 ? (
           <RecordsRequestGoalsTiers goals={state.goals} county={state.county} />

@@ -48,8 +48,8 @@ const INFERENCE_GROUPS = [
   ] },
   { title: 'Weekly routine?', area: 'Riverside', ideas: [
     { kind: 'church', minimum: 2, text: '10:06 AM near Grace Church on Sundays: attends services here?' },
-    { kind: 'hospital', minimum: 3, text: '2:15 PM near the hospital on three Tuesdays: a recurring medical visit, visiting someone, or work?' },
-    { kind: 'church', minimum: 4, text: 'Four Sundays at the same time could suggest a religious routine. Location alone does not establish belief.' },
+    { kind: 'hospital', minimum: 3, sensitive: true, text: '2:15 PM near the hospital on three Tuesdays: a recurring medical visit, visiting someone, or work?' },
+    { kind: 'church', minimum: 4, sensitive: true, text: 'Four Sundays at the same time could suggest a religious routine. Location alone does not establish belief.' },
   ] },
 ];
 function InferenceIllustrations() {
@@ -67,8 +67,8 @@ function InferenceCards({ records }) {
       const ideas = group.ideas.filter(idea => records.filter(r => r.kind === idea.kind).length >= idea.minimum);
       return <section key={group.title} className={ideas.length ? 'ix-pattern-visible' : ''}>
         <span>{group.area}</span><h4>{group.title}</h4>
-        {ideas.length ? <ul>{ideas.map(idea => <li key={`${idea.kind}-${idea.minimum}`}>
-          <p>{idea.text}</p><small>{records.filter(r => r.kind === idea.kind).length} relevant sightings</small>
+        {ideas.length ? <ul>{ideas.map(idea => <li key={`${idea.kind}-${idea.minimum}`} className={idea.sensitive ? 'ix-sensitive-inference' : undefined}>
+          {idea.sensitive && <strong className="ix-sensitive-label">May contain sensitive information</strong>}<p>{idea.text}</p><small>{records.filter(r => r.kind === idea.kind).length} relevant sightings</small>
         </li>)}</ul> : <p className="ix-inference-empty">Not enough repeated sightings yet.</p>}
       </section>;
     })}</div>

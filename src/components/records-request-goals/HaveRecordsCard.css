@@ -1,0 +1,128 @@
+/* "Have records?" contact card — matches the roadmap page's existing
+   white-card / blue-accent (#2563eb) visual language from
+   RecordsRequestGoalsTiers.css. */
+
+.have-records {
+  margin: 1.75rem 0 2.5rem;
+}
+
+.have-records__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1.15rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.have-records__toggle:hover {
+  background: #1d4ed8;
+}
+
+.have-records__toggle:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.have-records__toggle-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.have-records__card {
+  margin-top: 1rem;
+  max-width: 560px;
+  background: white;
+  border-radius: 0.5rem;
+  border-left: 3px solid #2563eb;
+  padding: 1.5rem;
+}
+
+.have-records__card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  color: #1a1a1a;
+}
+
+.have-records__card > p {
+  margin: 0 0 0.75rem;
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.have-records__email {
+  font-size: 1rem;
+}
+
+.have-records__email a {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.have-records__email a:hover {
+  text-decoration: underline;
+}
+
+.have-records__email a:focus-visible,
+.have-records__mailto-btn:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.have-records__mailto-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.25rem 0 1.1rem;
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: white;
+  border-radius: 0.375rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.have-records__mailto-btn:hover {
+  background: #1d4ed8;
+}
+
+.have-records__note {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: #eff6ff;
+  border-left: 3px solid #2563eb;
+  border-radius: 0.25rem;
+  color: #374151;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .have-records__card {
+    max-width: none;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .have-records__toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .have-records__mailto-btn {
+    width: 100%;
+  }
+}
