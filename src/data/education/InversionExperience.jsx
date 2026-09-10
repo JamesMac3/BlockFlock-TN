@@ -147,7 +147,7 @@ export default function InversionExperience() {
   const [chapter, setChapter] = useState(0);
   const [phase, setPhase] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [retention, setRetention] = useState(30);
+  const [retention, setRetention] = useState(0);
   const [days, setDays] = useState(1);
   useEffect(() => {
     if (!playing) return;
