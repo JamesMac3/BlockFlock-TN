@@ -9,6 +9,7 @@ import skyline from "../../assets/MTN_skyrise.jpg";
 import TennesseeCountyMapContainer from "../../components/jurisdiction-map/TennesseeCountyMapContainer";
 import PrivacyTicker from "../../components/PrivacyTicker";
 import NextMeetingBanner from "../../components/NextMeetingBanner";
+import HaveDocumentsPopout from "../../components/HaveDocumentsPopout";
 import { useSavedCountyHref } from "../../utils/useSavedCountyHref";
 
 // Independent, third-party projects — never fetched/embedded, only linked
@@ -130,6 +131,8 @@ export default function HomePage() {
                 <Link to="/education" className="button button--secondary">
                   Understand the surveillance
                 </Link>
+
+                <HaveDocumentsPopout />
               </div>
             </div>
 

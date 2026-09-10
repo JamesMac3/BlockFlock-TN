@@ -1,0 +1,148 @@
+.have-documents-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(7, 17, 31, 0.72);
+}
+
+.have-documents-dialog {
+  width: min(26rem, 100%);
+  max-height: min(34rem, calc(100dvh - 2rem));
+  overflow-y: auto;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 1rem);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.have-documents-dialog__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.have-documents-dialog__heading h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.have-documents-dialog__heading button {
+  display: grid;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.have-documents-dialog__heading button:hover {
+  background: var(--surface-muted);
+}
+
+.have-documents-dialog button:focus-visible,
+.have-documents-dialog a:focus-visible,
+.have-documents-dialog input:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 2px;
+}
+
+.have-documents-dialog__intro {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.have-documents-dialog__steps {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.have-documents-dialog__county p {
+  margin: 0 0 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.have-documents-dialog__email {
+  font-size: 1rem;
+}
+
+.have-documents-dialog__email a {
+  color: var(--text);
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.have-documents-dialog__note {
+  padding: 0.75rem 0.9rem;
+  border-left: 2px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 0.82rem !important;
+  line-height: 1.55 !important;
+}
+
+.have-documents-dialog__cta {
+  display: flex;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.have-documents-dialog__change {
+  display: block;
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.6rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.have-documents-dialog__change:hover {
+  color: var(--text);
+}
+
+@media (max-width: 680px) {
+  .have-documents-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .have-documents-dialog {
+    width: 100%;
+    max-height: min(85dvh, 38rem);
+    border-radius: var(--radius-md, 1rem) var(--radius-md, 1rem) 0 0;
+    border-bottom: 0;
+    padding: 1.25rem max(1rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom))
+      max(1rem, env(safe-area-inset-left));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .have-documents-dialog {
+    transition: none;
+  }
+}
