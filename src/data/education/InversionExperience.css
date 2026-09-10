@@ -23,3 +23,36 @@
 .ix-linked-sightings{stroke:#efb36f;stroke-width:3;stroke-dasharray:7 6;fill:none;animation:ix-enter .6s both}
 .ix-linked-camera{stroke:#efb36f;stroke-width:3;fill:none;animation:ix-enter .6s both}
 @media(max-width:600px){.ix-incident .ix-map-label{font-size:18px}}
+
+.ix-inference-intro,.ix-inference-footnote{margin:0;padding:8px 20px 18px;color:var(--ix-muted);font-size:12px;line-height:1.65}
+.ix-inference-footnote{font-size:11px;padding-top:0}
+.ix-patterns>section{border-top:1px solid var(--ix-line);padding-top:14px;min-width:0}
+.ix-patterns h4{font-size:16px;line-height:1.35;margin:8px 0 14px;color:var(--ix-muted)}
+.ix-patterns .ix-pattern-visible h4{color:#e9bd7a}
+.ix-patterns ul{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.ix-patterns li{padding:12px 10px;background:#17262e;border-left:2px solid #cda369;border-radius:0 5px 5px 0;animation:ix-enter .35s both}
+.ix-patterns li p,.ix-patterns .ix-inference-empty{font-size:12px;line-height:1.65;color:var(--ix-text);margin:0}
+.ix-patterns li small{display:block;font-size:10px;color:var(--ix-muted);margin-top:9px}
+.ix-patterns .ix-inference-empty{color:var(--ix-muted)}
+@media(max-width:600px){.ix-inference-panel .ix-patterns{grid-template-columns:1fr;gap:20px}.ix-patterns h4{font-size:18px}.ix-patterns li p{font-size:14px}.ix-inference-intro,.ix-inference-footnote{padding-left:12px;padding-right:12px}}
+
+.ix-scene-controls{padding:0 20px 16px}.ix-scene-controls .ix-playback{margin-top:0}.ix-scene-controls .ix-step-dots{margin-top:10px}@media(max-width:600px){.ix-scene-controls{padding:0 12px 14px}}
+
+.ix-model-1{background:#351d24}.ix-model-1 .ix-model-store strong{color:#ffb1ae}.ix-model-1 .ix-model-order .ix-active-stage{border-color:#ec8c8b}.ix-history-mobile{display:none}@media(max-width:600px){.ix-history-mobile{display:block;padding:0 12px 22px}.ix-history-mobile .ix-control{margin-top:4px}.ix-history-desktop{display:none}}
+
+.ix-inspector .ix-patterns{grid-template-columns:1fr;padding:8px 0 20px;gap:20px}.ix-inspector .ix-inference-footnote{padding-left:0;padding-right:0}
+
+.ix-inferences-mobile{display:none}.ix-inferences-desktop{display:block}@media(max-width:600px){.ix-inferences-mobile{display:block}.ix-inferences-desktop{display:none}}
+/* Let the mobile slider stick within the full aggregation workbench. */
+@media(max-width:600px){
+ .content-placeholder:has(.ix-history-mobile){overflow:visible}
+ .ix-workbench:has(.ix-history-mobile){display:block;overflow:visible}
+ .ix-workbench:has(.ix-history-mobile)>.ix-visual{display:contents}
+ .ix-workbench .ix-history-mobile{position:sticky;top:var(--site-header-height,4.75rem);z-index:10;background:#101e2d;padding:10px 12px 12px;border-top:1px solid var(--ix-line);border-bottom:1px solid var(--ix-line);box-shadow:0 6px 14px #0003}
+ .ix-history-mobile .ix-control{display:flex;align-items:baseline;gap:8px;margin:0;font-size:13px}
+ .ix-history-mobile .ix-control strong{font-size:22px;margin:0}
+ .ix-history-mobile input[type=range]{min-height:36px}
+}
+@media(max-width:600px){.ix-sticky-history-title{margin-bottom:10px}.ix-history-panel-title{display:none}}
+
+.ix-inference-illustrations{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 24px}.ix-inference-illustrations>div{padding:14px 8px;background:#172a32;border:1px solid #304953;border-radius:8px;text-align:center}.ix-inference-illustrations svg{width:52px;height:52px;color:#e9bd7a;margin:0 auto 12px;display:block}.ix-inference-illustrations h5{margin:0 0 8px;font-size:12px;line-height:1.4;color:#f1f2ed}.ix-inference-illustrations p{margin:0;font-size:11px;line-height:1.55;color:var(--ix-muted)}@media(min-width:601px) and (max-width:1100px){.ix-inference-illustrations svg{width:60px;height:60px}.ix-inference-illustrations h5{font-size:14px}}@media(max-width:360px){.ix-inference-illustrations{grid-template-columns:1fr}.ix-inference-illustrations>div{display:grid;grid-template-columns:48px 1fr;text-align:left;column-gap:12px}.ix-inference-illustrations svg{grid-row:1/3;width:44px;height:44px;margin:0}.ix-inference-illustrations h5{margin-bottom:4px}}

@@ -2,10 +2,14 @@ import { useEffect } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import Header from "../components/Header";
 import "./EducationPage.css";
-import EducationSidebar from "../components/education/EducationSidebar";
 import InteractiveModule from "../components/education/InteractiveModule";
 import TopicPager from "../components/education/TopicPager";
-import { getAdjacentEducationTopics, getEducationTopicBySlug, getEducationTopics } from "../data/education/registry";
+import {
+  getAdjacentEducationTopics,
+  getEducationTopicBySlug,
+  getEducationTopics,
+  getLegacyTopicRedirect,
+} from "../data/education/registry";
 
 export default function EducationPage() {
   const { topicSlug } = useParams();
@@ -19,7 +23,12 @@ export default function EducationPage() {
   }, [activeTopic]);
 
   if (!activeTopic) {
-    return <Navigate to={`/education/${topics[0]?.slug}`} replace />;
+    // A bookmarked/shared link to a standalone lesson that was folded into
+    // one of the three field guides still lands on the guide that now
+    // covers it, rather than silently landing on guide 1 like any other
+    // unrecognized slug.
+    const legacySlug = topicSlug ? getLegacyTopicRedirect(topicSlug) : undefined;
+    return <Navigate to={`/education/${legacySlug ?? topics[0]?.slug}`} replace />;
   }
 
   const { previous, next } = getAdjacentEducationTopics(activeTopic.slug);
@@ -36,20 +45,14 @@ export default function EducationPage() {
 
         </header>
 
-        {/* Documentation Layout */}
+        {/* Lesson Content */}
 
         <section className="education-layout">
 
-          <EducationSidebar activeSlug={activeTopic.slug} />
-
-          <section className="education-content">
-
-            <div className="content-placeholder">
-              <InteractiveModule module={activeTopic} />
-              <TopicPager previous={previous} next={next} />
-            </div>
-
-          </section>
+          <div className="content-placeholder">
+            <InteractiveModule module={activeTopic} />
+            <TopicPager previous={previous} next={next} />
+          </div>
 
         </section>
 

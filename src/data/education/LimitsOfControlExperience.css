@@ -1,0 +1,66 @@
+/* Matches the hero styling shared by InversionExperience.css and
+   BeyondResultExperience.css (dark navy field-guide background, teal
+   eyebrow, large serif-free hero heading). This lesson has no interactive
+   body yet, so only the hero is defined. */
+
+.lc-lesson {
+  --lc-bg: #0b1420;
+  --lc-mute: #adbdc9;
+  --lc-green: #86e0cd;
+  color: #f1f2ed;
+  min-width: 0;
+}
+
+.lc-lesson * {
+  box-sizing: border-box;
+}
+
+.lc-hero {
+  padding: 10px 0 32px;
+}
+
+.lc-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--lc-green);
+  font-weight: 700;
+}
+
+.lc-hero h2 {
+  font-size: clamp(40px, 5vw, 72px);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  margin: 22px 0;
+  font-weight: 750;
+}
+
+.lc-hero > p {
+  max-width: 620px;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--lc-mute);
+  margin: 0 0 16px;
+}
+
+.lc-hero small {
+  display: block;
+  font-size: 11px;
+  color: var(--lc-mute);
+  line-height: 1.6;
+}
+
+.content-placeholder:has(.lc-lesson) {
+  background: #0b1420;
+  min-height: 0;
+  padding: clamp(18px, 3vw, 40px);
+}
+
+@media (max-width: 600px) {
+  .lc-hero h2 {
+    font-size: 43px;
+  }
+
+  .lc-hero > p {
+    font-size: 16px;
+  }
+}
