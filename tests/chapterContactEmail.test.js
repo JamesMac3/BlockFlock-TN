@@ -1,32 +1,34 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getChapterContactEmail, FALLBACK_CHAPTER_EMAIL } from "../src/utils/chapterContactEmail.js";
-import { ACTIVE_CHAPTER_COUNTY_SLUGS } from "../src/config/activeChapterCounties.js";
 
-const [activeSlug] = ACTIVE_CHAPTER_COUNTY_SLUGS;
-
-test("uses the configured contact email for an active chapter county", () => {
-  const county = { slug: activeSlug, chapter_contact_email: "chapter@example.org" };
+test("uses the configured contact email for a claimed chapter county", () => {
+  const county = { chapter_status: "claimed", chapter_contact_email: "chapter@example.org" };
   assert.equal(getChapterContactEmail(county), "chapter@example.org");
 });
 
-test("trims whitespace around a configured active-chapter email", () => {
-  const county = { slug: activeSlug, chapter_contact_email: "  chapter@example.org  " };
+test("trims whitespace around a configured claimed-chapter email", () => {
+  const county = { chapter_status: "claimed", chapter_contact_email: "  chapter@example.org  " };
   assert.equal(getChapterContactEmail(county), "chapter@example.org");
 });
 
-test("falls back to the admin address when the county has no active chapter", () => {
-  const county = { slug: "a-county-with-no-active-chapter", chapter_contact_email: "someone@example.org" };
+test("falls back to the admin address when the county is unclaimed", () => {
+  const county = { chapter_status: "unclaimed", chapter_contact_email: "someone@example.org" };
   assert.equal(getChapterContactEmail(county), FALLBACK_CHAPTER_EMAIL);
 });
 
-test("falls back to the admin address when the active chapter has no configured email", () => {
-  const county = { slug: activeSlug, chapter_contact_email: null };
+test("falls back to the admin address when chapter_status is missing entirely", () => {
+  const county = { chapter_contact_email: "someone@example.org" };
   assert.equal(getChapterContactEmail(county), FALLBACK_CHAPTER_EMAIL);
 });
 
-test("falls back to the admin address when the active chapter's email is blank/whitespace", () => {
-  const county = { slug: activeSlug, chapter_contact_email: "   " };
+test("falls back to the admin address when the claimed chapter has no configured email", () => {
+  const county = { chapter_status: "claimed", chapter_contact_email: null };
+  assert.equal(getChapterContactEmail(county), FALLBACK_CHAPTER_EMAIL);
+});
+
+test("falls back to the admin address when the claimed chapter's email is blank/whitespace", () => {
+  const county = { chapter_status: "claimed", chapter_contact_email: "   " };
   assert.equal(getChapterContactEmail(county), FALLBACK_CHAPTER_EMAIL);
 });
 

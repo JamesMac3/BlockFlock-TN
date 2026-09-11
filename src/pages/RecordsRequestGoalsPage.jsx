@@ -31,7 +31,7 @@ export default function RecordsRequestGoalsPage() {
 
       const { data: county, error: countyError } = await supabase
         .from("counties")
-        .select("id, name, slug, chapter_contact_email")
+        .select("id, name, slug, chapter_status, chapter_contact_email")
         .eq("slug", countySlug)
         .maybeSingle();
 

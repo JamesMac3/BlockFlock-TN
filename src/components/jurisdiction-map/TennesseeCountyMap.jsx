@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import CountySelector from "../CountySelector";
-import { ACTIVE_CHAPTER_COUNTY_SLUGS } from "../../config/activeChapterCounties";
+import { isChapterClaimed } from "../../utils/chapterStatus";
 import { supabase } from "../../lib/supabase";
 import { fetchNextMeeting, formatMeetingBanner } from "../../features/portal-admin/nextMeeting";
 import "./TennesseeCountyMap.css";
@@ -127,9 +127,7 @@ export default function TennesseeCountyMap({
     first.name.localeCompare(second.name)
   );
   const counties = Object.values(countyData);
-  const claimedCountyCount = counties.filter((county) =>
-    ACTIVE_CHAPTER_COUNTY_SLUGS.has(county.slug)
-  ).length;
+  const claimedCountyCount = counties.filter(isChapterClaimed).length;
   const statewideMetrics = {
     claimed: claimedCountyCount,
     unclaimed: Math.max(counties.length - claimedCountyCount, 0),
@@ -180,7 +178,7 @@ export default function TennesseeCountyMap({
   const countyClaimPath = `/chapters/claim?county=${encodeURIComponent(
     activeCountyData.slug || activeCounty?.toLowerCase() || ""
   )}`;
-  const hasActiveChapter = ACTIVE_CHAPTER_COUNTY_SLUGS.has(activeCountyData.slug);
+  const hasActiveChapter = isChapterClaimed(activeCountyData);
 
   return (
     <section className="tennessee-map-section" aria-label="Tennessee county surveillance map">

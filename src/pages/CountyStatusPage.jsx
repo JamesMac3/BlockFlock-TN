@@ -5,7 +5,7 @@ import Header from "../components/Header";
 import CountyStatusChooser from "../components/CountyStatusChooser";
 import NextMeetingBanner from "../components/NextMeetingBanner";
 import StatusPostCard from "../components/status/StatusPostCard";
-import { ACTIVE_CHAPTER_COUNTY_SLUGS } from "../config/activeChapterCounties";
+import { isChapterClaimed } from "../utils/chapterStatus";
 import { supabase } from "../lib/supabase";
 import { sortStatusPosts } from "../utils/statusPostUtils";
 import { setStoredCountySlug } from "../utils/countyPreference";
@@ -32,7 +32,7 @@ export default function CountyStatusPage() {
 
       const { data: county, error: countyError } = await supabase
         .from("counties")
-        .select("id, name, slug, camera_count, drone_count")
+        .select("id, name, slug, camera_count, drone_count, chapter_status, chapter_contact_email")
         .eq("slug", countySlug)
         .maybeSingle();
 
@@ -106,7 +106,7 @@ export default function CountyStatusPage() {
         <CountyStatusHeader county={state.county} />
         <NextMeetingBanner countyId={state.county.id} />
 
-        {!ACTIVE_CHAPTER_COUNTY_SLUGS.has(state.county.slug) && (
+        {!isChapterClaimed(state.county) && (
           <ChapterClaimCallout county={state.county} />
         )}
 
@@ -170,7 +170,7 @@ function ChapterClaimCallout({ county }) {
 }
 
 function CountyStatusHeader({ county }) {
-  const hasActiveChapter = ACTIVE_CHAPTER_COUNTY_SLUGS.has(county.slug);
+  const hasActiveChapter = isChapterClaimed(county);
 
   return (
     <header className="county-status-header">

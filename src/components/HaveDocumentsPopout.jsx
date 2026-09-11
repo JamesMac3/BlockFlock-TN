@@ -32,7 +32,7 @@ export default function HaveDocumentsPopout() {
 
     supabase
       .from("counties")
-      .select("id, name, slug, cities, chapter_contact_email")
+      .select("id, name, slug, cities, chapter_status, chapter_contact_email")
       .order("name")
       .then(({ data, error }) => {
         if (!active) return;
