@@ -364,20 +364,6 @@ function TemplateForm({ onSuccess }) {
       {error && <div className="rrg-error-message">{error}</div>}
 
       <div className="rrg-form-group">
-        <label htmlFor="seed_key">Seed Key</label>
-        <input
-          id="seed_key"
-          type="text"
-          pattern="^[a-z0-9]+(_[a-z0-9]+)*$"
-          value={formData.seed_key}
-          onChange={(e) => setFormData({ ...formData, seed_key: e.target.value })}
-          placeholder="e.g., birth_certificate_request"
-          required
-        />
-        <small>Alphanumeric and underscores only, lowercase</small>
-      </div>
-
-      <div className="rrg-form-group">
         <label htmlFor="title">Title</label>
         <input
           id="title"
@@ -390,7 +376,10 @@ function TemplateForm({ onSuccess }) {
       </div>
 
       <div className="rrg-form-group">
-        <label htmlFor="public_summary">Public Summary</label>
+        {/* Same field and placement as TemplateEditor's Description — the
+            template's public_summary, copied onto each goal cloned from
+            this template. */}
+        <label htmlFor="public_summary">Description</label>
         <textarea
           id="public_summary"
           maxLength="2000"
@@ -398,6 +387,20 @@ function TemplateForm({ onSuccess }) {
           onChange={(e) => setFormData({ ...formData, public_summary: e.target.value })}
           rows="3"
         />
+      </div>
+
+      <div className="rrg-form-group">
+        <label htmlFor="seed_key">Seed Key</label>
+        <input
+          id="seed_key"
+          type="text"
+          pattern="^[a-z0-9]+(_[a-z0-9]+)*$"
+          value={formData.seed_key}
+          onChange={(e) => setFormData({ ...formData, seed_key: e.target.value })}
+          placeholder="e.g., birth_certificate_request"
+          required
+        />
+        <small>Alphanumeric and underscores only, lowercase</small>
       </div>
 
       <div className="rrg-form-group">
@@ -450,7 +453,15 @@ function TemplateEditor({ template, onUpdate, onCancel }) {
     setSaving(true);
     setError(null);
     try {
-      const { error: updateError } = await supabase
+      // Same reasoning as GoalEditForm's handleSave: .select("id") and a
+      // row-count check are what actually confirm the update applied,
+      // rather than trusting the absence of an error — a zero-row update
+      // (RLS-filtered or a since-deleted template) reports no error either
+      // way and must not be reported as saved. This update only ever
+      // targets records_request_goal_templates — it never writes to
+      // county_records_request_goals, so editing a template cannot
+      // silently overwrite a goal a county already cloned from it.
+      const { data: updatedRows, error: updateError } = await supabase
         .from("records_request_goal_templates")
         .update({
           title: formData.title,
@@ -459,8 +470,14 @@ function TemplateEditor({ template, onUpdate, onCancel }) {
           default_position: formData.default_position,
           active: formData.active,
         })
-        .eq("id", template.id);
+        .eq("id", template.id)
+        .select("id");
       if (updateError) throw updateError;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error(
+          "The update could not be confirmed — no matching template was found. You may not have permission to edit it."
+        );
+      }
       onUpdate();
     } catch (err) {
       setError(err.message);
@@ -479,6 +496,22 @@ function TemplateEditor({ template, onUpdate, onCancel }) {
       </div>
 
       <div className="rrg-form-group">
+        {/* This is the template's public_summary — copied onto each new
+            goal a county clones from this template (see
+            rrg_clone_template_to_county). Editing it here only affects
+            this template and future clones; it never reaches back into an
+            already-cloned county goal, which keeps its own independently
+            editable description from that point on. */}
+        <label>Description</label>
+        <textarea
+          rows={3}
+          maxLength={2000}
+          value={formData.public_summary ?? ""}
+          onChange={(e) => setFormData({ ...formData, public_summary: e.target.value })}
+        />
+      </div>
+
+      <div className="rrg-form-group">
         <label>Seed Key</label>
         <input type="text" value={formData.seed_key} disabled />
       </div>
@@ -492,16 +525,6 @@ function TemplateEditor({ template, onUpdate, onCancel }) {
           <option value="">-- No default tier --</option>
           {TIER_OPTIONS.map((tier) => <option key={tier} value={tier}>Tier {tier}</option>)}
         </select>
-      </div>
-
-      <div className="rrg-form-group">
-        <label>Purpose summary</label>
-        <textarea
-          rows={3}
-          maxLength={2000}
-          value={formData.public_summary ?? ""}
-          onChange={(e) => setFormData({ ...formData, public_summary: e.target.value })}
-        />
       </div>
 
       <div className="rrg-form-group">
@@ -933,7 +956,7 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
       </div>
 
       <div className="rrg-form-group">
-        <label htmlFor="goal-summary">Public Summary</label>
+        <label htmlFor="goal-summary">Description</label>
         <textarea
           id="goal-summary"
           maxLength="2000"
@@ -1249,11 +1272,23 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
         request_profile_id: formData.request_profile_id,
         fill_payload: { request: fillRequest },
       });
-      const { error: updateError } = await supabase
+      // .select("id") (and reading the returned rows) is deliberate here,
+      // not decorative: without it, supabase-js reports success (no error)
+      // for an UPDATE that matched zero rows just as readily as one that
+      // matched one — including when RLS silently filters the target row
+      // out of the caller's own UPDATE policy. A zero-row result must never
+      // be treated as a successful save.
+      const { data: updatedRows, error: updateError } = await supabase
         .from("county_records_request_goals")
         .update(payload)
-        .eq("id", goal.id);
+        .eq("id", goal.id)
+        .select("id");
       if (updateError) throw updateError;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error(
+          "The update could not be confirmed — no matching goal was found. You may not have permission to edit it."
+        );
+      }
       // The form now displays exactly what was persisted — including any
       // value applyPublicVisibilityRule corrected (e.g. forcing is_public
       // true for "ready") that may differ from what was on screen a moment
@@ -1282,6 +1317,23 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
       <div className="rrg-form-group">
         <label>Title</label>
         <input type="text" value={formData.title} onChange={(e) => updateField({ title: e.target.value })} />
+      </div>
+
+      <div className="rrg-form-group">
+        <label>Description</label>
+        {/* This is the goal's public_summary — the plain-language purpose
+            shown on the public goal card (see RecordsRequestGoalsTiers.jsx)
+            and archive pages. It is a separate field from the structured
+            "Records description (request language)" below, which lives in
+            fill_payload.request and is edited only through
+            FillPayloadFields — editing this textarea never touches that
+            one, or any other field. */}
+        <textarea
+          rows={3}
+          maxLength={2000}
+          value={formData.public_summary ?? ""}
+          onChange={(e) => updateField({ public_summary: e.target.value })}
+        />
       </div>
 
       <div className="rrg-form-group">

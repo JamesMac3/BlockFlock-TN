@@ -66,6 +66,9 @@
   color: #4b5563;
   font-size: 0.95rem;
   line-height: 1.5;
+  /* Preserves line breaks the operator typed (still plain text — React
+     already escapes it, this only affects how whitespace renders). */
+  white-space: pre-line;
 }
 
 .goal-card__locked-reason {

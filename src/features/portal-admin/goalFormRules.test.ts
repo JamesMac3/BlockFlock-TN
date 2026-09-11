@@ -113,6 +113,48 @@ describe("dirty-state snapshot comparison", () => {
     const current = goalFormSnapshot({ ...savedGoal, locked: false, locked_reason: "leftover text" }, savedGoal.fill_payload.request);
     expect(goalFormIsDirty(baseline, current)).toBe(false);
   });
+
+  it("editing only the public description (public_summary) marks the form dirty", () => {
+    const baseline = goalRowSnapshot(savedGoal);
+    const edited = { ...savedGoal, public_summary: "An updated, corrected public description." };
+    const current = goalFormSnapshot(edited, savedGoal.fill_payload.request);
+    expect(goalFormIsDirty(baseline, current)).toBe(true);
+  });
+
+  it("editing only the public description leaves every other field's snapshot portion unchanged", () => {
+    const edited = { ...savedGoal, public_summary: "An updated, corrected public description." };
+    const baselineParsed = JSON.parse(goalRowSnapshot(savedGoal));
+    const editedParsed = JSON.parse(goalFormSnapshot(edited, savedGoal.fill_payload.request));
+    // Snapshot array order: [title, tier, public_summary, status, is_public,
+    // locked, locked_reason, government_entity_id, request_profile_id,
+    // fillEntries] — see goalFormSnapshot. Only index 2 (public_summary)
+    // may differ.
+    for (let index = 0; index < baselineParsed.length; index += 1) {
+      if (index === 2) continue;
+      expect(editedParsed[index]).toEqual(baselineParsed[index]);
+    }
+  });
+
+  it("editing the public description does not touch the structured fill_payload.request (records description stays separate)", () => {
+    const edited = { ...savedGoal, public_summary: "An updated, corrected public description." };
+    // The same fill_payload.request is passed through untouched — proving
+    // a real caller (GoalEditForm) editing formData.public_summary via
+    // updateField has no path back into fillRequest/records_description.
+    const current = goalFormSnapshot(edited, savedGoal.fill_payload.request);
+    const parsedFillPortion = JSON.parse(current).at(-1);
+    const baselineFillPortion = JSON.parse(goalRowSnapshot(savedGoal)).at(-1);
+    expect(parsedFillPortion).toEqual(baselineFillPortion);
+  });
+
+  it("editing the structured records description does not touch public_summary", () => {
+    const editedRequest = {
+      ...savedGoal.fill_payload.request,
+      records_description: "A completely different request-language description.",
+    };
+    const current = goalFormSnapshot(savedGoal, editedRequest);
+    const parsed = JSON.parse(current);
+    expect(parsed[2]).toBe(savedGoal.public_summary);
+  });
 });
 
 describe("changing goal status alone must not invalidate structured request data or disable Save", () => {

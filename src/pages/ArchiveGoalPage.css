@@ -35,6 +35,9 @@
 .archive-goal-page__summary {
   color: #1a1a1a;
   font-size: 1.05rem;
+  /* Preserves line breaks the operator typed (still plain text — React
+     already escapes it, this only affects how whitespace renders). */
+  white-space: pre-line;
 }
 
 .archive-goal-page__resources {
