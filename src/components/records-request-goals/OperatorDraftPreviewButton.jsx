@@ -4,10 +4,10 @@ import { usePortalAuth } from "../../auth/portalAuth";
 import { canOperatorPreviewGoalCounty, fetchDraftPreviewBundle } from "../../features/document-request/operatorPreview";
 import { classifyRpcError } from "../../features/portal-admin/rpcErrors";
 import {
-  classifyOperatorPreviewError,
   operatorPreviewStageMessage,
   stageForReadinessCode,
 } from "../../features/document-request/pdf/operator-preview-stages";
+import { explainRenderFailure, logRenderFailureChain } from "../../features/document-request/pdf/render-failure-explanations";
 import RequestDeliveryPanel from "./RequestDeliveryPanel";
 import "./OperatorDraftPreviewButton.css";
 
@@ -56,26 +56,6 @@ const PROFILE_ROW_COLUMNS =
 const ENTITY_ROW_COLUMNS =
   "id, legal_name, display_name, coordinator_name, coordinator_title, submission_email, mailing_address, portal_url";
 
-// Several errors in the generation pipeline (TemplateResolverError,
-// AcroformRendererError, OverlayRendererError, OutputValidationError,
-// TemplateSourceError) wrap the real underlying failure in their own
-// `causeValue` rather than Error's native `cause`, and template-resolver.ts
-// re-wraps whatever a renderer throws into one generic RENDERER_FAILED
-// message — so a bare `console.error(topLevelError)` only ever shows that
-// generic wrapper text, never the specific code/diagnostics/message one or
-// two levels down. This walks the full chain to the console only — never
-// rendered, and never altering what's shown on screen.
-function logGenerationErrorChain(label, error) {
-  console.error(label, error);
-  let current = error;
-  let depth = 0;
-  while (current?.causeValue && depth < 5) {
-    console.error(`${label} — underlying cause (level ${depth + 1}):`, current.causeValue);
-    current = current.causeValue;
-    depth += 1;
-  }
-}
-
 /**
  * Authorized administrator/chapter-master preview of a goal's request
  * document, profile-aware: a draft profile uses the protected
@@ -97,12 +77,18 @@ function logGenerationErrorChain(label, error) {
  * relies on, never weakened here). Never renders for a locked goal, and
  * never mutates the goal, profile, evidence, or archive.
  *
- * Every failure surface is stage-specific rather than one catch-all
- * message, so an operator can tell an unapplied migration from an
- * incomplete goal from a bad template hash from a rendering bug. The
- * underlying developer error is always logged via console.error and never
- * rendered — none of the stage messages embed a Postgres error, a storage
- * path, a URL, a hash, or any request data.
+ * Every failure surface is specific rather than one catch-all message: the
+ * bundle/readiness stages (see operator-preview-stages.ts) distinguish an
+ * unapplied migration from an incomplete goal from a bad template hash, and
+ * an actual document-generation failure is explained by
+ * explainRenderFailure (render-failure-explanations.ts), which walks the
+ * renderer/resolver/validator error chain to tell a configured
+ * character-limit violation from a layout overflow from a missing field
+ * from an unsupported PDF field type from an unavailable/corrupt template.
+ * The full underlying error chain is always logged via
+ * logRenderFailureChain and never rendered — none of the messages shown to
+ * the user embed a Postgres error, a storage path, a URL, a hash, or any
+ * request data.
  */
 export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedChanges = false, onPreviewSuccess }) {
   const { authenticated, account } = usePortalAuth();
@@ -203,12 +189,13 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
       // offer Verify Profile at all.
       onPreviewSuccess?.(readiness.profile.id);
     } catch (previewError) {
-      // The developer-facing detail is logged only — never rendered. See
-      // the module doc comment above and logGenerationErrorChain.
-      logGenerationErrorChain("Operator draft preview failed:", previewError);
+      // The full underlying error chain is logged only — never rendered.
+      // explainRenderFailure never exposes request contents, credentials,
+      // or internal paths in what it returns for headline/detail.
+      logRenderFailureChain("Operator draft preview failed:", previewError);
 
-      const stage = classifyOperatorPreviewError(previewError);
-      setState({ status: "error", headline: operatorPreviewStageMessage(stage), detail: "" });
+      const explanation = explainRenderFailure(previewError);
+      setState({ status: "error", headline: explanation.headline, detail: explanation.detail ?? "" });
     }
   }
 
@@ -257,9 +244,9 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
       setDelivery({ profile: readiness.profile, data: readiness.data, generated, warnings: readiness.warnings });
       onPreviewSuccess?.(readiness.profile.id);
     } catch (previewError) {
-      logGenerationErrorChain("Verified operator preview failed:", previewError);
-      const stage = classifyOperatorPreviewError(previewError);
-      setState({ status: "error", headline: operatorPreviewStageMessage(stage), detail: "" });
+      logRenderFailureChain("Verified operator preview failed:", previewError);
+      const explanation = explainRenderFailure(previewError);
+      setState({ status: "error", headline: explanation.headline, detail: explanation.detail ?? "" });
     }
   }
 

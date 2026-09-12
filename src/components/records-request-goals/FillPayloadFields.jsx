@@ -198,16 +198,18 @@ export default function FillPayloadFields({ profileId, entity, initialRequest, g
           <div className="rrg-form-group" key={field.key}>
             <label>
               {label}{field.required && " *"}
-              {"maxLength" in field && field.maxLength && <small> (max {field.maxLength} characters)</small>}
             </label>
 
             {field.kind === "textarea" && (
-              <textarea
-                rows={4}
-                maxLength={field.maxLength}
-                value={value}
-                onChange={(event) => update(field.key, event.target.value)}
-              />
+              <>
+                <textarea
+                  rows={4}
+                  maxLength={field.maxLength}
+                  value={value}
+                  onChange={(event) => update(field.key, event.target.value)}
+                />
+                <CharacterCounter value={value} maxLength={field.maxLength} />
+              </>
             )}
 
             {field.kind === "choice" && (
@@ -230,12 +232,21 @@ export default function FillPayloadFields({ profileId, entity, initialRequest, g
             )}
 
             {field.kind === "text" && (
-              <input
-                type="text"
-                maxLength={field.maxLength}
-                value={value}
-                onChange={(event) => update(field.key, event.target.value)}
-              />
+              <>
+                <input
+                  type="text"
+                  maxLength={field.maxLength}
+                  value={value}
+                  onChange={(event) => update(field.key, event.target.value)}
+                />
+                {/* field.maxLength always comes from the selected profile's
+                    own field_schema (fill-payload-fields.ts describeField)
+                    — never a hardcoded frontend constant. It's only ever
+                    set for an acroform text field's configured max_length;
+                    an overlay field never has one (only layout capacity),
+                    so no counter renders for it. */}
+                {field.maxLength && <CharacterCounter value={value} maxLength={field.maxLength} />}
+              </>
             )}
 
             {field.kind === "date" && (
@@ -251,5 +262,14 @@ export default function FillPayloadFields({ profileId, entity, initialRequest, g
         );
       })}
     </div>
+  );
+}
+
+function CharacterCounter({ value, maxLength }) {
+  const over = value.length > maxLength;
+  return (
+    <small className={over ? "rrg-fill-payload__counter rrg-fill-payload__counter--over" : "rrg-fill-payload__counter"}>
+      {value.length} / {maxLength} characters
+    </small>
   );
 }

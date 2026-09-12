@@ -30,6 +30,7 @@ export type AcroformRendererErrorCode =
   | "DUPLICATE_FIELD_MAPPING"
   | "FIELD_VALUE_MISSING"
   | "FIELD_VALUE_INVALID"
+  | "FIELD_VALUE_TOO_LONG"
   | "FIELD_NOT_FOUND_OR_WRONG_TYPE"
   | "FONT_INVALID"
   | "PDF_SAVE_FAILED";
@@ -59,8 +60,14 @@ function displayValue(value: unknown): string | undefined {
   return undefined;
 }
 
-function diagnostic(code: string, message: string, field?: string): RenderDiagnostic {
-  return { code, message, field };
+function diagnostic(
+  code: string,
+  message: string,
+  field?: string,
+  source?: string,
+  details?: Readonly<Record<string, number | string>>,
+): RenderDiagnostic {
+  return { code, message, field, source, details };
 }
 
 async function embedAppearanceFont(
@@ -134,6 +141,7 @@ async function renderAcroform(
         "DUPLICATE_FIELD_MAPPING",
         `The PDF field is mapped more than once: ${mapping.pdf_field}.`,
         mapping.pdf_field,
+        mapping.source,
       ));
       continue;
     }
@@ -147,6 +155,7 @@ async function renderAcroform(
           "FIELD_VALUE_MISSING",
           `A required value is missing for ${mapping.source}.`,
           mapping.pdf_field,
+          mapping.source,
         ));
       }
       continue;
@@ -157,7 +166,7 @@ async function renderAcroform(
         case "text": {
           const rawText = displayValue(value);
           if (rawText === undefined || typeof value === "boolean") {
-            diagnostics.push(diagnostic("FIELD_VALUE_INVALID", "Text fields require a string or number.", mapping.pdf_field));
+            diagnostics.push(diagnostic("FIELD_VALUE_INVALID", "Text fields require a string or number.", mapping.pdf_field, mapping.source));
             break;
           }
           // The base PDF's rendered appearance uses the standard font
@@ -166,10 +175,20 @@ async function renderAcroform(
           // is actually rendered, not a pre-substitution length.
           const text = sanitizeForWinAnsiFont(rawText);
           if (mapping.max_length !== undefined && text.length > mapping.max_length) {
+            // A distinct code from FIELD_VALUE_INVALID on purpose: this is
+            // an explicit, configured character limit (max_length on this
+            // acroform text field), not a layout/geometry overflow (that's
+            // the overlay renderer's TEXT_OVERFLOW) — render-failure
+            // explanations must tell those two apart rather than showing
+            // the same "too long" message for both, since a configured
+            // limit has an exact number to report and a layout overflow
+            // does not.
             diagnostics.push(diagnostic(
-              "FIELD_VALUE_INVALID",
+              "FIELD_VALUE_TOO_LONG",
               `Value exceeds the ${mapping.max_length} character limit.`,
               mapping.pdf_field,
+              mapping.source,
+              { currentLength: text.length, maxLength: mapping.max_length },
             ));
             break;
           }
@@ -194,6 +213,7 @@ async function renderAcroform(
             "FIELD_VALUE_INVALID",
             "Checkbox fields require a boolean or a verified option_value match.",
             mapping.pdf_field,
+            mapping.source,
           ));
           break;
         }
@@ -205,6 +225,7 @@ async function renderAcroform(
                 "FIELD_VALUE_INVALID",
                 "Boolean radio mappings require a verified option_value.",
                 mapping.pdf_field,
+                mapping.source,
               ));
               break;
             }
@@ -214,7 +235,7 @@ async function renderAcroform(
           }
           const selected = displayValue(value);
           if (!selected) {
-            diagnostics.push(diagnostic("FIELD_VALUE_INVALID", "Radio fields require a selectable value.", mapping.pdf_field));
+            diagnostics.push(diagnostic("FIELD_VALUE_INVALID", "Radio fields require a selectable value.", mapping.pdf_field, mapping.source));
             break;
           }
           if (mapping.option_value) {
@@ -236,6 +257,7 @@ async function renderAcroform(
                 "FIELD_VALUE_INVALID",
                 `option_value is only supported for a single-option radio group; "${mapping.pdf_field}" has ${options.length} option(s).`,
                 mapping.pdf_field,
+                mapping.source,
               ));
               break;
             }
@@ -249,7 +271,7 @@ async function renderAcroform(
         case "dropdown": {
           const selected = displayValue(value);
           if (!selected) {
-            diagnostics.push(diagnostic("FIELD_VALUE_INVALID", "Dropdown fields require a string or number.", mapping.pdf_field));
+            diagnostics.push(diagnostic("FIELD_VALUE_INVALID", "Dropdown fields require a string or number.", mapping.pdf_field, mapping.source));
             break;
           }
           form.getDropdown(mapping.pdf_field).select(selected);
@@ -261,6 +283,7 @@ async function renderAcroform(
         "FIELD_NOT_FOUND_OR_WRONG_TYPE",
         `The archived PDF does not contain the expected ${mapping.kind} field: ${mapping.pdf_field}.`,
         mapping.pdf_field,
+        mapping.source,
       ));
       warnings.push({
         code: "PDF_FIELD_INSPECTION_REQUIRED",

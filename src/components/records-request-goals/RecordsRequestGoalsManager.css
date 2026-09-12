@@ -519,6 +519,19 @@ a.rrg-link-info__title:focus-visible {
   font-size: 0.8rem;
 }
 
+.rrg-fill-payload__counter {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.rrg-fill-payload__counter--over {
+  color: #f87171;
+  font-weight: 700;
+}
+
 .rrg-goal-manage-panel {
   display: grid;
   gap: 1.5rem;

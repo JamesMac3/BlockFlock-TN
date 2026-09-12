@@ -286,13 +286,30 @@ describe("createAcroformRenderer", () => {
     }), "FIELD_VALUE_MISSING");
   });
 
-  it("blocks values that exceed a verified field limit", async () => {
+  it("blocks values that exceed a verified field limit, with a distinct code from a generic invalid value", async () => {
     const bytes = await sourcePdf();
     const renderer = createAcroformRenderer({ loadBasePdf: async () => bytes });
     await expectCode(() => renderer({
       profile: profile([{ source: "request.records_description", pdf_field: "RecordsDescription", kind: "text", required: false, max_length: 5 }]),
       data,
-    }), "FIELD_VALUE_INVALID");
+    }), "FIELD_VALUE_TOO_LONG");
+  });
+
+  it("reports the exceeded field's source and current/maximum length on the diagnostic, for building an actionable error message", async () => {
+    const bytes = await sourcePdf();
+    const renderer = createAcroformRenderer({ loadBasePdf: async () => bytes });
+    try {
+      await renderer({
+        profile: profile([{ source: "request.records_description", pdf_field: "RecordsDescription", kind: "text", required: false, max_length: 5 }]),
+        data,
+      });
+      expect.unreachable("Expected the renderer to throw.");
+    } catch (error) {
+      expect(error).toBeInstanceOf(AcroformRendererError);
+      const diagnostic = (error as AcroformRendererError).diagnostics[0];
+      expect(diagnostic.source).toBe("request.records_description");
+      expect(diagnostic.details).toEqual({ currentLength: data.request.records_description.length, maxLength: 5 });
+    }
   });
 
   it("blocks missing fields and wrong field types", async () => {

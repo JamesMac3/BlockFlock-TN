@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import RequestDeliveryPanel from "./RequestDeliveryPanel";
 import OperatorDraftPreviewButton from "./OperatorDraftPreviewButton";
+import { explainRenderFailure, logRenderFailureChain } from "../../features/document-request/pdf/render-failure-explanations";
 import "./RecordsRequestGoalsTiers.css";
 
 const TIER_ORDER = [1, 2, 3, 4];
@@ -232,10 +233,16 @@ function GoalCard({ goal, county, profile, readiness, onPrepared }) {
       setGenerationState({ status: "idle" });
       onPrepared(generated, readiness.result);
     } catch (error) {
-      console.error("Failed to generate request document:", error);
+      // Same explanation pipeline the operator draft-preview path uses —
+      // this public "Prepare Request Form" action must never show a less
+      // specific message than the operator preview does for the exact same
+      // kind of failure. The full underlying error chain is logged only,
+      // never rendered.
+      logRenderFailureChain("Failed to generate request document:", error);
+      const explanation = explainRenderFailure(error);
       setGenerationState({
         status: "error",
-        message: "The request document could not be generated. Please try again later.",
+        message: [explanation.headline, explanation.detail].filter(Boolean).join(" "),
       });
     }
   }

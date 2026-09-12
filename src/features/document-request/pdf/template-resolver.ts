@@ -17,6 +17,21 @@ export type RenderDiagnostic = {
   code: string;
   message: string;
   field?: string;
+  /**
+   * The placeholder path this diagnostic concerns (e.g.
+   * "request.records_description"), when known — distinct from `field`,
+   * which is the PDF's own form-field name. Lets error-explanation code
+   * (render-failure-explanations.ts) look up a friendly, user-facing name
+   * for what actually needs fixing, without ever showing a raw PDF field
+   * id or placeholder path to a non-technical user.
+   */
+  source?: string;
+  /**
+   * Structured, numeric/string specifics for a diagnostic that needs them
+   * to build an actionable message (e.g. { currentLength, maxLength } for
+   * FIELD_VALUE_TOO_LONG) — never request content, only counts/limits.
+   */
+  details?: Readonly<Record<string, number | string>>;
 };
 
 export type RenderedPdf = {
