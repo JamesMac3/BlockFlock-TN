@@ -216,6 +216,55 @@ describe("createAcroformRenderer", () => {
     expect(completed.getForm().getDropdown("DeliveryMethod").getSelected()).toEqual(["electronic"]);
   });
 
+  it("selects a single-option radio group by option_value, matched against the resolved semantic value rather than the PDF's own generator-assigned export name (regression: real-world scanned/OCR-authored forms commonly spread one logical choice across several separately-named single-option radio groups whose export values are placeholders like 'Choice1'/'Choice2', not the profile's semantic strings)", async () => {
+    const document = await PDFDocument.create();
+    const page = document.addPage([612, 792]);
+    const form = document.getForm();
+    form.createTextField("RecordsDescription").addToPage(page, { x: 72, y: 500, width: 468, height: 120 });
+    const usps = form.createRadioGroup("USPS");
+    usps.addOptionToPage("Choice2", page, { x: 72, y: 450, width: 15, height: 15 });
+    const onSite = form.createRadioGroup("On-site pick-up");
+    onSite.addOptionToPage("Choice3", page, { x: 150, y: 450, width: 15, height: 15 });
+    const bytes = await document.save();
+
+    const renderer = createAcroformRenderer({ loadBasePdf: async () => bytes });
+    const result = await renderer({
+      profile: profile([
+        { source: "request.goal_language", pdf_field: "RecordsDescription", kind: "text", required: true, multiline: true },
+        { source: "request.delivery_method", pdf_field: "USPS", kind: "radio", required: true, option_value: "usps_mail" },
+        { source: "request.delivery_method", pdf_field: "On-site pick-up", kind: "radio", required: true, option_value: "onsite_pickup" },
+      ]),
+      data: { ...data, request: { ...data.request, delivery_method: "usps_mail" } },
+    });
+
+    const completed = await PDFDocument.load(result.pdfBytes);
+    const completedForm = completed.getForm();
+    expect(completedForm.getRadioGroup("USPS").getSelected()).toBe("Choice2");
+    expect(completedForm.getRadioGroup("On-site pick-up").getSelected()).toBeUndefined();
+  });
+
+  it("rejects option_value on a radio group with more than one real option, rather than guessing which one to select", async () => {
+    const document = await PDFDocument.create();
+    const page = document.addPage([612, 792]);
+    const form = document.getForm();
+    const radio = form.createRadioGroup("DeliveryChoice");
+    radio.addOptionToPage("Choice1", page, { x: 72, y: 450, width: 15, height: 15 });
+    radio.addOptionToPage("Choice2", page, { x: 150, y: 450, width: 15, height: 15 });
+    const bytes = await document.save();
+
+    const renderer = createAcroformRenderer({ loadBasePdf: async () => bytes });
+    await expectCode(
+      () =>
+        renderer({
+          profile: profile([
+            { source: "request.delivery_method", pdf_field: "DeliveryChoice", kind: "radio", required: true, option_value: "usps_mail" },
+          ]),
+          data,
+        }),
+      "FIELD_VALUE_INVALID",
+    );
+  });
+
   it("blocks duplicate mappings", async () => {
     const bytes = await sourcePdf();
     const renderer = createAcroformRenderer({ loadBasePdf: async () => bytes });

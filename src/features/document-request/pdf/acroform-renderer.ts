@@ -217,6 +217,32 @@ async function renderAcroform(
             diagnostics.push(diagnostic("FIELD_VALUE_INVALID", "Radio fields require a selectable value.", mapping.pdf_field));
             break;
           }
+          if (mapping.option_value) {
+            // Same convention as the checkbox case above: option_value is
+            // compared against the resolved semantic value, not against the
+            // PDF's own export-value string. This supports source PDFs that
+            // spread one logical choice (e.g. a delivery-method radio group)
+            // across several separately-named, single-option radio groups
+            // whose own export values are generator-assigned placeholders
+            // (commonly "Choice1"/"Choice2"/...), not the semantic strings
+            // this profile's data uses -- the same real-world pattern
+            // already handled for checkboxes never worked for radios before
+            // this branch existed, because selecting by the raw semantic
+            // value against a field whose only real option is "Choice2"
+            // always failed.
+            const options = radio.getOptions();
+            if (options.length !== 1) {
+              diagnostics.push(diagnostic(
+                "FIELD_VALUE_INVALID",
+                `option_value is only supported for a single-option radio group; "${mapping.pdf_field}" has ${options.length} option(s).`,
+                mapping.pdf_field,
+              ));
+              break;
+            }
+            if (selected === mapping.option_value) radio.select(options[0]);
+            else radio.clear();
+            break;
+          }
           radio.select(selected);
           break;
         }
