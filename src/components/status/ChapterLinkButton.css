@@ -1,0 +1,53 @@
+/* Shared by the public county-status page (real <a> buttons) and the
+   chapter-master portal editor's live preview (non-navigating <span>
+   buttons) so the preview is always pixel-identical to what visitors see. */
+.chapter-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  font-weight: 750;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  text-decoration: none;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.chapter-link-button--light_blue {
+  background: #55e1ff;
+  border-color: #55e1ff;
+  color: #07111f;
+}
+
+.chapter-link-button--navy {
+  background: #162b40;
+  border-color: #2a4a68;
+  color: #f2efe7;
+}
+
+.chapter-link-button--red {
+  background: #d82d2d;
+  border-color: #d82d2d;
+  color: #f2efe7;
+}
+
+a.chapter-link-button:hover {
+  filter: brightness(1.1);
+}
+
+a.chapter-link-button:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 2px;
+}
+
+.chapter-link-button--example {
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-muted, #b8b4aa);
+  opacity: 0.8;
+}

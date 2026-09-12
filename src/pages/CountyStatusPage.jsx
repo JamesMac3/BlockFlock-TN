@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import CountyStatusChooser from "../components/CountyStatusChooser";
+import ChapterLinkButtons from "../components/status/ChapterLinkButtons";
 import NextMeetingBanner from "../components/NextMeetingBanner";
 import StatusPostCard from "../components/status/StatusPostCard";
 import { isChapterClaimed } from "../utils/chapterStatus";
@@ -189,6 +190,7 @@ function CountyStatusHeader({ county }) {
         <Link to={`/status/${county.slug}/records-request-goals`} className="county-status-nav-link">
           Records Request Roadmap
         </Link>
+        <ChapterLinkButtons countyId={county.id} />
       </nav>
 
       <p className="county-status-header__intro">

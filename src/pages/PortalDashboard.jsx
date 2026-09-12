@@ -17,6 +17,7 @@ import ChapterAccountSettings from "../components/portal/ChapterAccountSettings"
 import ChapterInstructionsContent from "../components/portal/ChapterInstructionsContent";
 import ChapterPostsView from "../components/portal/ChapterPostsView";
 import CountyStatisticsPanel from "../components/portal/CountyStatisticsPanel";
+import ChapterLinksButton from "../components/portal/ChapterLinksButton";
 
 const KNOWN_SECTION_IDS = ["records-request-goals", "posts", "account-settings", "documents", "statistics", "meetings"];
 
@@ -109,6 +110,7 @@ export default function PortalDashboard({ mode, initialEditPostId = null }) {
               label="Portal sections"
             />
             <nav className="tab-nav" aria-label="Portal help">
+              <ChapterLinksButton countyId={assignedCounty?.id} countyName={assignedCounty?.name} />
               <button type="button" className="tab-nav__item" onClick={() => setInstructionsOpen(true)}>
                 Instructions
               </button>

@@ -86,6 +86,16 @@
   color: white;
 }
 
+.chapter-link-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  /* Sits in the same flex row as the two nav links; pushes to the far
+     end on wide screens but wraps onto its own line first, rather than
+     forcing the nav links to wrap, once space runs out. */
+  margin-left: auto;
+}
+
 .county-status-header__intro {
   max-width: 34rem;
   margin: 0;
