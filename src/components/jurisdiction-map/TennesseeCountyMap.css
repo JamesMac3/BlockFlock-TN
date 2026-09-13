@@ -205,6 +205,12 @@
   gap: 0.2rem;
 }
 
+.county-meeting-countdown {
+  color: #55e1ff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .county-meeting-details a {
   width: fit-content;
   margin-top: 0.35rem;
@@ -280,6 +286,10 @@
 @media (max-width: 768px) {
   .tennessee-map-section {
     display: block;
+  }
+
+  .county-meeting-countdown {
+    font-size: 0.85rem;
   }
 
   .tennessee-map-panel {

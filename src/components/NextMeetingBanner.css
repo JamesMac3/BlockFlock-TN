@@ -1,8 +1,7 @@
 .next-meeting-banner {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.4rem 0.75rem;
+  flex-direction: column;
+  gap: 0.6rem;
   padding: 0.85rem 1.1rem;
   margin: 1rem 0;
   border: 1px solid rgba(85, 225, 255, 0.35);
@@ -17,23 +16,104 @@
   letter-spacing: 0.06em;
   color: #55e1ff;
   font-weight: 700;
-  width: 100%;
+}
+
+.next-meeting-banner__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(85, 225, 255, 0.18);
+}
+
+.next-meeting-banner__row:first-of-type {
+  padding-top: 0;
+  border-top: none;
 }
 
 .next-meeting-banner__title {
-  font-size: 1.05rem;
+  font-size: 1rem;
+  width: 100%;
 }
 
+.next-meeting-banner__place,
 .next-meeting-banner__when,
 .next-meeting-banner__where {
   color: var(--text-muted, #b8b4aa);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
-.next-meeting-banner__when::before {
-  content: "· ";
-}
-
+.next-meeting-banner__place::before,
+.next-meeting-banner__when::before,
 .next-meeting-banner__where::before {
   content: "· ";
+}
+
+.next-meeting-banner__place:first-of-type::before {
+  content: "";
+}
+
+.next-meeting-banner__countdown {
+  color: #55e1ff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  /* Keeps digit widths stable so the layout doesn't jitter every second. */
+  font-variant-numeric: tabular-nums;
+}
+
+.next-meeting-banner__countdown::before {
+  content: "· ";
+  color: var(--text-muted, #b8b4aa);
+  font-weight: 400;
+}
+
+.next-meeting-banner__comment {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  margin-top: 0.2rem;
+  padding: 0.4rem 0.55rem;
+  border-left: 2px solid rgba(85, 225, 255, 0.4);
+  font-size: 0.78rem;
+}
+
+.next-meeting-banner__comment-item {
+  color: var(--text-muted, #b8b4aa);
+}
+
+.next-meeting-banner__comment-deadline {
+  /* Visually distinct from the meeting-start countdown above — never the
+     same color/weight, so a signup deadline can't be mistaken for it. */
+  color: #f1aeb5;
+  font-weight: 700;
+}
+
+.next-meeting-banner__comment-link {
+  color: #55e1ff;
+  width: fit-content;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .next-meeting-banner {
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+  }
+
+  .next-meeting-banner__row {
+    gap: 0.2rem 0.4rem;
+  }
+
+  .next-meeting-banner__place,
+  .next-meeting-banner__when,
+  .next-meeting-banner__where,
+  .next-meeting-banner__countdown {
+    font-size: 0.78rem;
+  }
+
+  .next-meeting-banner__comment {
+    font-size: 0.74rem;
+  }
 }

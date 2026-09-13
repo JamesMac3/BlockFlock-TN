@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import CountySelector from "../CountySelector";
 import { isChapterClaimed } from "../../utils/chapterStatus";
 import { supabase } from "../../lib/supabase";
 import { fetchNextMeeting, formatMeetingBanner } from "../../features/portal-admin/nextMeeting";
+import { useMeetingCountdown } from "../../features/portal-admin/useMeetingCountdown";
 import "./TennesseeCountyMap.css";
 function getCameraCount(county) {
   return county?.cameraCount ?? county?.camera_count ?? null;
@@ -69,16 +70,34 @@ function formatCalendarDate(date) {
 // rather than a fabricated placeholder date.
 function useCountyMeeting(countyId) {
   const [meeting, setMeeting] = useState(null);
+  // "Latest request wins" — load() is called from mount/county-id changes,
+  // the countdown reaching zero, and the tab becoming visible again, so an
+  // older, slower in-flight request must never overwrite a newer result.
+  const requestIdRef = useRef(0);
+
+  const load = useCallback(async () => {
+    const requestId = (requestIdRef.current += 1);
+    const row = await fetchNextMeeting(supabase, countyId ?? null);
+    if (requestIdRef.current === requestId) setMeeting(row);
+  }, [countyId]);
 
   useEffect(() => {
-    let active = true;
-    async function load() {
-      const row = await fetchNextMeeting(supabase, countyId ?? null);
-      if (active) setMeeting(row);
-    }
     load();
-    return () => { active = false; };
-  }, [countyId]);
+  }, [load]);
+
+  // Refetches once the countdown reaches zero (a started meeting is no
+  // longer "next") and whenever the tab regains focus, so a meeting
+  // cancelled or rescheduled while the visitor was away is never left
+  // counting down toward a start that will not happen.
+  const countdown = useMeetingCountdown(meeting?.starts_at, load);
+
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") load();
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [load]);
 
   if (!meeting) return null;
 
@@ -102,6 +121,9 @@ function useCountyMeeting(countyId) {
   return {
     dateTimeLabel: banner.dateTimeText,
     location: banner.locationText,
+    // No aria-live wrapping anywhere this is rendered — a per-second
+    // update must never be announced to screen readers every tick.
+    countdownLabel: countdown,
     calendarHref: `data:text/calendar;charset=utf-8,${encodeURIComponent(calendar)}`,
   };
 }
@@ -1331,6 +1353,9 @@ export default function TennesseeCountyMap({
               <dd className="county-meeting-details">
                 <span>{meeting.dateTimeLabel}</span>
                 <span>{meeting.location}</span>
+                {meeting.countdownLabel && (
+                  <span className="county-meeting-countdown">{meeting.countdownLabel}</span>
+                )}
                 <a
                   href={meeting.calendarHref}
                   download={`${(activeCounty || "Tennessee").toLowerCase().replace(/\s+/g, "-")}-chapter-meeting.ics`}

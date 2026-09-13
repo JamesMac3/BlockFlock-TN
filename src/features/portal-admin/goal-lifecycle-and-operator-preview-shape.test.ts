@@ -125,18 +125,24 @@ describe("OperatorDraftPreviewButton: profile-aware, dual-pipeline preview", () 
     expect(operatorPreviewSource).toMatch(/draftPreview=\{isDraftMode\}/);
   });
 
-  it("both catch blocks log the full causeValue chain, not just the generic top-level wrapper error", () => {
+  it("both catch blocks log the full causeValue chain and explain the failure specifically, not just a generic top-level wrapper message", () => {
     // template-resolver.ts re-wraps whatever a renderer throws into one
-    // generic RENDERER_FAILED TemplateResolverError — logging only that
-    // top-level error hides the actual, specific underlying failure
-    // (e.g. a well-formed AcroformRendererError with its own diagnostics)
-    // one or two .causeValue levels down.
-    expect(operatorPreviewSource).toMatch(/function logGenerationErrorChain\(label, error\) \{/);
-    expect(operatorPreviewSource).toMatch(/while \(current\?\.causeValue && depth < 5\) \{/);
+    // generic RENDERER_FAILED TemplateResolverError — logging or showing
+    // only that top-level error hides the actual, specific underlying
+    // failure (e.g. a well-formed AcroformRendererError with its own
+    // diagnostics) one or two .causeValue levels down. Superseded the
+    // module's own local logGenerationErrorChain/classifyOperatorPreviewError
+    // with the shared render-failure-explanations.ts, reused identically by
+    // the public generation path (RecordsRequestGoalsTiers.jsx) — see
+    // render-failure-explanations.test.ts for the real, executed
+    // explanation behavior.
+    expect(operatorPreviewSource).toMatch(/import \{ explainRenderFailure, logRenderFailureChain \} from "..\/..\/features\/document-request\/pdf\/render-failure-explanations";/);
     const draftCatchBlock = operatorPreviewSource.match(/async function handleDraftPreview\(\)[\s\S]*?\n {2}\}/)?.[0] ?? "";
     const verifiedCatchBlock = operatorPreviewSource.match(/async function handleVerifiedPreview\(\)[\s\S]*?\n {2}\}/)?.[0] ?? "";
-    expect(draftCatchBlock).toMatch(/logGenerationErrorChain\("Operator draft preview failed:", previewError\);/);
-    expect(verifiedCatchBlock).toMatch(/logGenerationErrorChain\("Verified operator preview failed:", previewError\);/);
+    expect(draftCatchBlock).toMatch(/logRenderFailureChain\("Operator draft preview failed:", previewError\);/);
+    expect(draftCatchBlock).toMatch(/const explanation = explainRenderFailure\(previewError\);/);
+    expect(verifiedCatchBlock).toMatch(/logRenderFailureChain\("Verified operator preview failed:", previewError\);/);
+    expect(verifiedCatchBlock).toMatch(/const explanation = explainRenderFailure\(previewError\);/);
   });
 });
 
