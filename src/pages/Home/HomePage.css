@@ -1202,3 +1202,15 @@ main {
 .site-footer__links a {
   color: var(--text-muted);
 }
+
+/* Keep the upcoming meetings close to the preceding information strip. */
+.trust-strip + .section {
+  padding-top: 2rem;
+}
+
+@media (max-width: 680px) {
+  .trust-strip + .section {
+    padding-top: 1.25rem;
+  }
+}
+
