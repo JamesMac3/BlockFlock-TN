@@ -109,30 +109,9 @@ export default function ChapterAccountSettings({ user, account, onSignOut }) {
         </div>
       </dl>
 
-      <section className="chapter-account-settings__section">
-        <h3>Forwarding destination email</h3>
-        <p>Private. Never shown publicly. Used to forward incoming county contact requests.</p>
-        {loadingEmail ? (
-          <p role="status">Loading...</p>
-        ) : (
-          <form onSubmit={handleSaveForwardingEmail}>
-            <label htmlFor="forwarding-email">Forwarding email</label>
-            <input
-              id="forwarding-email"
-              type="email"
-              value={forwardingEmail}
-              onChange={(event) => setForwardingEmail(event.target.value)}
-              required
-            />
-            {emailError && <p className="chapter-account-settings__error" role="alert">{emailError}</p>}
-            {emailMessage && <p className="chapter-account-settings__success" role="status">{emailMessage}</p>}
-            <button type="submit" disabled={savingEmail}>{savingEmail ? "Saving..." : "Save forwarding email"}</button>
-          </form>
-        )}
-      </section>
-
-      <section className="chapter-account-settings__section">
+      <section className="chapter-account-settings__section chapter-account-settings__section--password" id="change-password">
         <h3>Change password</h3>
+        <p>Update the password used to sign in to this shared login.</p>
         <form onSubmit={handleChangePassword}>
           <label htmlFor="current-password">Current password</label>
           <input
@@ -167,6 +146,28 @@ export default function ChapterAccountSettings({ user, account, onSignOut }) {
           {passwordMessage && <p className="chapter-account-settings__success" role="status">{passwordMessage}</p>}
           <button type="submit" disabled={changingPassword}>{changingPassword ? "Updating..." : "Change password"}</button>
         </form>
+      </section>
+
+      <section className="chapter-account-settings__section">
+        <h3>Forwarding destination email</h3>
+        <p>Private. Never shown publicly. Used to forward incoming county contact requests.</p>
+        {loadingEmail ? (
+          <p role="status">Loading...</p>
+        ) : (
+          <form onSubmit={handleSaveForwardingEmail}>
+            <label htmlFor="forwarding-email">Forwarding email</label>
+            <input
+              id="forwarding-email"
+              type="email"
+              value={forwardingEmail}
+              onChange={(event) => setForwardingEmail(event.target.value)}
+              required
+            />
+            {emailError && <p className="chapter-account-settings__error" role="alert">{emailError}</p>}
+            {emailMessage && <p className="chapter-account-settings__success" role="status">{emailMessage}</p>}
+            <button type="submit" disabled={savingEmail}>{savingEmail ? "Saving..." : "Save forwarding email"}</button>
+          </form>
+        )}
       </section>
 
       <button type="button" className="chapter-account-settings__sign-out" onClick={onSignOut}>

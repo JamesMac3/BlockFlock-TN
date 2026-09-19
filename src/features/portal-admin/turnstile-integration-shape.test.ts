@@ -125,12 +125,15 @@ describe("PortalLogin: protected via Supabase Auth's captchaToken option, action
   });
 
   it("the widget is reset after every failed login (wrong credentials, revoked/failed destination) via the shared failLogin() path", () => {
-    const failLoginBlock = portalLoginSource.match(/async function failLogin\(\)[\s\S]*?\n  \}/)?.[0] ?? "";
+    // failLogin now takes an optional `error` (see loginErrorDiagnostics.js)
+    // so a connection/service/captcha failure can be worded specifically —
+    // it still always resets the Turnstile widget regardless.
+    const failLoginBlock = portalLoginSource.match(/async function failLogin\(error\)[\s\S]*?\n  \}/)?.[0] ?? "";
     expect(failLoginBlock).toMatch(/resetTurnstile\(\);/);
   });
 
-  it("still uses the existing generic sign-in error message and normalizes the identity to @flockblocktn.org, unchanged by this task", () => {
-    expect(portalLoginSource).toMatch(/GENERIC_LOGIN_ERROR =\s*\n\s*"The account and password could not be verified\.";/);
+  it("still uses the existing generic sign-in error message (now sourced from the shared diagnostics module) and normalizes the identity to @flockblocktn.org, unchanged by this task", () => {
+    expect(portalLoginSource).toMatch(/GENERIC_LOGIN_ERROR = GENERIC_CREDENTIALS_MESSAGE;/);
     expect(portalLoginSource).toMatch(/normalizeLoginIdentity/);
     expect(portalLoginSource).toMatch(/MAX_LOGIN_FIELD_LENGTH/);
   });

@@ -45,15 +45,29 @@ export default function PortalSetPasswordPage() {
       return;
     }
     setBusy(true);
+    // Never logged — this catch only reports "it failed", not why, and
+    // `error` here is never a token or password, only Supabase's own
+    // updateUser() failure (e.g. "password too weak").
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       setMessage("The password could not be saved. Request a new setup link from an administrator.");
       setBusy(false);
       return;
     }
-    await supabase.auth.signOut();
-    navigate("/portal/login", { replace: true });
+    // Explicitly global (not the app's usual local-scope sign-out): setting
+    // a password via an invite/recovery link is a credential-rotation
+    // event, so every existing session for this shared account — on any
+    // device — should end here, not just this one.
+    await supabase.auth.signOut({ scope: "global" });
+    setBusy(false);
+    setVerificationState("success");
   }
+
+  useEffect(() => {
+    if (verificationState !== "success") return undefined;
+    const timer = setTimeout(() => navigate("/portal/login", { replace: true }), 2500);
+    return () => clearTimeout(timer);
+  }, [verificationState, navigate]);
 
   return (
     <div className="site-shell">
@@ -111,6 +125,20 @@ export default function PortalSetPasswordPage() {
                 {busy ? "Saving..." : "Save password"}
               </button>
             </form>
+          )}
+          {verificationState === "success" && (
+            <div role="status">
+              <p className="portal-login-success">
+                Password saved. For security, every other device signed in to this account has been signed out.
+              </p>
+              <button
+                type="button"
+                className="portal-login-submit"
+                onClick={() => navigate("/portal/login", { replace: true })}
+              >
+                Continue to sign in
+              </button>
+            </div>
           )}
         </section>
       </main>

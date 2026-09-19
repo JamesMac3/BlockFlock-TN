@@ -4,12 +4,14 @@ import { usePortalAuth } from "../auth/portalAuth";
 import { supabase } from "../lib/supabase";
 import { normalizeLoginIdentity, MAX_LOGIN_FIELD_LENGTH } from "../features/portal-admin/loginIdentity";
 import { resolvePostLoginDestination } from "../features/portal-admin/loginRouting";
+import { describeSignInError, GENERIC_CREDENTIALS_MESSAGE } from "../features/portal-admin/loginErrorDiagnostics";
 import Header from "./Header";
 import Turnstile from "./Turnstile";
 import "./PortalLogin.css";
 
-const GENERIC_LOGIN_ERROR =
-  "The account and password could not be verified.";
+const GENERIC_LOGIN_ERROR = GENERIC_CREDENTIALS_MESSAGE;
+const PROFILE_LOOKUP_ERROR =
+  "Your credentials were correct, but your account could not be verified right now. Please try again.";
 
 export default function PortalLogin() {
   const navigate = useNavigate();
@@ -28,11 +30,16 @@ export default function PortalLogin() {
     setTurnstileToken(null);
   }
 
-  async function failLogin() {
+  // `error` is only ever inspected for structural signals (HTTP status, a
+  // known non-credential error code) — see loginErrorDiagnostics.js. A
+  // wrong password or nonexistent account always falls through to the
+  // exact same generic message; nothing here ever reveals which one it
+  // was, or that the account does/doesn't exist.
+  async function failLogin(error) {
     await signOut();
     setPassword("");
     setSigningIn(false);
-    setErrorMessage(GENERIC_LOGIN_ERROR);
+    setErrorMessage(describeSignInError(error));
     resetTurnstile();
   }
 
@@ -73,7 +80,7 @@ export default function PortalLogin() {
       });
 
     if (authError || !authData.user || !authData.session) {
-      await failLogin();
+      await failLogin(authError);
       return;
     }
 
@@ -84,6 +91,18 @@ export default function PortalLogin() {
       setPassword("");
       setSigningIn(false);
       navigate("/portal/access-revoked", { replace: true });
+      return;
+    }
+
+    // A lookup failure, not a confirmed problem with the account: the
+    // credentials were correct and nothing was signed out (see
+    // PortalAuthContext). Never show the generic wrong-credentials
+    // message here, and let the visitor simply try again.
+    if (destination === "error") {
+      setPassword("");
+      setSigningIn(false);
+      setErrorMessage(PROFILE_LOOKUP_ERROR);
+      resetTurnstile();
       return;
     }
 
@@ -179,11 +198,21 @@ export default function PortalLogin() {
               {signingIn ? "Signing in..." : "Sign In"}
             </button>
 
+            {/* There is no self-service password reset here — only an
+                administrator can trigger one (ChapterMasterManagementTable's
+                "Send password reset link", which emails a recovery link to
+                the chapter's saved private forwarding address). This is
+                guidance toward that existing path, never a form that talks
+                to any reset endpoint itself. */}
+            <p className="portal-forgot-password">
+              Forgot your password? An administrator can send you a password
+              reset link.
+            </p>
             <a
               className="portal-admin-contact"
               href="mailto:admin@flockblocktn.org"
             >
-              Contact an administrator
+              Email admin@flockblocktn.org
             </a>
           </form>
         </section>

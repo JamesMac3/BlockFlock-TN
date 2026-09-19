@@ -6,6 +6,11 @@ import InvestigationCard from "../../components/InvestigationCard";
 import SectionHeading from "../../components/SectionHeading";
 import "./HomePage.css";
 import skyline from "../../assets/MTN_skyrise.jpg";
+import deflockLogo from "../../assets/deflock.png";
+import panopticonLogo from "../../assets/panopticon.png";
+import crossvilleLogo from "../../assets/crossville.png";
+import maryvilleLogo from "../../assets/maryville.png";
+import nashvilleLogo from "../../assets/Nashville.png";
 import TennesseeCountyMapContainer from "../../components/jurisdiction-map/TennesseeCountyMapContainer";
 import PrivacyTicker from "../../components/PrivacyTicker";
 import NextMeetingBanner from "../../components/NextMeetingBanner";
@@ -13,39 +18,84 @@ import HaveDocumentsPopout from "../../components/HaveDocumentsPopout";
 import { useSavedCountyHref } from "../../utils/useSavedCountyHref";
 
 // Independent, third-party projects — never fetched/embedded, only linked
-// out to in a new tab. No logos are downloaded or bundled for these. Each
-// card supports one or more links (Tennessee Sites has three independent
-// local organizations rather than a single destination).
+// out to in a new tab. Each card supports one or more links (Tennessee
+// Sites has three independent local organizations rather than a single
+// destination). A link may carry its own `logo`/`description` — its
+// button becomes that logo image (bundled from src/assets, sized to the
+// site's standard button height in CSS) rather than a plain text-label
+// button. Nashville Community Safety's mark is roughly square rather than
+// a wide wordmark, so it is flagged `square: true` and rendered to the
+// left of Crossville/Maryville's stacked logos instead of compressed down
+// to the same short height, which would shrink it to near-unreadable.
 const externalResources = [
   {
-    title: "DeFlock",
-    description:
-      "Explore a crowdsourced national map of automated license plate readers and report cameras found in your community.",
-    links: [{ label: "Open DeFlock Map", url: "https://maps.deflock.org/" }],
-  },
-  {
-    title: "Atlas of Surveillance",
-    description:
-      "Research which surveillance technologies law-enforcement agencies use across the United States and examine the sources behind each entry.",
-    links: [{ label: "Explore the Atlas", url: "https://www.atlasofsurveillance.org/" }],
-  },
-  {
-    title: "MuckRock",
-    description:
-      "File and track public-records requests, review previously released records, and learn from requests submitted in other jurisdictions.",
-    links: [{ label: "Visit MuckRock", url: "https://www.muckrock.com/" }],
+    title: "Valued Organizations",
+    links: [
+      {
+        label: "Open DeFlock Map",
+        url: "https://maps.deflock.org/",
+        logo: deflockLogo,
+        description:
+          "Explore a crowdsourced national map of automated license plate readers and report cameras found in your community.",
+      },
+      {
+        label: "Panopticon Index",
+        url: "https://panopticonindex.com/",
+        logo: panopticonLogo,
+        description: "Investigate the people and companies building America's surveillance.",
+      },
+    ],
   },
   {
     title: "Tennessee Sites",
     description:
       "Connect with local Tennessee organizations documenting surveillance and organizing for community safety in their own cities.",
     links: [
-      { label: "Crossville Privacy", url: "https://crossvilleprivacy.org/" },
-      { label: "Maryville Privacy", url: "https://www.maryvilleprivacy.org/" },
-      { label: "Nashville Community Safety", url: "https://nashvillecommunitysafety.net/" },
+      { label: "Nashville Community Safety", url: "https://nashvillecommunitysafety.net/", logo: nashvilleLogo, square: true },
+      { label: "Crossville Privacy", url: "https://crossvilleprivacy.org/", logo: crossvilleLogo },
+      { label: "Maryville Privacy", url: "https://www.maryvilleprivacy.org/", logo: maryvilleLogo },
     ],
   },
 ];
+
+// One resource link's button — a logo image (optionally the compressed-less
+// `square` variant) when the link declares one, otherwise the plain
+// text-label button every non-logo link uses.
+function renderResourceLink(link, square = false) {
+  if (!link.logo) {
+    return (
+      <a
+        key={link.url}
+        href={link.url}
+        className="button button--secondary-dark resource-card__button"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {link.label}
+        <span className="resource-card__button-icon" aria-hidden="true">↗</span>
+      </a>
+    );
+  }
+
+  return (
+    <div className={`resource-card__logo-item${square ? " resource-card__logo-item--square" : ""}`} key={link.url}>
+      {link.description && <p>{link.description}</p>}
+      <a
+        href={link.url}
+        className="resource-card__logo-link"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={link.label}
+      >
+        <img
+          src={link.logo}
+          alt={link.label}
+          className={`resource-card__logo-button${square ? " resource-card__logo-button--square" : ""}`}
+        />
+      </a>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const [contactFormOpen, setContactFormOpen] = useState(false);
@@ -219,26 +269,33 @@ export default function HomePage() {
             />
 
             <div className="resource-grid">
-              {externalResources.map((resource) => (
-                <article className="resource-card" key={resource.title}>
-                  <h3>{resource.title}</h3>
-                  <p>{resource.description}</p>
-                  <div className="resource-card__links">
-                    {resource.links.map((link) => (
-                      <a
-                        key={link.url}
-                        href={link.url}
-                        className="button button--secondary-dark resource-card__button"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {link.label}
-                        <span className="resource-card__button-icon" aria-hidden="true">↗</span>
-                      </a>
-                    ))}
-                  </div>
-                </article>
-              ))}
+              {externalResources.map((resource) => {
+                const squareLinks = resource.links.filter((link) => link.square);
+                const stackedLinks = resource.links.filter((link) => !link.square);
+
+                return (
+                  <article className="resource-card" key={resource.title}>
+                    <h3>{resource.title}</h3>
+                    {resource.description && <p>{resource.description}</p>}
+                    {squareLinks.length > 0 ? (
+                      // A square logo (Nashville's) reads as near-unreadable
+                      // if compressed to the same short height as a wide
+                      // wordmark — it sits to the left at its own taller
+                      // size instead, with the rest stacked neatly beside it.
+                      <div className="resource-card__logo-row">
+                        {squareLinks.map((link) => renderResourceLink(link, true))}
+                        <div className="resource-card__logo-stack">
+                          {stackedLinks.map((link) => renderResourceLink(link))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="resource-card__links">
+                        {stackedLinks.map((link) => renderResourceLink(link))}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
             </div>
 
             <p className="resource-grid__note">

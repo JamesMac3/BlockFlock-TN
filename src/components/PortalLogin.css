@@ -99,6 +99,15 @@
   font-size: 0.9rem;
 }
 
+.portal-login-success {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.55rem;
+  background: rgba(85, 225, 255, 0.12);
+  color: #55e1ff;
+  font-size: 0.9rem;
+}
+
 .portal-login-submit {
   min-height: 3rem;
   border: 1px solid #d82d2d;
@@ -118,6 +127,14 @@
 .portal-password-field button:disabled {
   cursor: wait;
   opacity: 0.7;
+}
+
+.portal-forgot-password {
+  margin: 0;
+  justify-self: center;
+  color: #b8b4aa;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 .portal-admin-contact {

@@ -382,10 +382,18 @@ function ChapterAccountEditor({ row, onChanged }) {
     setBusy(true);
     setMessage("");
     try {
+      // Backend contract unchanged — this still calls the send_setup_link
+      // action; only the button label/copy below calls it a password
+      // reset link, which is what it actually is for an existing account
+      // (generateLink type: "recovery" in admin-account-action/index.ts).
       const result = await invokeAccountAction("send_setup_link", { user_id: row.user_id });
-      setMessage(result?.invitationSent ? "A new setup link was sent." : result?.error ?? "The setup link could not be sent.");
+      setMessage(
+        result?.invitationSent
+          ? "A password reset link was sent to this chapter's saved forwarding address."
+          : result?.error ?? "The password reset link could not be sent."
+      );
     } catch (error) {
-      setMessage(error.message ?? "The setup link could not be sent.");
+      setMessage(error.message ?? "The password reset link could not be sent.");
     } finally {
       setBusy(false);
     }
@@ -413,12 +421,26 @@ function ChapterAccountEditor({ row, onChanged }) {
 
       {message && <p className="chapter-master-table__error" role="alert">{message}</p>}
 
+      {state !== "suspended" && (
+        <p className="chapter-master-table__hint">
+          "Send password reset link" emails a recovery link to this chapter's saved forwarding address above —
+          never to the login alias itself.
+        </p>
+      )}
+
       <div className="chapter-master-table__actions">
         {state !== "suspended" ? (
           <>
             <button type="button" disabled={busy || state === "trusted"} onClick={() => handleSetReviewRequired(false)}>Mark Trusted</button>
             <button type="button" disabled={busy || state === "restricted"} onClick={() => handleSetReviewRequired(true)}>Mark Restricted</button>
-            <button type="button" disabled={busy} onClick={handleSendSetupLink}>Send setup link</button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={handleSendSetupLink}
+              title="Emails a password reset link to this chapter's saved forwarding address."
+            >
+              Send password reset link
+            </button>
             <button type="button" disabled={busy} onClick={() => handleSuspendOrRestore("suspend")}>Suspend</button>
           </>
         ) : (
