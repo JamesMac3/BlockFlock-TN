@@ -61,6 +61,37 @@
   white-space: nowrap;
 }
 
+/* Same outline-button treatment as the "Back to records request goals"
+   link on the archive detail page (ArchiveGoalPage.css), so both
+   directions of this navigation visually match. .goal-card__header is
+   already flex + flex-wrap, so this simply wraps onto its own line below
+   the title on narrow screens rather than overlapping it. */
+.goal-card__details-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid #2563eb;
+  border-radius: 0.375rem;
+  color: #2563eb;
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.goal-card__details-link:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
+.goal-card__details-link:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .goal-card__purpose {
   margin: 0.75rem 0 0;
   color: #4b5563;

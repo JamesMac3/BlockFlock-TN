@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import CountyStatusChooser from "../components/CountyStatusChooser";
@@ -21,6 +21,7 @@ const INITIAL_STATE = {
 
 export default function RecordsRequestGoalsPage() {
   const { countySlug = "" } = useParams();
+  const [searchParams] = useSearchParams();
   const [state, setState] = useState(INITIAL_STATE);
 
   useEffect(() => {
@@ -60,6 +61,7 @@ export default function RecordsRequestGoalsPage() {
           title,
           public_summary,
           status,
+          is_public,
           position,
           tier,
           locked,
@@ -108,6 +110,19 @@ export default function RecordsRequestGoalsPage() {
       active = false;
     };
   }, [countySlug]);
+
+  // Returning from a goal's archive detail page (ArchiveGoalPage.jsx's
+  // "Back to records request goals") carries the originating goal's id as
+  // ?goal=<id> rather than a URL fragment — this app uses HashRouter, whose
+  // own "#" already delimits the route, so a second "#anchor" fragment
+  // cannot coexist with it. Scrolls once the matching card actually exists
+  // in the DOM (after goals finish loading), never before.
+  useEffect(() => {
+    if (state.phase !== "done" || state.goals.length === 0) return;
+    const goalId = searchParams.get("goal");
+    if (!goalId) return;
+    document.getElementById(`goal-${goalId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [state.phase, state.goals, searchParams]);
 
   const routeIsLoading = state.slug !== countySlug || state.phase === "county";
 

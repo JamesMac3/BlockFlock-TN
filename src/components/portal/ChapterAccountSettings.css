@@ -1,19 +1,57 @@
+/* Every color below is an explicit value (with a var(--token, fallback)
+   where a shared token exists) — never inherited from the surrounding
+   portal page. Two real conflicts existed here before this pass:
+   1. .chapter-account-settings__summary had already been fixed to an
+      opaque navy surface with light text, but .chapter-account-settings
+      itself (the outer "card") and .chapter-account-settings__section
+      (including the password section) never were — the password section
+      in particular was a near-white panel (#f9fafb) with no explicit
+      text color, so text on it inherited the dashboard's light,
+      near-white ambient color: light text on a near-white background.
+   2. PortalLogin.css defines a global `.portal-dashboard button` rule
+      (red fill) that reaches every plain <button> in the whole portal
+      dashboard, including this component. Its selector specificity
+      (one class + one type) beats a same-shaped local rule with fewer
+      classes (e.g. the old `.chapter-account-settings__sign-out` alone),
+      so a button meant to look like a secondary/outline action could
+      silently render as the global solid red button instead. Every
+      button/input selector below is qualified with an extra ancestor
+      class specifically to outrank that global rule, the same technique
+      TabNav.css already documents and uses for the same reason. */
+
 .chapter-account-settings {
   max-width: 34rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border, rgba(242, 239, 231, 0.14));
+  border-radius: 1rem;
+  background: var(--surface, #0b1828);
+  color: var(--text, #f2efe7);
 }
 
-/* Explicit dark-surface colors throughout — never inherited from the
-   surrounding portal page, since this card was previously a near-white
-   surface that inherited the dashboard's light near-white text color,
-   making values effectively invisible. */
+.chapter-account-settings h2 {
+  margin: 0 0 1rem;
+  color: var(--text, #f2efe7);
+}
+
+.chapter-account-settings h3 {
+  margin: 0 0 0.4rem;
+  color: var(--text, #f2efe7);
+}
+
+.chapter-account-settings__section > p {
+  margin: 0 0 0.85rem;
+  color: var(--text-muted, #b8b4aa);
+  font-size: 0.9rem;
+}
+
 .chapter-account-settings__summary {
   display: grid;
   gap: 0.75rem;
-  margin: 1rem 0 1.5rem;
+  margin: 0 0 1.5rem;
   padding: 1rem;
   border: 1px solid var(--border, rgba(242, 239, 231, 0.14));
   border-radius: 0.4rem;
-  background: var(--surface, #0b1828);
+  background: var(--surface-muted, #102236);
   color: var(--text, #f2efe7);
 }
 
@@ -33,73 +71,159 @@
 .chapter-account-settings__section {
   margin-bottom: 1.75rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border, rgba(242, 239, 231, 0.14));
+}
+
+.chapter-account-settings__section:last-of-type {
+  margin-bottom: 1.5rem;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .chapter-account-settings__section--password {
   padding: 1rem 1.25rem 1.5rem;
-  border: 1px solid #e5e7eb;
-  border-left: 4px solid #374151;
-  border-bottom: 1px solid #e5e7eb;
+  border: 1px solid var(--border, rgba(242, 239, 231, 0.14));
+  border-left: 4px solid var(--accent, #d82d2d);
   border-radius: 0.35rem;
-  background: #f9fafb;
+  background: var(--surface-muted, #102236);
 }
 
 .chapter-account-settings__section form {
   display: grid;
   gap: 0.6rem;
-  max-width: 24rem;
+  max-width: 100%;
 }
 
 .chapter-account-settings__section label {
+  color: var(--text, #f2efe7);
   font-weight: 600;
   font-size: 0.9rem;
 }
 
+/* Deliberately light input / dark text, matching PortalLogin.css's own
+   inputs exactly — legible typed content and a consistent look with the
+   rest of the authenticated portal, rather than a dark-on-dark field. */
 .chapter-account-settings__section input {
+  width: 100%;
+  max-width: 100%;
+  min-height: 2.75rem;
   padding: 0.55rem 0.7rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid rgba(242, 239, 231, 0.35);
   border-radius: 0.35rem;
+  background: #f2efe7;
+  color: #07111f;
   font: inherit;
+  box-sizing: border-box;
 }
 
-.chapter-account-settings__section button[type="submit"] {
+.chapter-account-settings__section input::placeholder {
+  color: #6b7280;
+}
+
+.chapter-account-settings__section input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Overrides the browser's own forced autofill colors (usually a pale
+   yellow with black text) so an autofilled field still reads as the same
+   light-cream/dark-text input as every other state. */
+.chapter-account-settings__section input:-webkit-autofill,
+.chapter-account-settings__section input:-webkit-autofill:hover,
+.chapter-account-settings__section input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #07111f;
+  -webkit-box-shadow: 0 0 0 1000px #f2efe7 inset;
+  caret-color: #07111f;
+}
+
+/* Ancestor-qualified (.chapter-account-settings + .chapter-account-settings__section,
+   two classes) to outrank .portal-dashboard button's one-class-one-type
+   rule — see the file header comment. Red primary action, matching every
+   other primary button in the portal (.portal-login-submit,
+   .portal-dashboard button). */
+.chapter-account-settings .chapter-account-settings__section button[type="submit"] {
   justify-self: start;
-  padding: 0.55rem 1rem;
-  background: #374151;
-  color: #fff;
-  border: none;
-  border-radius: 0.35rem;
-  font-weight: 600;
+  min-height: 2.75rem;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid #d82d2d;
+  border-radius: 0.45rem;
+  background: #d82d2d;
+  color: #f2efe7;
+  font: inherit;
+  font-weight: 750;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.chapter-account-settings__section button[type="submit"]:disabled {
-  opacity: 0.6;
+.chapter-account-settings .chapter-account-settings__section button[type="submit"]:hover:not(:disabled) {
+  background: #b81f1f;
+}
+
+.chapter-account-settings .chapter-account-settings__section button[type="submit"]:disabled {
+  opacity: 0.65;
   cursor: not-allowed;
 }
 
 .chapter-account-settings__error {
-  color: #991b1b;
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.4rem;
+  background: rgba(216, 45, 45, 0.16);
+  color: #ffd8d8;
   font-size: 0.85rem;
 }
 
 .chapter-account-settings__success {
-  color: #166534;
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.4rem;
+  background: rgba(85, 225, 255, 0.12);
+  color: #55e1ff;
   font-size: 0.85rem;
 }
 
-.chapter-account-settings__sign-out {
+/* Ancestor-qualified for the same reason as the submit button above, but
+   styled as the secondary/outline action it actually is — without this
+   extra specificity, .portal-dashboard button's solid red fill would win
+   and this would render identically to "Change password" instead. */
+.chapter-account-settings .chapter-account-settings__sign-out {
   padding: 0.6rem 1.1rem;
   background: transparent;
   color: var(--text, #f2efe7);
   border: 1px solid var(--border, rgba(242, 239, 231, 0.14));
-  border-radius: 0.35rem;
+  border-radius: 0.45rem;
+  font: inherit;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.chapter-account-settings .chapter-account-settings__sign-out:hover {
+  border-color: var(--text-muted, #b8b4aa);
+  background: rgba(242, 239, 231, 0.06);
 }
 
 .chapter-account-settings input:focus-visible,
 .chapter-account-settings button:focus-visible {
   outline: 3px solid #55e1ff;
   outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .chapter-account-settings {
+    max-width: 100%;
+    padding: 1.1rem;
+  }
+
+  .chapter-account-settings__summary {
+    padding: 0.85rem;
+  }
+
+  .chapter-account-settings__section--password {
+    padding: 0.85rem 1rem 1.25rem;
+  }
+
+  .chapter-account-settings .chapter-account-settings__section button[type="submit"] {
+    width: 100%;
+  }
 }

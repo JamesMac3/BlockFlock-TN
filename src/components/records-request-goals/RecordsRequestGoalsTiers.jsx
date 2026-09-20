@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import RequestDeliveryPanel from "./RequestDeliveryPanel";
 import OperatorDraftPreviewButton from "./OperatorDraftPreviewButton";
 import { explainRenderFailure, logRenderFailureChain } from "../../features/document-request/pdf/render-failure-explanations";
+import { isGoalPubliclyArchived } from "../../features/document-request/publicArchiveEligibility";
 import "./RecordsRequestGoalsTiers.css";
 
 const TIER_ORDER = [1, 2, 3, 4];
@@ -248,10 +249,19 @@ function GoalCard({ goal, county, profile, readiness, onPrepared }) {
   }
 
   return (
-    <article className={`goal-card${goal.locked ? " goal-card--locked" : ""}`}>
+    <article id={`goal-${goal.id}`} className={`goal-card${goal.locked ? " goal-card--locked" : ""}`}>
       <div className="goal-card__header">
         <h3 className="goal-card__title">{goal.title}</h3>
         {goal.locked && <span className="goal-card__lock-badge">Locked</span>}
+        {/* Only shown when get_public_archive_goal would actually return
+            this goal — see publicArchiveEligibility.js, kept in sync with
+            that RPC's own gate rather than assuming every goal here has a
+            reachable archive page. */}
+        {isGoalPubliclyArchived(goal) && (
+          <Link to={`/archive/goals/${goal.id}`} className="goal-card__details-link">
+            More details
+          </Link>
+        )}
       </div>
 
       {goal.public_summary && <p className="goal-card__purpose">{goal.public_summary}</p>}
