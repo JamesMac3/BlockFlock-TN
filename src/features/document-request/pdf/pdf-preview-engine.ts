@@ -1,4 +1,5 @@
 import { loadPdfJs, type PdfJsModule } from "./pdfjs-loader";
+import { PDFJS_WASM_URL } from "./pdfjs-wasm-url";
 
 /**
  * Rendering engine behind the shared <PdfPreview> component (see
@@ -64,7 +65,13 @@ export type LoadedPdfDocument = Readonly<{
 export async function loadPdfDocument(source: PdfPreviewSource): Promise<LoadedPdfDocument> {
   const pdfjs = await loadPdfJs();
   const params = await resolveGetDocumentParams(source);
-  const loadingTask = pdfjs.getDocument(params);
+  // wasmUrl is required as of pdfjs-dist 6 for the JBIG2/OpenJPEG/QCMS
+  // decoders — without it, wasmUrl defaults to null and PDF.js
+  // concatenates it directly onto a decoder filename ("Failed to resolve
+  // module specifier 'nulljbig2_nowasm_fallback.js'"), silently leaving
+  // affected image regions blank rather than failing loudly. See
+  // pdfjs-wasm-url.ts and the pdfjs-wasm-assets Vite plugin that serves it.
+  const loadingTask = pdfjs.getDocument({ ...params, wasmUrl: PDFJS_WASM_URL });
   const document = await loadingTask.promise;
   return { document, destroy: () => loadingTask.destroy() };
 }

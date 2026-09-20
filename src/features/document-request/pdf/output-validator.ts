@@ -1,6 +1,7 @@
 import { requestProfileSchema } from "./profile-schema";
 import { requestDocumentDataSchema } from "./request-data-schema";
 import { resolvePlaceholders } from "./placeholder-resolver";
+import { PDFJS_WASM_URL } from "./pdfjs-wasm-url";
 import type { RenderedPdf, RenderWarning } from "./template-resolver";
 
 const MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
@@ -138,7 +139,12 @@ export async function inspectWithPdfJs(pdfBytes: Uint8Array): Promise<PdfInspect
     pdfjs.GlobalWorkerOptions.workerSrc = workerModule.default;
   }
 
-  const loadingTask = pdfjs.getDocument({ data: pdfBytes.slice() });
+  // Same wasmUrl requirement as pdf-preview-engine.ts's loadPdfDocument —
+  // see pdfjs-wasm-url.ts. This function only extracts text (never
+  // renders), so the JBIG2/OpenJPEG decoders it exists to configure are
+  // unlikely to run here, but passing it keeps this independent
+  // getDocument() call from ever being the one still missing it.
+  const loadingTask = pdfjs.getDocument({ data: pdfBytes.slice(), wasmUrl: PDFJS_WASM_URL });
   const document = await loadingTask.promise;
   try {
     const pageTexts: string[] = [];

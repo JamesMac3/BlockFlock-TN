@@ -1,8 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import type { RequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import { inspectWithPdfJs, OutputValidationError, sanitizePdfFilename, validateRenderedOutput } from "./output-validator";
+import { PDFJS_WASM_URL } from "./pdfjs-wasm-url";
+
+// See pdf-preview-engine.test.ts's identical comment: pdfjs-dist's frozen
+// ESM export namespace can't be vi.spyOn'd directly, so vi.mock wraps the
+// real getDocument in a vi.fn instead, leaving every other test's actual
+// PDF.js behavior untouched.
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("pdfjs-dist/legacy/build/pdf.mjs")>();
+  return { ...actual, getDocument: vi.fn(actual.getDocument) };
+});
 
 const entityId = "10000000-0000-4000-8000-000000000001";
 const profileId = "20000000-0000-4000-8000-000000000002";
@@ -58,5 +68,13 @@ describe("validateRenderedOutput", () => {
     document.addPage([612, 792]);
     const inspection = await inspectWithPdfJs(await document.save());
     expect(inspection.pageCount).toBe(1);
+  });
+
+  it("passes wasmUrl to getDocument so the JBIG2/OpenJPEG/QCMS decoders can initialize", async () => {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const document = await PDFDocument.create();
+    document.addPage([612, 792]);
+    await inspectWithPdfJs(await document.save());
+    expect(pdfjs.getDocument).toHaveBeenCalledWith(expect.objectContaining({ wasmUrl: PDFJS_WASM_URL }));
   });
 });

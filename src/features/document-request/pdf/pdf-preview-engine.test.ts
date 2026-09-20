@@ -1,5 +1,5 @@
 import { PDFDocument } from "pdf-lib";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   loadPdfDocument,
   resolveGetDocumentParams,
@@ -7,6 +7,17 @@ import {
   renderPageToCanvas,
   DEFAULT_MAX_PREVIEW_PAGES,
 } from "./pdf-preview-engine";
+import { PDFJS_WASM_URL } from "./pdfjs-wasm-url";
+
+// pdfjs-dist's ESM export namespace is frozen/non-configurable, so
+// vi.spyOn(module, "getDocument") fails ("Cannot redefine property") —
+// vi.mock's own module-replacement (not property redefinition) is used
+// instead, wrapping the real getDocument in a vi.fn so every other test in
+// this file still gets its actual behavior, just observable.
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("pdfjs-dist/legacy/build/pdf.mjs")>();
+  return { ...actual, getDocument: vi.fn(actual.getDocument) };
+});
 
 async function multiPagePdfBytes(pageCount: number): Promise<Uint8Array> {
   const document = await PDFDocument.create();
@@ -65,6 +76,16 @@ describe("loadPdfDocument: Blob input", () => {
     } finally {
       await loaded.destroy();
     }
+  });
+});
+
+describe("loadPdfDocument: wasmUrl", () => {
+  it("passes wasmUrl to getDocument so the JBIG2/OpenJPEG/QCMS decoders can initialize", async () => {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const bytes = await multiPagePdfBytes(1);
+    const loaded = await loadPdfDocument({ kind: "blob", blob: new Blob([new Uint8Array(bytes)], { type: "application/pdf" }) });
+    await loaded.destroy();
+    expect(pdfjs.getDocument).toHaveBeenCalledWith(expect.objectContaining({ wasmUrl: PDFJS_WASM_URL }));
   });
 });
 
