@@ -1,4 +1,4 @@
-import { requestProfileSchema } from "./profile-schema";
+import { pdfRequestProfileSchema } from "./profile-schema";
 import { requestDocumentDataSchema } from "./request-data-schema";
 import { resolvePlaceholders } from "./placeholder-resolver";
 import { PDFJS_WASM_URL } from "./pdfjs-wasm-url";
@@ -93,7 +93,7 @@ export async function validateRenderedOutput(
   requestInput: unknown,
   options: OutputValidationOptions,
 ): Promise<ValidatedOutput> {
-  const profileResult = requestProfileSchema.safeParse(profileInput);
+  const profileResult = pdfRequestProfileSchema.safeParse(profileInput);
   if (!profileResult.success) throw new OutputValidationError("INVALID_PROFILE", "Output validation received an invalid profile.");
   const dataResult = requestDocumentDataSchema.safeParse(requestInput);
   if (!dataResult.success) throw new OutputValidationError("INVALID_REQUEST_DATA", "Output validation received invalid request data.");

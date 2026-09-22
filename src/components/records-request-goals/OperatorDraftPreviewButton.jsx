@@ -9,6 +9,7 @@ import {
 } from "../../features/document-request/pdf/operator-preview-stages";
 import { explainRenderFailure, logRenderFailureChain } from "../../features/document-request/pdf/render-failure-explanations";
 import RequestDeliveryPanel from "./RequestDeliveryPanel";
+import RequestPortalDeliveryPanel from "./RequestPortalDeliveryPanel";
 import RenderFailureDiagnostic from "./RenderFailureDiagnostic";
 import "./OperatorDraftPreviewButton.css";
 
@@ -95,10 +96,15 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
   const { authenticated, account } = usePortalAuth();
   const [state, setState] = useState({ status: "idle", headline: "", detail: "", explanation: null });
   const [delivery, setDelivery] = useState(null);
+  const [portalDelivery, setPortalDelivery] = useState(null);
   // null = not yet resolved (or not eligible to check at all); otherwise
   // the linked profile's live status string, or "unavailable" if the
   // profile row itself could not be loaded.
   const [profileStatus, setProfileStatus] = useState(null);
+  // Same idea, for template_family — only used to decide whether this is
+  // an online_portal profile (a single boolean would also work, but the
+  // raw value is kept in case a future profile-summary display wants it).
+  const [profileTemplateFamily, setProfileTemplateFamily] = useState(null);
 
   const baseEligible =
     authenticated &&
@@ -108,18 +114,22 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
 
   useEffect(() => {
     if (!baseEligible) {
-      const timer = setTimeout(() => setProfileStatus(null), 0);
+      const timer = setTimeout(() => {
+        setProfileStatus(null);
+        setProfileTemplateFamily(null);
+      }, 0);
       return () => clearTimeout(timer);
     }
     let active = true;
     async function loadProfileStatus() {
       const { data, error } = await supabase
         .from("request_profiles")
-        .select("status")
+        .select("status, template_family")
         .eq("id", goal.request_profile_id)
         .maybeSingle();
       if (!active) return;
       setProfileStatus(error || !data ? "unavailable" : data.status);
+      setProfileTemplateFamily(error || !data ? null : data.template_family);
     }
     const timer = setTimeout(loadProfileStatus, 0);
     return () => {
@@ -130,8 +140,42 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
 
   const isDraftMode = profileStatus === "draft";
   const isVerifiedMode = profileStatus === "verified";
+  const isOnlinePortalMode = (isDraftMode || isVerifiedMode) && profileTemplateFamily === "online_portal";
 
   if (!baseEligible || (!isDraftMode && !isVerifiedMode)) return null;
+
+  // Covers both draft and verified online_portal profiles — the RPC itself
+  // (rrg_prepare_online_request) allows either status when p_preview is
+  // true, gated by rrg_can_manage_profile_entity for the caller's county
+  // authority. This intentionally bypasses get_draft_request_preview_bundle
+  // and the PDF readiness/generation pipeline entirely: per
+  // docs/online-portal-request-profiles.md, rrg_prepare_online_request is
+  // the sole authority for this popup's content.
+  async function handleOnlinePortalPreview() {
+    setState({ status: "working", headline: "", detail: "" });
+    try {
+      const { data, error } = await supabase.rpc("rrg_prepare_online_request", {
+        p_goal_id: goal.id,
+        p_preview: true,
+      });
+      if (error) throw error;
+      setState({ status: "idle", headline: "", detail: "" });
+      setPortalDelivery(data);
+      onPreviewSuccess?.(data.profile_id);
+    } catch (previewError) {
+      // rrg_prepare_online_request's own raise-exception messages are
+      // already curated, safe, user-facing text (see the migration) —
+      // shown directly, the same convention RequestProfileLifecycle uses
+      // for rrg_activate_request_profile/rrg_retire_request_profile.
+      console.error("Online portal operator preview failed:", previewError);
+      setState({
+        status: "error",
+        headline: previewError?.message || "This request could not be previewed right now. Please try again.",
+        detail: "",
+        explanation: null,
+      });
+    }
+  }
 
   async function handleDraftPreview() {
     setState({ status: "working", headline: "", detail: "" });
@@ -257,7 +301,7 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
         <button
           type="button"
           className="operator-preview__btn"
-          onClick={isDraftMode ? handleDraftPreview : handleVerifiedPreview}
+          onClick={isOnlinePortalMode ? handleOnlinePortalPreview : isDraftMode ? handleDraftPreview : handleVerifiedPreview}
           disabled={state.status === "working"}
         >
           {state.status === "working"
@@ -267,9 +311,13 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
               : "Preview Verified Request Form"}
         </button>
         <p className="operator-preview__note">
-          {isDraftMode
-            ? "Operator-only draft preview — not publicly available. Uses the goal's last saved data."
-            : "Generates the same request form the public roadmap would produce for this verified profile."}
+          {isOnlinePortalMode
+            ? isDraftMode
+              ? "Operator-only draft preview — not publicly available. Uses the goal's last saved data or the profile's default request language."
+              : "Generates the same copy/paste request the public roadmap would produce for this verified profile."
+            : isDraftMode
+              ? "Operator-only draft preview — not publicly available. Uses the goal's last saved data."
+              : "Generates the same request form the public roadmap would produce for this verified profile."}
         </p>
         {hasUnsavedChanges && (
           <p className="operator-preview__error">
@@ -299,6 +347,10 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
           draftPreview={isDraftMode}
           onClose={() => setDelivery(null)}
         />
+      )}
+
+      {portalDelivery && (
+        <RequestPortalDeliveryPanel result={portalDelivery} onClose={() => setPortalDelivery(null)} />
       )}
     </>
   );

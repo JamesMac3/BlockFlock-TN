@@ -47,6 +47,12 @@ const TEMPLATE_PLACEHOLDER_PATTERN = /\{\{(request\.[a-zA-Z_]+)\}\}/g;
 
 function templateSources(profile: RequestProfile): Set<string> {
   const sources = new Set<string>();
+  // Online-portal profiles have no template blocks at all (their
+  // template_schema is only { schema_version, portal_url, request_text }) —
+  // only records_description/delivery_method (the two BASELINE_REQUEST_KEYS)
+  // are ever relevant for them, and both are always included below
+  // regardless of what this function returns.
+  if (profile.renderer_type === "online_portal") return sources;
   for (const block of profile.template_schema.blocks) {
     const texts = [block.text, ...(block.lines ?? []), ...(block.items ?? [])].filter(
       (value): value is string => typeof value === "string",

@@ -1,4 +1,4 @@
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { AllowedPlaceholderPath, RequestDocumentData } from "./request-data-schema";
 import { readPlaceholderValue } from "./placeholder-resolver";
 
@@ -30,7 +30,7 @@ export type ValidationRunResult = Readonly<{
   warnings: readonly ValidationDiagnostic[];
 }>;
 
-type ValidationSchema = RequestProfile["validation_schema"];
+type ValidationSchema = PdfRequestProfile["validation_schema"];
 type ValidationRule = ValidationSchema["rules"][number];
 
 function isPresent(value: unknown): boolean {

@@ -1,11 +1,11 @@
-import { requestProfileSchema, type RequestProfile } from "./profile-schema";
+import { pdfRequestProfileSchema, type PdfRequestProfile } from "./profile-schema";
 import {
   requestDocumentDataSchema,
   type RequestDocumentData,
 } from "./request-data-schema";
 import { resolvePlaceholders } from "./placeholder-resolver";
 
-export type RendererType = RequestProfile["renderer_type"];
+export type RendererType = PdfRequestProfile["renderer_type"];
 
 export type RenderWarning = {
   code: string;
@@ -41,7 +41,7 @@ export type RenderedPdf = {
 };
 
 export type RendererContext = Readonly<{
-  profile: RequestProfile;
+  profile: PdfRequestProfile;
   data: RequestDocumentData;
 }>;
 
@@ -117,7 +117,7 @@ function assertIsoDate(value: string): void {
   }
 }
 
-function preflightTemplate(profile: RequestProfile, data: RequestDocumentData): void {
+function preflightTemplate(profile: PdfRequestProfile, data: RequestDocumentData): void {
   const blocks = profile.template_schema.blocks;
 
   if (profile.renderer_type === "generated_letter" && blocks.length === 0) {
@@ -170,7 +170,7 @@ export async function resolveAndRenderTemplate(
   renderers: RendererRegistry,
   options: TemplateResolverOptions = {},
 ): Promise<RenderedPdf> {
-  const profileResult = requestProfileSchema.safeParse(profileInput);
+  const profileResult = pdfRequestProfileSchema.safeParse(profileInput);
   if (!profileResult.success) {
     throw new TemplateResolverError(
       "INVALID_PROFILE",

@@ -1,4 +1,4 @@
-import { requestProfileSchema, type RequestProfile } from "./profile-schema";
+import { requestProfileSchema, type PdfRequestProfile } from "./profile-schema";
 import { requestDocumentDataSchema, type RequestDocumentData } from "./request-data-schema";
 import { InvalidEntityIdError } from "./entity-id";
 import {
@@ -29,6 +29,7 @@ export type GoalReadinessReasonCode =
   | "ENTITY_MISMATCH"
   | "INVALID_ENTITY_ID"
   | "INVALID_PROFILE"
+  | "NOT_A_PDF_PROFILE"
   | "PROFILE_NOT_VERIFIED"
   | "PROFILE_NOT_EFFECTIVE"
   | "CONTINUATION_NOT_SUPPORTED"
@@ -41,7 +42,7 @@ export type GoalReadinessReasonCode =
 export type GoalReadinessResult =
   | Readonly<{
       ready: true;
-      profile: RequestProfile;
+      profile: PdfRequestProfile;
       data: RequestDocumentData;
       warnings: readonly ValidationDiagnostic[];
     }>
@@ -97,6 +98,22 @@ export function evaluateGoalReadiness(input: EvaluateGoalReadinessInput): GoalRe
     return { ready: false, code: "INVALID_PROFILE", message: NOT_AVAILABLE_MESSAGE };
   }
   const profile = profileResult.data;
+
+  // Online-portal profiles are never routed through this PDF pipeline — the
+  // public "Prepare Request Form" flow (RecordsRequestGoalsTiers.jsx)
+  // branches on renderer_type before ever calling evaluateGoalReadiness and
+  // calls rrg_prepare_online_request directly instead. This guard is
+  // defense in depth for a caller that reaches this function anyway, and it
+  // narrows `profile`'s type for every check below to the PDF-only shape
+  // (template_schema.blocks, field_schema.fields, etc.) that the rest of
+  // this function assumes.
+  if (profile.renderer_type === "online_portal") {
+    return {
+      ready: false,
+      code: "NOT_A_PDF_PROFILE",
+      message: "This request is prepared through the online portal flow, not a generated PDF.",
+    };
+  }
 
   if (profile.status !== "verified") {
     return { ready: false, code: "PROFILE_NOT_VERIFIED", message: NOT_AVAILABLE_MESSAGE };

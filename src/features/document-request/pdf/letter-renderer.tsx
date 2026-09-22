@@ -7,7 +7,7 @@ import {
   View,
   pdf,
 } from "@react-pdf/renderer";
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import { readPlaceholderValue, resolvePlaceholders } from "./placeholder-resolver";
 import type { PdfRenderer, RendererContext, RenderedPdf } from "./template-resolver";
@@ -33,7 +33,7 @@ export class LetterRendererError extends Error {
 
 export type ResolvedLetterBlock = Readonly<{
   id: string;
-  type: RequestProfile["template_schema"]["blocks"][number]["type"];
+  type: PdfRequestProfile["template_schema"]["blocks"][number]["type"];
   text?: string;
   lines?: readonly string[];
   items?: readonly string[];
@@ -41,7 +41,7 @@ export type ResolvedLetterBlock = Readonly<{
 }>;
 
 export function resolveLetterBlocks(
-  profile: RequestProfile,
+  profile: PdfRequestProfile,
   data: RequestDocumentData,
 ): readonly ResolvedLetterBlock[] {
   if (profile.renderer_type !== "generated_letter") {
@@ -99,7 +99,7 @@ function LetterBlock({ block }: { block: ResolvedLetterBlock }) {
   }
 }
 
-function LetterDocument({ profile, data, blocks }: { profile: RequestProfile; data: RequestDocumentData; blocks: readonly ResolvedLetterBlock[] }) {
+function LetterDocument({ profile, data, blocks }: { profile: PdfRequestProfile; data: RequestDocumentData; blocks: readonly ResolvedLetterBlock[] }) {
   const title = resolvePlaceholders(profile.output_options.pdf_title_pattern, data).text;
   const margin = profile.output_options.margin_points;
   return (

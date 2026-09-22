@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import RequestDeliveryPanel from "./RequestDeliveryPanel";
+import RequestPortalDeliveryPanel from "./RequestPortalDeliveryPanel";
 import OperatorDraftPreviewButton from "./OperatorDraftPreviewButton";
 import RenderFailureDiagnostic from "./RenderFailureDiagnostic";
 import { explainRenderFailure, logRenderFailureChain } from "../../features/document-request/pdf/render-failure-explanations";
@@ -20,6 +21,7 @@ const PROFILE_FAMILY_LABELS = {
   municipal_form: "Municipal form",
   municipal_letter: "Municipal letter",
   tennessee_model: "Tennessee model request",
+  online_portal: "Online request portal",
 };
 
 const PROFILE_ROW_COLUMNS =
@@ -33,16 +35,24 @@ const ENTITY_ROW_COLUMNS =
   "id, legal_name, display_name, coordinator_name, coordinator_title, submission_email, mailing_address, portal_url";
 
 // A goal only needs a readiness check once it clears the cheap local
-// checks. Locked goals or goals with no profile/records description never
-// reach Supabase for a profile/entity lookup.
-function isReadinessCandidate(goal) {
-  return !goal.locked && Boolean(goal.request_profile_id) && Boolean(goal.fill_payload?.request?.records_description);
+// checks. Locked goals or goals with no profile never reach Supabase for a
+// profile/entity lookup. An online_portal goal is still a candidate even
+// with no goal-level records_description — the profile's own default
+// request_text may supply it (rrg_prepare_online_request's text
+// precedence), unlike every PDF renderer type, which always needs the
+// goal's own records_description present in fill_payload.
+function isReadinessCandidate(goal, profilesById) {
+  if (goal.locked || !goal.request_profile_id) return false;
+  const summary = profilesById[goal.request_profile_id];
+  if (summary?.template_family === "online_portal") return true;
+  return Boolean(goal.fill_payload?.request?.records_description);
 }
 
 export default function RecordsRequestGoalsTiers({ goals, county }) {
   const [profilesById, setProfilesById] = useState({});
   const [readinessByGoalId, setReadinessByGoalId] = useState({});
   const [delivery, setDelivery] = useState(null);
+  const [portalDelivery, setPortalDelivery] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -83,7 +93,7 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
     let active = true;
 
     async function evaluateReadiness() {
-      const candidateGoals = goals.filter(isReadinessCandidate);
+      const candidateGoals = goals.filter((goal) => isReadinessCandidate(goal, profilesById));
 
       if (candidateGoals.length === 0) {
         setReadinessByGoalId({});
@@ -114,7 +124,16 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
       const profileRowById = Object.fromEntries((profilesResult.data ?? []).map((row) => [row.id, row]));
       const entityRowById = Object.fromEntries((entitiesResult.data ?? []).map((row) => [row.id, row]));
 
-      const { evaluateGoalReadiness } = await import("../../features/document-request/pdf/readiness");
+      // Online-portal goals are evaluated by a separate, much lighter
+      // check (online-portal-readiness.ts) that never touches PDF
+      // readiness, template loading, or integrity checking — see that
+      // module's own comment. evaluateGoalReadiness (the PDF pipeline) is
+      // only imported/called for goals whose profile is a PDF renderer
+      // type, never for online_portal.
+      const [{ evaluateGoalReadiness }, { evaluateOnlinePortalGoalReadiness }] = await Promise.all([
+        import("../../features/document-request/pdf/readiness"),
+        import("../../features/document-request/pdf/online-portal-readiness"),
+      ]);
 
       if (!active) return;
 
@@ -126,10 +145,13 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
       for (const goal of candidateGoals) {
         const profileRow = profileRowById[goal.request_profile_id] ?? null;
         const entityRow = entityRowById[goal.government_entity_id] ?? null;
+        const isOnlinePortal = profilesById[goal.request_profile_id]?.template_family === "online_portal";
         try {
           results[goal.id] = {
             status: "done",
-            result: evaluateGoalReadiness({ goal, profileRow, entityRow }),
+            result: isOnlinePortal
+              ? evaluateOnlinePortalGoalReadiness({ goal, profileRow, entityRow })
+              : evaluateGoalReadiness({ goal, profileRow, entityRow }),
           };
         } catch (error) {
           console.error(`Failed to evaluate readiness for goal ${goal.id}:`, error);
@@ -150,7 +172,7 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
     return () => {
       active = false;
     };
-  }, [goals]);
+  }, [goals, profilesById]);
 
   if (!goals || goals.length === 0) {
     return null;
@@ -189,6 +211,7 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
                       validationWarnings: readyResult.warnings,
                     })
                   }
+                  onPortalPrepared={(result) => setPortalDelivery(result)}
                 />
               ))}
             </div>
@@ -207,22 +230,61 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
           onClose={() => setDelivery(null)}
         />
       )}
+
+      {portalDelivery && (
+        <RequestPortalDeliveryPanel result={portalDelivery} onClose={() => setPortalDelivery(null)} />
+      )}
     </div>
   );
 }
 
-function GoalCard({ goal, county, profile, readiness, onPrepared }) {
+function GoalCard({ goal, county, profile, readiness, onPrepared, onPortalPrepared }) {
   const [generationState, setGenerationState] = useState({ status: "idle" });
 
   const links = [...(goal.records_request_goal_links || [])].sort(
     (a, b) => a.position - b.position
   );
 
-  const isCandidate = isReadinessCandidate(goal);
+  const isOnlinePortal = profile?.template_family === "online_portal";
+  const isCandidate =
+    !goal.locked
+    && Boolean(goal.request_profile_id)
+    && (isOnlinePortal || Boolean(goal.fill_payload?.request?.records_description));
   const isReady = readiness?.status === "done" && readiness.result.ready === true;
+
+  async function handlePrepareOnlinePortalRequest() {
+    if (!isReady) return;
+
+    setGenerationState({ status: "working" });
+    try {
+      const { data, error } = await supabase.rpc("rrg_prepare_online_request", {
+        p_goal_id: goal.id,
+        p_preview: false,
+      });
+      if (error) throw error;
+      setGenerationState({ status: "idle" });
+      onPortalPrepared(data);
+    } catch (error) {
+      // Mirrors the RequestProfileLifecycle convention elsewhere in this
+      // feature: rrg_prepare_online_request's own raise-exception messages
+      // are already curated, safe, user-facing text (see the migration) —
+      // shown directly rather than re-explained through the PDF-specific
+      // explainRenderFailure pipeline, which this RPC never touches.
+      console.error("Failed to prepare online portal request:", error);
+      setGenerationState({
+        status: "error",
+        message: error?.message || "This request could not be prepared right now. Please try again.",
+        explanation: null,
+      });
+    }
+  }
 
   async function handlePrepareRequest() {
     if (!isReady) return;
+    if (isOnlinePortal) {
+      await handlePrepareOnlinePortalRequest();
+      return;
+    }
 
     setGenerationState({ status: "working" });
     try {

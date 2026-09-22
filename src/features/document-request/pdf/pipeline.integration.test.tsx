@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import { createAcroformRenderer } from "./acroform-renderer";
 import { createOverlayRenderer } from "./overlay-renderer";
@@ -17,7 +17,7 @@ const data: RequestDocumentData = {
   profile: { id: profileId, version: 1, government_entity_id: entityId },
 };
 
-function baseProfile(): Omit<RequestProfile, "template_family" | "renderer_type" | "base_pdf_object_id" | "field_schema" | "template_schema"> {
+function baseProfile(): Omit<PdfRequestProfile, "template_family" | "renderer_type" | "base_pdf_object_id" | "field_schema" | "template_schema"> {
   return {
     id: profileId, government_entity_id: entityId, version: 1, schema_version: 1,
     status: "verified", effective_from: "2026-01-01", effective_to: null,
@@ -45,7 +45,7 @@ async function blankSource() {
   return document.save();
 }
 
-async function run(profile: RequestProfile, source?: Uint8Array) {
+async function run(profile: PdfRequestProfile, source?: Uint8Array) {
   const loadBasePdf = async () => source ?? new Uint8Array();
   const renderers: RendererRegistry = {
     acroform: createAcroformRenderer({ loadBasePdf }),
@@ -58,7 +58,7 @@ async function run(profile: RequestProfile, source?: Uint8Array) {
 
 describe("complete Tennessee request-document pipeline", () => {
   it("fills, flattens, reopens, and validates a municipal AcroForm", async () => {
-    const profile: RequestProfile = {
+    const profile: PdfRequestProfile = {
       ...baseProfile(), template_family: "municipal_form", renderer_type: "acroform", base_pdf_object_id: sourceId,
       form_mode: "required",
       field_schema: { schema_version: 1, renderer_type: "acroform", fields: [{ source: "request.records_description", pdf_field: "RecordsDescription", kind: "text", required: true, multiline: true }] },
@@ -70,7 +70,7 @@ describe("complete Tennessee request-document pipeline", () => {
   });
 
   it("draws, reopens, and validates a non-fillable municipal overlay", async () => {
-    const profile: RequestProfile = {
+    const profile: PdfRequestProfile = {
       ...baseProfile(), template_family: "municipal_form", renderer_type: "overlay", base_pdf_object_id: sourceId,
       form_mode: "required",
       field_schema: { schema_version: 1, renderer_type: "overlay", fields: [{ source: "request.records_description", page: 0, x: 72, y: 400, width: 468, height: 180, font_key: "body", font_size: 10, line_height: 13, max_lines: 13, color: "#000000", required: true, overflow: "error" }] },
@@ -80,7 +80,7 @@ describe("complete Tennessee request-document pipeline", () => {
   });
 
   it("generates, paginates, reopens, and validates the Tennessee fallback letter", async () => {
-    const profile: RequestProfile = {
+    const profile: PdfRequestProfile = {
       ...baseProfile(), template_family: "tennessee_model", renderer_type: "generated_letter", base_pdf_object_id: null,
       form_mode: "not_required",
       field_schema: { schema_version: 1, renderer_type: "generated_letter", fields: [] },

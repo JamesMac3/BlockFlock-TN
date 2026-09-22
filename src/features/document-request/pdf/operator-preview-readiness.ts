@@ -1,4 +1,4 @@
-import { requestProfileSchema, type RequestProfile } from "./profile-schema";
+import { requestProfileSchema, type PdfRequestProfile } from "./profile-schema";
 import { requestDocumentDataSchema, type RequestDocumentData } from "./request-data-schema";
 import { InvalidEntityIdError } from "./entity-id";
 import {
@@ -38,6 +38,7 @@ export type OperatorPreviewReasonCode =
   | "ENTITY_MISMATCH"
   | "INVALID_ENTITY_ID"
   | "INVALID_PROFILE"
+  | "NOT_A_PDF_PROFILE"
   | "PROFILE_NOT_DRAFT"
   | "CONTINUATION_NOT_SUPPORTED"
   | "INVALID_REQUEST_DATA"
@@ -48,7 +49,7 @@ export type OperatorPreviewReasonCode =
 export type OperatorPreviewResult =
   | Readonly<{
       ready: true;
-      profile: RequestProfile;
+      profile: PdfRequestProfile;
       data: RequestDocumentData;
       warnings: readonly ValidationDiagnostic[];
     }>
@@ -101,6 +102,19 @@ export function evaluateOperatorPreviewReadiness(input: EvaluateOperatorPreviewI
     return { ready: false, code: "INVALID_PROFILE", message: "The request profile failed structural validation." };
   }
   const profile = profileResult.data;
+
+  // Online-portal profiles never reach this PDF-only preview path — the
+  // operator preview button branches on renderer_type before calling this
+  // function and calls rrg_prepare_online_request(p_preview: true) instead.
+  // Defense in depth here, and it narrows `profile` to the PDF-only shape
+  // for every check below (same reasoning as readiness.ts's identical guard).
+  if (profile.renderer_type === "online_portal") {
+    return {
+      ready: false,
+      code: "NOT_A_PDF_PROFILE",
+      message: "This request is prepared through the online portal flow, not a generated PDF.",
+    };
+  }
 
   // This is specifically the draft-preview path: it deliberately skips the
   // verified-status and effective-date checks readiness.ts enforces, but

@@ -89,8 +89,8 @@ describe("OperatorDraftPreviewButton: profile-aware, dual-pipeline preview", () 
     expect(verifiedHandlerBlock).not.toMatch(/fetchDraftPreviewBundle/);
   });
 
-  it("fetches the linked profile's own status before deciding which pipeline (or neither) to offer", () => {
-    expect(operatorPreviewSource).toMatch(/\.from\("request_profiles"\)\s*\n\s*\.select\("status"\)/);
+  it("fetches the linked profile's own status and template_family before deciding which pipeline (or neither) to offer", () => {
+    expect(operatorPreviewSource).toMatch(/\.from\("request_profiles"\)\s*\n\s*\.select\("status, template_family"\)/);
   });
 
   it("renders nothing unless the profile is exactly draft or verified", () => {

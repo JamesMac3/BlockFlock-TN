@@ -1,6 +1,6 @@
 import { PDFDict, PDFDocument, PDFName } from "pdf-lib";
 import { describe, expect, it, vi } from "vitest";
-import { requestProfileSchema, type RequestProfile } from "./profile-schema";
+import { pdfRequestProfileSchema, type PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import {
   AcroformRendererError,
@@ -12,7 +12,7 @@ const entityId = "10000000-0000-4000-8000-000000000001";
 const profileId = "20000000-0000-4000-8000-000000000002";
 const sourceId = "30000000-0000-4000-8000-000000000003";
 type AcroformField = Extract<
-  RequestProfile["field_schema"],
+  PdfRequestProfile["field_schema"],
   { renderer_type: "acroform" }
 >["fields"][number];
 
@@ -30,7 +30,7 @@ const data: RequestDocumentData = {
   profile: { id: profileId, version: 1, government_entity_id: entityId },
 };
 
-function profile(fields: AcroformField[]): RequestProfile {
+function profile(fields: AcroformField[]): PdfRequestProfile {
   return {
     id: profileId,
     government_entity_id: entityId,
@@ -194,7 +194,7 @@ describe("createAcroformRenderer", () => {
   });
 
   it("rejects profiles that request AcroForm flattening", () => {
-    const parsed = requestProfileSchema.safeParse({ ...profile([]), output_options: { ...profile([]).output_options, flatten_acroform: true } });
+    const parsed = pdfRequestProfileSchema.safeParse({ ...profile([]), output_options: { ...profile([]).output_options, flatten_acroform: true } });
     expect(parsed.success).toBe(false);
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import {
   resolveAndRenderTemplate,
@@ -14,7 +14,7 @@ const basePdfId = "30000000-0000-4000-8000-000000000003";
 const verifierId = "40000000-0000-4000-8000-000000000004";
 const pdfBytes = new TextEncoder().encode("%PDF-1.7 test");
 type SharedProfile = Omit<
-  RequestProfile,
+  PdfRequestProfile,
   "template_family" | "renderer_type" | "base_pdf_object_id" | "field_schema" | "template_schema"
 >;
 
@@ -75,7 +75,7 @@ const sharedProfile: SharedProfile = {
   verified_at: "2026-08-01T12:00:00Z",
 };
 
-function profileFor(rendererType: "acroform" | "overlay" | "generated_letter"): RequestProfile {
+function profileFor(rendererType: "acroform" | "overlay" | "generated_letter"): PdfRequestProfile {
   if (rendererType === "generated_letter") {
     return {
       ...sharedProfile,

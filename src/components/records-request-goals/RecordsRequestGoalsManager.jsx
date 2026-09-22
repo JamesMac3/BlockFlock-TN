@@ -6,6 +6,7 @@ import OperatorDraftPreviewButton from "./OperatorDraftPreviewButton";
 import GoalCompletionUpload from "./GoalCompletionUpload";
 import ExternalSourceForm from "./ExternalSourceForm";
 import FillPayloadFields from "./FillPayloadFields";
+import OnlinePortalProfileEditor from "./OnlinePortalProfileEditor";
 import TabNav from "../admin/TabNav";
 import AdminPopout from "../admin/AdminPopout";
 import { classifyRpcError } from "../../features/portal-admin/rpcErrors";
@@ -850,6 +851,7 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
     locked_reason: "",
   });
   const [profiles, setProfiles] = useState([]);
+  const [selectedProfileRow, setSelectedProfileRow] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [fillRequest, setFillRequest] = useState({});
@@ -883,6 +885,36 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
     const timer = setTimeout(loadProfiles, 0);
     return () => clearTimeout(timer);
   }, [formData.government_entity_id]);
+
+  // Full row for the currently-selected profile — the cheap `profiles`
+  // list above only carries id/version/status (enough for the <select>),
+  // but OnlinePortalProfileEditor needs renderer_type, template_schema,
+  // and the other editable fields to know whether it has anything to
+  // offer for this selection and, if so, to pre-fill the form.
+  useEffect(() => {
+    let active = true;
+    async function loadSelectedProfile() {
+      if (!formData.request_profile_id) {
+        setSelectedProfileRow(null);
+        return;
+      }
+      const { data } = await supabase
+        .from("request_profiles")
+        .select(
+          "id, status, renderer_type, template_family, template_schema, policy_source_url, " +
+          "submission_instructions, eligibility_mode, eligibility_jurisdiction, eligibility_explanation, fee_rule"
+        )
+        .eq("id", formData.request_profile_id)
+        .maybeSingle();
+      if (!active) return;
+      setSelectedProfileRow(data ?? null);
+    }
+    const timer = setTimeout(loadSelectedProfile, 0);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [formData.request_profile_id]);
 
   const selectedEntity = entities.find((entity) => entity.id === formData.government_entity_id);
 
@@ -1026,6 +1058,15 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
         )}
       </div>
 
+      <OnlinePortalProfileEditor
+        governmentEntityId={formData.government_entity_id}
+        selectedProfile={selectedProfileRow}
+        onProfileSaved={(profileId) => {
+          setFormData((current) => ({ ...current, request_profile_id: profileId }));
+          loadProfiles();
+        }}
+      />
+
       {formData.request_profile_id && (
         <div className="rrg-form-group">
           <label>Structured request data</label>
@@ -1135,6 +1176,7 @@ const TIER_OPTIONS = [1, 2, 3, 4];
 function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange }) {
   const [formData, setFormData] = useState(goal);
   const [profiles, setProfiles] = useState([]);
+  const [selectedProfileRow, setSelectedProfileRow] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [fillRequest, setFillRequest] = useState(goal.fill_payload?.request ?? EMPTY_FILL_REQUEST);
@@ -1222,6 +1264,33 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
     const timer = setTimeout(loadProfiles, 0);
     return () => clearTimeout(timer);
   }, [formData.government_entity_id]);
+
+  // Full row for the currently-selected profile — see the matching effect
+  // and comment in GoalForm.
+  useEffect(() => {
+    let active = true;
+    async function loadSelectedProfile() {
+      if (!formData.request_profile_id) {
+        setSelectedProfileRow(null);
+        return;
+      }
+      const { data } = await supabase
+        .from("request_profiles")
+        .select(
+          "id, status, renderer_type, template_family, template_schema, policy_source_url, " +
+          "submission_instructions, eligibility_mode, eligibility_jurisdiction, eligibility_explanation, fee_rule"
+        )
+        .eq("id", formData.request_profile_id)
+        .maybeSingle();
+      if (!active) return;
+      setSelectedProfileRow(data ?? null);
+    }
+    const timer = setTimeout(loadSelectedProfile, 0);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [formData.request_profile_id]);
 
   const lockedReasonMissing = Boolean(formData.locked) && !formData.locked_reason?.trim();
   const fillInvalid = !fillValid && Boolean(formData.request_profile_id);
@@ -1377,6 +1446,15 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
           </small>
         )}
       </div>
+
+      <OnlinePortalProfileEditor
+        governmentEntityId={formData.government_entity_id}
+        selectedProfile={selectedProfileRow}
+        onProfileSaved={(profileId) => {
+          updateField({ request_profile_id: profileId });
+          loadProfiles();
+        }}
+      />
 
       {formData.request_profile_id && (
         <div className="rrg-form-group">

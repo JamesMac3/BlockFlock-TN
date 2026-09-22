@@ -1,4 +1,4 @@
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import type { RenderWarning } from "./template-resolver";
 import type { SupabaseStorageOnlyClient, TemplateSource } from "./supabase-template-loader";
@@ -26,7 +26,7 @@ export type GeneratedOperatorPreviewDocument = Readonly<{
 }>;
 
 export async function generateOperatorPreviewDocument(
-  profile: RequestProfile,
+  profile: PdfRequestProfile,
   data: RequestDocumentData,
   dependencies: Readonly<{ supabase: SupabaseStorageOnlyClient; evidence: TemplateSource | null }>,
 ): Promise<GeneratedOperatorPreviewDocument> {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { requestProfileSchema, type RequestProfile } from "./profile-schema";
+import { pdfRequestProfileSchema, type PdfRequestProfile } from "./profile-schema";
 import { requestDocumentDataSchema } from "./request-data-schema";
 import { adaptRequestProfileRow } from "./profile-adapter";
 import {
@@ -53,7 +53,7 @@ function baseProfileFields() {
   };
 }
 
-function cityProfile(): RequestProfile {
+function cityProfile(): PdfRequestProfile {
   const row = {
     id: CITY_PROFILE_ID,
     government_entity_id: 4,
@@ -74,10 +74,10 @@ function cityProfile(): RequestProfile {
       ],
     },
   };
-  return requestProfileSchema.parse(adaptRequestProfileRow(row));
+  return pdfRequestProfileSchema.parse(adaptRequestProfileRow(row));
 }
 
-function policeProfile(): RequestProfile {
+function policeProfile(): PdfRequestProfile {
   const row = {
     id: POLICE_PROFILE_ID,
     government_entity_id: 5,
@@ -99,10 +99,10 @@ function policeProfile(): RequestProfile {
       ],
     },
   };
-  return requestProfileSchema.parse(adaptRequestProfileRow(row));
+  return pdfRequestProfileSchema.parse(adaptRequestProfileRow(row));
 }
 
-function letterProfile(): RequestProfile {
+function letterProfile(): PdfRequestProfile {
   const row = {
     id: "60000000-0000-4000-8000-000000000006",
     government_entity_id: 4,
@@ -117,7 +117,7 @@ function letterProfile(): RequestProfile {
       ],
     },
   };
-  return requestProfileSchema.parse(adaptRequestProfileRow(row));
+  return pdfRequestProfileSchema.parse(adaptRequestProfileRow(row));
 }
 
 describe("deriveSupportedRequestFieldKeys", () => {

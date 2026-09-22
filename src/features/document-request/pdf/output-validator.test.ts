@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { PDFDocument } from "pdf-lib";
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import { inspectWithPdfJs, OutputValidationError, sanitizePdfFilename, validateRenderedOutput } from "./output-validator";
 import { PDFJS_WASM_URL } from "./pdfjs-wasm-url";
@@ -22,7 +22,7 @@ const data: RequestDocumentData = {
   request: { goal_language: "Request records documenting the acquisition and operation of the system.", records_description: "The executed contract and all amendments for the system.", delivery_method: "electronic" },
   profile: { id: profileId, version: 1, government_entity_id: entityId },
 };
-const profile: RequestProfile = {
+const profile: PdfRequestProfile = {
   id: profileId, government_entity_id: entityId, version: 1, schema_version: 1, status: "verified",
   effective_from: null, effective_to: null, policy_source_url: "https://example.test/policy",
   archived_policy_object_id: null, policy_summary: null, eligibility_mode: "unknown",

@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it, vi } from "vitest";
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import { generateRequestDocument } from "./generate-request-document";
 import type { TemplateSource } from "./supabase-template-loader";
@@ -58,7 +58,7 @@ function baseProfileFields() {
   };
 }
 
-function letterProfile(status: RequestProfile["status"] = "verified"): RequestProfile {
+function letterProfile(status: PdfRequestProfile["status"] = "verified"): PdfRequestProfile {
   return {
     ...baseProfileFields(),
     status,
@@ -74,7 +74,7 @@ function letterProfile(status: RequestProfile["status"] = "verified"): RequestPr
   };
 }
 
-function acroformProfile(): RequestProfile {
+function acroformProfile(): PdfRequestProfile {
   return {
     ...baseProfileFields(),
     status: "verified",

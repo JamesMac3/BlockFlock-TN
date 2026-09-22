@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import { createOverlayRenderer, OverlayRendererError } from "./overlay-renderer";
 import { createAcroformRenderer, AcroformRendererError } from "./acroform-renderer";
@@ -27,10 +27,10 @@ function baseData(recordsDescription: string): RequestDocumentData {
   };
 }
 
-type OverlayField = Extract<RequestProfile["field_schema"], { renderer_type: "overlay" }>["fields"][number];
-type AcroformField = Extract<RequestProfile["field_schema"], { renderer_type: "acroform" }>["fields"][number];
+type OverlayField = Extract<PdfRequestProfile["field_schema"], { renderer_type: "overlay" }>["fields"][number];
+type AcroformField = Extract<PdfRequestProfile["field_schema"], { renderer_type: "acroform" }>["fields"][number];
 
-function overlayProfile(field: OverlayField): RequestProfile {
+function overlayProfile(field: OverlayField): PdfRequestProfile {
   return {
     id: profileId, government_entity_id: entityId, version: 1, schema_version: 1,
     status: "verified", effective_from: null, effective_to: null,
@@ -53,7 +53,7 @@ function overlayProfile(field: OverlayField): RequestProfile {
   };
 }
 
-function acroformProfile(fields: AcroformField[]): RequestProfile {
+function acroformProfile(fields: AcroformField[]): PdfRequestProfile {
   return {
     id: profileId, government_entity_id: entityId, version: 1, schema_version: 1,
     status: "verified", effective_from: null, effective_to: null,

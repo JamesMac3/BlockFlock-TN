@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import { requestProfileSchema, type RequestProfile } from "./profile-schema";
+import { pdfRequestProfileSchema, type PdfRequestProfile } from "./profile-schema";
 import { requestDocumentDataSchema } from "./request-data-schema";
 import { adaptGovernmentEntityRow, adaptRequestProfileRow } from "./profile-adapter";
 import { buildRequestDocumentDataInput, adaptGoalFillPayload, type RawGoalRow } from "./goal-adapter";
@@ -157,14 +157,14 @@ async function synthPoliceForm(): Promise<Uint8Array> {
   return document.save();
 }
 
-async function render(profile: RequestProfile, data: ReturnType<typeof requestDocumentDataSchema.parse>, source: Uint8Array) {
+async function render(profile: PdfRequestProfile, data: ReturnType<typeof requestDocumentDataSchema.parse>, source: Uint8Array) {
   const loadBasePdf = async () => source;
   const renderers: RendererRegistry = {
     acroform: createAcroformRenderer({ loadBasePdf }),
     overlay: createAcroformRenderer({ loadBasePdf }),
     generated_letter: createAcroformRenderer({ loadBasePdf }),
   };
-  const verifiedProfile: RequestProfile = { ...profile, status: "verified", verified_by: "40000000-0000-4000-8000-000000000004", verified_at: "2026-01-01T00:00:00Z" };
+  const verifiedProfile: PdfRequestProfile = { ...profile, status: "verified", verified_by: "40000000-0000-4000-8000-000000000004", verified_at: "2026-01-01T00:00:00Z" };
   const rendered = await resolveAndRenderTemplate(verifiedProfile, data, renderers);
   const validated = await validateRenderedOutput(rendered, verifiedProfile, data, { inspectPdf: inspectWithPdfJs });
   return PDFDocument.load(validated.pdfBytes);
@@ -172,7 +172,7 @@ async function render(profile: RequestProfile, data: ReturnType<typeof requestDo
 
 function buildData(profileRow: Record<string, unknown>, entityRow: Record<string, unknown>, goal: RawGoalRow) {
   const adaptedProfile = adaptRequestProfileRow(profileRow);
-  const profile = requestProfileSchema.parse(adaptedProfile);
+  const profile = pdfRequestProfileSchema.parse(adaptedProfile);
   const adaptedEntity = adaptGovernmentEntityRow(entityRow);
   const input = buildRequestDocumentDataInput(
     goal,
@@ -188,7 +188,7 @@ const policeEntityRow = { id: 5, legal_name: "Murfreesboro Police Department", d
 
 describe("City of Murfreesboro profile field mapping", () => {
   it("passes structural validation with only supported placeholder sources (no request.delivery_is_*/has_* derived sources)", () => {
-    const parsed = requestProfileSchema.safeParse(adaptRequestProfileRow(cityProfileRow()));
+    const parsed = pdfRequestProfileSchema.safeParse(adaptRequestProfileRow(cityProfileRow()));
     expect(parsed.success).toBe(true);
   });
 
@@ -265,7 +265,7 @@ describe("City of Murfreesboro profile field mapping", () => {
 
 describe("Murfreesboro Police Department profile field mapping", () => {
   it("passes structural validation with only supported placeholder sources", () => {
-    const parsed = requestProfileSchema.safeParse(adaptRequestProfileRow(policeProfileRow()));
+    const parsed = pdfRequestProfileSchema.safeParse(adaptRequestProfileRow(policeProfileRow()));
     expect(parsed.success).toBe(true);
   });
 

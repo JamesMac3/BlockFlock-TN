@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it, vi } from "vitest";
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import type { TemplateSource } from "./supabase-template-loader";
 import { evaluateOperatorPreviewReadiness } from "./operator-preview-readiness";
@@ -78,7 +78,7 @@ const data: RequestDocumentData = {
   profile: { id: PROFILE_ID, version: 1, government_entity_id: String(ENTITY_ID) },
 };
 
-function draftProfileRow(): RequestProfile {
+function draftProfileRow(): PdfRequestProfile {
   return {
     id: PROFILE_ID,
     government_entity_id: String(ENTITY_ID),

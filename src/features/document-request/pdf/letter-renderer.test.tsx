@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import { createLetterRenderer, LetterRendererError, resolveLetterBlocks } from "./letter-renderer";
 
@@ -12,7 +12,7 @@ const data: RequestDocumentData = {
   profile: { id: profileId, version: 1, government_entity_id: entityId },
 };
 
-function profile(blocks: RequestProfile["template_schema"]["blocks"]): RequestProfile {
+function profile(blocks: PdfRequestProfile["template_schema"]["blocks"]): PdfRequestProfile {
   return {
     id: profileId, government_entity_id: entityId, version: 1, schema_version: 1,
     status: "verified", effective_from: null, effective_to: null,
@@ -30,7 +30,7 @@ function profile(blocks: RequestProfile["template_schema"]["blocks"]): RequestPr
   };
 }
 
-const blocks: RequestProfile["template_schema"]["blocks"] = [
+const blocks: PdfRequestProfile["template_schema"]["blocks"] = [
   { id: "heading", type: "heading", text: "Tennessee Public Records Request", locked: true },
   { id: "address", type: "address", lines: ["{{government_entity.coordinator_title}}", "{{government_entity.legal_name}}", "{{government_entity.mailing_address}}"], omit_empty_lines: true, locked: true },
   { id: "body", type: "paragraph", text: "I request: {{request.records_description}}", locked: true },

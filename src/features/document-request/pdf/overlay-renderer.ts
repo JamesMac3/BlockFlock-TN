@@ -1,7 +1,7 @@
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib";
 import type { BasePdfLoader, FontLoader } from "./acroform-renderer";
-import { requestProfileSchema, type RequestProfile } from "./profile-schema";
+import { pdfRequestProfileSchema, type PdfRequestProfile } from "./profile-schema";
 import { readPlaceholderValue } from "./placeholder-resolver";
 import { sanitizeForWinAnsiFont } from "./winansi-text";
 import type { PdfRenderer, RendererContext, RenderedPdf } from "./template-resolver";
@@ -115,7 +115,7 @@ function assertBox(pageWidth: number, pageHeight: number, field: { x: number; y:
 
 async function appendContinuation(
   document: PDFDocument,
-  currentProfile: RequestProfile,
+  currentProfile: PdfRequestProfile,
   sourcePath: string,
   text: string,
   dependencies: OverlayRendererDependencies,
@@ -124,7 +124,7 @@ async function appendContinuation(
   if (!currentProfile.continuation_profile_id || !dependencies.loadContinuationProfile) {
     throw new OverlayRendererError("CONTINUATION_REQUIRED", "A verified continuation profile loader is required.", sourcePath);
   }
-  const parsed = requestProfileSchema.safeParse(await dependencies.loadContinuationProfile(currentProfile.continuation_profile_id));
+  const parsed = pdfRequestProfileSchema.safeParse(await dependencies.loadContinuationProfile(currentProfile.continuation_profile_id));
   if (!parsed.success) throw new OverlayRendererError("CONTINUATION_PROFILE_INVALID", "The continuation profile failed validation.", sourcePath);
   const continuation = parsed.data;
   const today = dependencies.today?.() ?? new Date().toISOString().slice(0, 10);

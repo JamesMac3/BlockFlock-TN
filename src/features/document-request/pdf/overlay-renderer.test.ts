@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import type { RequestProfile } from "./profile-schema";
+import type { PdfRequestProfile } from "./profile-schema";
 import type { RequestDocumentData } from "./request-data-schema";
 import { createOverlayRenderer, OverlayRendererError } from "./overlay-renderer";
 
@@ -17,9 +17,9 @@ const data: RequestDocumentData = {
   profile: { id: profileId, version: 1, government_entity_id: entityId },
 };
 
-type OverlayField = Extract<RequestProfile["field_schema"], { renderer_type: "overlay" }>["fields"][number];
+type OverlayField = Extract<PdfRequestProfile["field_schema"], { renderer_type: "overlay" }>["fields"][number];
 
-function profile(field: OverlayField): RequestProfile {
+function profile(field: OverlayField): PdfRequestProfile {
   return {
     id: profileId, government_entity_id: entityId, version: 1, schema_version: 1,
     status: "verified", effective_from: null, effective_to: null,
