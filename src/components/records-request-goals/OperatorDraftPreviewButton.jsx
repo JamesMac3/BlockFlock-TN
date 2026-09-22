@@ -9,6 +9,7 @@ import {
 } from "../../features/document-request/pdf/operator-preview-stages";
 import { explainRenderFailure, logRenderFailureChain } from "../../features/document-request/pdf/render-failure-explanations";
 import RequestDeliveryPanel from "./RequestDeliveryPanel";
+import RenderFailureDiagnostic from "./RenderFailureDiagnostic";
 import "./OperatorDraftPreviewButton.css";
 
 const MISSING_MIGRATION_MESSAGE =
@@ -92,7 +93,7 @@ const ENTITY_ROW_COLUMNS =
  */
 export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedChanges = false, onPreviewSuccess }) {
   const { authenticated, account } = usePortalAuth();
-  const [state, setState] = useState({ status: "idle", headline: "", detail: "" });
+  const [state, setState] = useState({ status: "idle", headline: "", detail: "", explanation: null });
   const [delivery, setDelivery] = useState(null);
   // null = not yet resolved (or not eligible to check at all); otherwise
   // the linked profile's live status string, or "unavailable" if the
@@ -195,7 +196,7 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
       logRenderFailureChain("Operator draft preview failed:", previewError);
 
       const explanation = explainRenderFailure(previewError);
-      setState({ status: "error", headline: explanation.headline, detail: explanation.detail ?? "" });
+      setState({ status: "error", headline: explanation.headline, detail: explanation.detail ?? "", explanation });
     }
   }
 
@@ -246,7 +247,7 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
     } catch (previewError) {
       logRenderFailureChain("Verified operator preview failed:", previewError);
       const explanation = explainRenderFailure(previewError);
-      setState({ status: "error", headline: explanation.headline, detail: explanation.detail ?? "" });
+      setState({ status: "error", headline: explanation.headline, detail: explanation.detail ?? "", explanation });
     }
   }
 
@@ -277,10 +278,13 @@ export default function OperatorDraftPreviewButton({ goal, county, hasUnsavedCha
           </p>
         )}
         {state.status === "error" && (
-          <p className="operator-preview__error">
-            {state.headline}
-            {state.detail ? ` — ${state.detail}` : ""}
-          </p>
+          <>
+            <p className="operator-preview__error">
+              {state.headline}
+              {state.detail ? ` — ${state.detail}` : ""}
+            </p>
+            <RenderFailureDiagnostic explanation={state.explanation} />
+          </>
         )}
       </div>
 

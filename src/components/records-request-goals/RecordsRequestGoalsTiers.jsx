@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import RequestDeliveryPanel from "./RequestDeliveryPanel";
 import OperatorDraftPreviewButton from "./OperatorDraftPreviewButton";
+import RenderFailureDiagnostic from "./RenderFailureDiagnostic";
 import { explainRenderFailure, logRenderFailureChain } from "../../features/document-request/pdf/render-failure-explanations";
 import { isGoalPubliclyArchived } from "../../features/document-request/publicArchiveEligibility";
 import "./RecordsRequestGoalsTiers.css";
@@ -244,6 +245,7 @@ function GoalCard({ goal, county, profile, readiness, onPrepared }) {
       setGenerationState({
         status: "error",
         message: [explanation.headline, explanation.detail].filter(Boolean).join(" "),
+        explanation,
       });
     }
   }
@@ -290,7 +292,10 @@ function GoalCard({ goal, county, profile, readiness, onPrepared }) {
                 {generationState.status === "working" ? "Preparing…" : "Prepare Request Form"}
               </button>
               {generationState.status === "error" && (
-                <p className="goal-card__notice">{generationState.message}</p>
+                <>
+                  <p className="goal-card__notice">{generationState.message}</p>
+                  <RenderFailureDiagnostic explanation={generationState.explanation} />
+                </>
               )}
             </>
           ) : isCandidate ? (

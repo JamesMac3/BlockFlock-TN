@@ -15,7 +15,7 @@ import type { OverlayRendererError } from "./overlay-renderer";
 import type { LetterRendererError } from "./letter-renderer";
 import type { PlaceholderResolutionError } from "./placeholder-resolver";
 import type { TemplateSourceError } from "./supabase-template-loader";
-import type { OutputValidationError } from "./output-validator";
+import type { OutputValidationError, PdfInspectionError, PdfInspectionStage } from "./output-validator";
 import type { TemplateResolverError } from "./template-resolver";
 import { friendlyFieldName, friendlyFieldPhrase, isGovernmentEntityField } from "./field-labels";
 
@@ -55,6 +55,7 @@ export type RenderFailureCategory =
   | "template_unavailable"
   | "file_integrity"
   | "continuation_unavailable"
+  | "verification_failed"
   | "unexpected";
 
 export type RenderFailureExplanation = Readonly<{
@@ -65,6 +66,15 @@ export type RenderFailureExplanation = Readonly<{
   headline: string;
   /** Safe to render to the user; an additional, optional sentence. */
   detail?: string;
+  /**
+   * Safe, human-readable stage label — only present for "verification_failed"
+   * (a failure to open/inspect the generated PDF in this browser, distinct
+   * from a genuine template hash/size mismatch or a detected corrupt output,
+   * both of which stay "file_integrity"). Lets the UI show *where* browser
+   * verification failed (worker init, document opening, text extraction)
+   * without ever exposing the raw underlying exception.
+   */
+  stage?: string;
 }>;
 
 const MAX_CHAIN_DEPTH = 8;
@@ -276,6 +286,35 @@ function explainTemplateSource(error: TemplateSourceError): RenderFailureExplana
   return fileIntegrityExplanation(error.code);
 }
 
+const INSPECTION_STAGE_LABELS: Record<PdfInspectionStage, string> = {
+  worker_init: "Worker initialization",
+  document_open: "Document opening",
+  text_extraction: "Text extraction",
+};
+
+// PDF_REOPEN_FAILED means in-browser verification of the *already-generated*
+// output could not complete — not that a mismatch or corruption was actually
+// detected in it (that's OUTPUT_NOT_PDF/PAGE_COUNT_INVALID/UNRESOLVED_PLACEHOLDER,
+// or a genuine SOURCE_HASH_MISMATCH/SOURCE_SIZE_MISMATCH on the *template*
+// input, both still "file_integrity"). Conflating the two would blame
+// corruption for what may just be a browser-compatibility gap (see
+// PdfInspectionError in output-validator.ts and
+// https://github.com/mozilla/pdf.js/issues/20973), so this stays a distinct
+// category with its own required wording rather than reusing
+// fileIntegrityExplanation.
+function explainPdfInspectionFailure(error: OutputValidationError): RenderFailureExplanation {
+  const cause = error.causeValue;
+  const stage = errorName(cause) === "PdfInspectionError" ? (cause as PdfInspectionError).stage : undefined;
+  const code = stage ? `PDF_REOPEN_FAILED_${stage.toUpperCase()}` : error.code;
+  return {
+    category: "verification_failed",
+    code,
+    stage: stage ? INSPECTION_STAGE_LABELS[stage] : "Unknown",
+    headline: "We couldn't verify the generated PDF in this browser.",
+    detail: "Please retry. If it continues, report the diagnostic code below.",
+  };
+}
+
 function explainOutputValidation(error: OutputValidationError): RenderFailureExplanation {
   switch (error.code) {
     case "OUTPUT_TOO_LARGE":
@@ -292,9 +331,10 @@ function explainOutputValidation(error: OutputValidationError): RenderFailureExp
         headline: "This form's configuration produced issues that block generation.",
         detail: "Contact an administrator to review this request profile.",
       };
+    case "PDF_REOPEN_FAILED":
+      return explainPdfInspectionFailure(error);
     case "OUTPUT_EMPTY":
     case "OUTPUT_NOT_PDF":
-    case "PDF_REOPEN_FAILED":
     case "PAGE_COUNT_INVALID":
     case "UNRESOLVED_PLACEHOLDER":
       return fileIntegrityExplanation(error.code);

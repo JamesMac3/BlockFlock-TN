@@ -7,6 +7,7 @@ import { createAcroformRenderer, AcroformRendererError } from "./acroform-render
 import { createLetterRenderer } from "./letter-renderer";
 import { resolveAndRenderTemplate, type RendererRegistry } from "./template-resolver";
 import { TemplateSourceError } from "./supabase-template-loader";
+import { OutputValidationError, PdfInspectionError } from "./output-validator";
 import { explainRenderFailure } from "./render-failure-explanations";
 
 const entityId = "10000000-0000-4000-8000-000000000001";
@@ -267,6 +268,65 @@ describe("explainRenderFailure: wrapped errors and unknown-error fallback", () =
     const error = new TemplateSourceError("SOURCE_HASH_MISMATCH", "Downloaded template hash does not match its verified evidence record.");
     const explanation = explainRenderFailure(error);
     expect(explanation.category).toBe("file_integrity");
+  });
+
+  it("classifies a TemplateSourceError size mismatch as a file-integrity failure too — genuine hash/size mismatches must still block generation with an accurate message", () => {
+    const error = new TemplateSourceError("SOURCE_SIZE_MISMATCH", "Downloaded template size does not match its verified metadata.");
+    const explanation = explainRenderFailure(error);
+    expect(explanation.category).toBe("file_integrity");
+    expect(explanation.headline).toMatch(/file-integrity check/);
+  });
+
+  it("classifies a PDF_REOPEN_FAILED (in-browser verification failure) as a distinct 'verification_failed' category, never file_integrity — it must not be conflated with a genuine hash/size mismatch or detected corruption", () => {
+    const inspectionError = new PdfInspectionError("text_extraction", "PDF.js could not extract text from the generated document.");
+    const error = new OutputValidationError("PDF_REOPEN_FAILED", "PDF.js could not reopen the generated output.", [], inspectionError);
+    const explanation = explainRenderFailure(error);
+    expect(explanation.category).toBe("verification_failed");
+    expect(explanation.category).not.toBe("file_integrity");
+  });
+
+  it("PDF_REOPEN_FAILED uses the required exact wording — no claim of corruption, no blaming Safari", () => {
+    const inspectionError = new PdfInspectionError("document_open", "PDF.js could not open the generated document.");
+    const error = new OutputValidationError("PDF_REOPEN_FAILED", "PDF.js could not reopen the generated output.", [], inspectionError);
+    const explanation = explainRenderFailure(error);
+    expect(explanation.headline).toBe("We couldn't verify the generated PDF in this browser.");
+    expect(explanation.detail).toBe("Please retry. If it continues, report the diagnostic code below.");
+    expect(`${explanation.headline} ${explanation.detail}`.toLowerCase()).not.toMatch(/corrupt|damaged/);
+    expect(`${explanation.headline} ${explanation.detail}`.toLowerCase()).not.toMatch(/safari|webkit/);
+  });
+
+  it("PDF_REOPEN_FAILED carries a safe, stable, stage-specific diagnostic code and a human-readable stage label, for each distinct stage", () => {
+    const cases: Array<["worker_init" | "document_open" | "text_extraction", string, string]> = [
+      ["worker_init", "PDF_REOPEN_FAILED_WORKER_INIT", "Worker initialization"],
+      ["document_open", "PDF_REOPEN_FAILED_DOCUMENT_OPEN", "Document opening"],
+      ["text_extraction", "PDF_REOPEN_FAILED_TEXT_EXTRACTION", "Text extraction"],
+    ];
+    for (const [stage, expectedCode, expectedStageLabel] of cases) {
+      const inspectionError = new PdfInspectionError(stage, "irrelevant internal message");
+      const error = new OutputValidationError("PDF_REOPEN_FAILED", "PDF.js could not reopen the generated output.", [], inspectionError);
+      const explanation = explainRenderFailure(error);
+      expect(explanation.code).toBe(expectedCode);
+      expect(explanation.stage).toBe(expectedStageLabel);
+    }
+  });
+
+  it("PDF_REOPEN_FAILED without a recognized PdfInspectionError cause still degrades safely, with a generic code/stage rather than throwing", () => {
+    const error = new OutputValidationError("PDF_REOPEN_FAILED", "PDF.js could not reopen the generated output.");
+    const explanation = explainRenderFailure(error);
+    expect(explanation.category).toBe("verification_failed");
+    expect(explanation.code).toBe("PDF_REOPEN_FAILED");
+    expect(explanation.stage).toBe("Unknown");
+  });
+
+  it("PDF_REOPEN_FAILED never echoes the underlying exception's own message into the displayed explanation", () => {
+    const rawError = new TypeError("Cannot read properties of undefined (reading 'getReader') at https://internal.example/app.js:123:45");
+    const inspectionError = new PdfInspectionError("text_extraction", rawError.message, rawError);
+    const error = new OutputValidationError("PDF_REOPEN_FAILED", "PDF.js could not reopen the generated output.", [], inspectionError);
+    const explanation = explainRenderFailure(error);
+    const shown = `${explanation.headline} ${explanation.detail ?? ""} ${explanation.code} ${explanation.stage ?? ""}`;
+    expect(shown).not.toContain("internal.example");
+    expect(shown).not.toContain("app.js");
+    expect(shown).not.toContain("Cannot read properties");
   });
 
   it("falls back to a generic message with a stable code for a completely unrecognized error, and never echoes the raw error message", () => {
