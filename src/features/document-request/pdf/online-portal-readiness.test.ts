@@ -127,12 +127,82 @@ describe("evaluateOnlinePortalGoalReadiness", () => {
     if (!result.ready) expect(result.code).toBe("NOT_AN_ONLINE_PORTAL_PROFILE");
   });
 
-  it("never calls buildRequestDocumentDataInput / runValidationSchema — this is intentionally a much lighter check than PDF readiness, and text precedence is left entirely to rrg_prepare_online_request", () => {
+  it("never calls buildRequestDocumentDataInput / runValidationSchema — this is intentionally a much lighter check than PDF readiness (no delivery_method or goal_language requirement)", () => {
     // No delivery_method, no goal_language, and an obviously-invalid
     // request-data shape (fill_payload deliberately absent from `goal`
     // above) would fail the PDF pipeline's requestDocumentDataSchema; this
     // still succeeds because that pipeline is never invoked here.
     const result = evaluateOnlinePortalGoalReadiness({ goal: goal(), profileRow: onlinePortalProfileRow(), entityRow, today: "2026-09-22" });
     expect(result.ready).toBe(true);
+  });
+
+  describe("usable request text — same precedence rrg_prepare_online_request applies: goal's own records_description first, otherwise the profile default, never public_summary", () => {
+    it("is ready using the goal's own records_description even when it differs from the profile default", () => {
+      const result = evaluateOnlinePortalGoalReadiness({
+        goal: goal({ fill_payload: { request: { records_description: "Goal-specific request language." } } }),
+        profileRow: onlinePortalProfileRow(),
+        entityRow,
+        today: "2026-09-22",
+      });
+      expect(result.ready).toBe(true);
+    });
+
+    it("is ready using the profile's default request_text when the goal has no records_description of its own", () => {
+      const result = evaluateOnlinePortalGoalReadiness({
+        goal: goal({ fill_payload: null }),
+        profileRow: onlinePortalProfileRow({ template_schema: { schema_version: 1, portal_url: "https://records.example.org/requests/new", request_text: "Profile default text." } }),
+        entityRow,
+        today: "2026-09-22",
+      });
+      expect(result.ready).toBe(true);
+    });
+
+    it("treats a whitespace-only goal records_description as absent and falls back to the profile default (matches the RPC's own [^[:space:]] test)", () => {
+      const result = evaluateOnlinePortalGoalReadiness({
+        goal: goal({ fill_payload: { request: { records_description: "   \n\t  " } } }),
+        profileRow: onlinePortalProfileRow(),
+        entityRow,
+        today: "2026-09-22",
+      });
+      expect(result.ready).toBe(true);
+    });
+
+    it("rejects with MISSING_REQUEST_TEXT when neither the goal nor the profile default has usable text", () => {
+      const result = evaluateOnlinePortalGoalReadiness({
+        goal: goal({ fill_payload: null }),
+        profileRow: onlinePortalProfileRow({ template_schema: { schema_version: 1, portal_url: "https://records.example.org/requests/new", request_text: "" } }),
+        entityRow,
+        today: "2026-09-22",
+      });
+      expect(result.ready).toBe(false);
+      if (!result.ready) {
+        expect(result.code).toBe("MISSING_REQUEST_TEXT");
+        expect(result.message).toBe(
+          "Add records request language to the goal or the portal profile before preparing this request.",
+        );
+      }
+    });
+
+    it("rejects with MISSING_REQUEST_TEXT when the profile default is whitespace-only and the goal has no text of its own", () => {
+      const result = evaluateOnlinePortalGoalReadiness({
+        goal: goal({ fill_payload: { request: { records_description: "" } } }),
+        profileRow: onlinePortalProfileRow({ template_schema: { schema_version: 1, portal_url: "https://records.example.org/requests/new", request_text: "   " } }),
+        entityRow,
+        today: "2026-09-22",
+      });
+      expect(result.ready).toBe(false);
+      if (!result.ready) expect(result.code).toBe("MISSING_REQUEST_TEXT");
+    });
+
+    it("never substitutes public_summary for request text — a goal with only public_summary set (no records_description) still requires the profile default", () => {
+      const result = evaluateOnlinePortalGoalReadiness({
+        goal: goal({ public_summary: "A public-facing summary, not request language.", fill_payload: null }),
+        profileRow: onlinePortalProfileRow({ template_schema: { schema_version: 1, portal_url: "https://records.example.org/requests/new", request_text: "" } }),
+        entityRow,
+        today: "2026-09-22",
+      });
+      expect(result.ready).toBe(false);
+      if (!result.ready) expect(result.code).toBe("MISSING_REQUEST_TEXT");
+    });
   });
 });

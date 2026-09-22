@@ -24,6 +24,20 @@ import {
 import "../admin/ContentManagementTable.css";
 import "./RecordsRequestGoalsManager.css";
 
+// The literal sentinel value for the Request Profile <select>'s "+ New
+// online request portal…" option. Deliberately never written into
+// formData.request_profile_id (a real uuid column) — the onChange handler
+// intercepts this exact value and routes it into the separate
+// creatingOnlinePortal UI flag instead. See OnlinePortalProfileEditor's
+// own module comment for the rest of that flow.
+const NEW_ONLINE_PORTAL_OPTION = "__new_online_portal__";
+
+function profileOptionLabel(profile) {
+  return profile.template_family === "online_portal"
+    ? `Online request portal — Version ${profile.version} (${profile.status})`
+    : `Version ${profile.version} (${profile.status})`;
+}
+
 // A single frozen, referentially-stable empty object passed as
 // FillPayloadFields' initialRequest whenever a goal has no fill_payload
 // yet. Using `{}` inline instead would create a brand-new object on every
@@ -852,6 +866,12 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
   });
   const [profiles, setProfiles] = useState([]);
   const [selectedProfileRow, setSelectedProfileRow] = useState(null);
+  // Purely a UI mode flag — never written into formData.request_profile_id.
+  // The "+ New online request portal…" <option> sets this instead of a
+  // placeholder id, so a cancelled or failed creation never leaves a fake
+  // profile id behind; only a confirmed rrg_create_request_profile success
+  // (see OnlinePortalProfileEditor's onCreated) ever touches the real field.
+  const [creatingOnlinePortal, setCreatingOnlinePortal] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [fillRequest, setFillRequest] = useState({});
@@ -865,10 +885,12 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
 
     try {
       // Every profile status is shown (not just verified) — see the
-      // matching comment in GoalEditForm's loadProfiles.
+      // matching comment in GoalEditForm's loadProfiles. template_family
+      // is included so the <select> can label a portal profile distinctly
+      // from a PDF one (see PROFILE_OPTION_LABEL below).
       const { data, error } = await supabase
         .from("request_profiles")
-        .select("id, version, status")
+        .select("id, version, status, template_family")
         .eq("government_entity_id", formData.government_entity_id)
         .order("version", { ascending: false });
 
@@ -1015,13 +1037,14 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
         <select
           id="goal-entity"
           value={formData.government_entity_id ?? ""}
-          onChange={(e) =>
+          onChange={(e) => {
+            setCreatingOnlinePortal(false);
             setFormData({
               ...formData,
               government_entity_id: e.target.value ? parseInt(e.target.value) : null,
               request_profile_id: null,
-            })
-          }
+            });
+          }}
         >
           <option value="">-- No entity selected --</option>
           {entities.map((entity) => (
@@ -1038,16 +1061,28 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
         </label>
         <select
           id="goal-profile"
-          value={formData.request_profile_id ?? ""}
-          onChange={(e) =>
-            setFormData({ ...formData, request_profile_id: e.target.value ? e.target.value : null })
-          }
+          value={creatingOnlinePortal ? NEW_ONLINE_PORTAL_OPTION : formData.request_profile_id ?? ""}
+          onChange={(e) => {
+            if (e.target.value === NEW_ONLINE_PORTAL_OPTION) {
+              // Deliberately does not touch request_profile_id — see
+              // NEW_ONLINE_PORTAL_OPTION's own comment. The previously
+              // selected profile (if any) is preserved exactly as-is
+              // unless/until creation actually succeeds.
+              setCreatingOnlinePortal(true);
+              return;
+            }
+            setCreatingOnlinePortal(false);
+            setFormData({ ...formData, request_profile_id: e.target.value ? e.target.value : null });
+          }}
           disabled={!formData.government_entity_id}
         >
           <option value="">-- No profile selected --</option>
+          {formData.government_entity_id && (
+            <option value={NEW_ONLINE_PORTAL_OPTION}>+ New online request portal…</option>
+          )}
           {profiles.map((profile) => (
             <option key={profile.id} value={profile.id}>
-              Version {profile.version} ({profile.status})
+              {profileOptionLabel(profile)}
             </option>
           ))}
         </select>
@@ -1061,10 +1096,14 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
       <OnlinePortalProfileEditor
         governmentEntityId={formData.government_entity_id}
         selectedProfile={selectedProfileRow}
-        onProfileSaved={(profileId) => {
+        creating={creatingOnlinePortal}
+        onCreated={(profileId) => {
+          setCreatingOnlinePortal(false);
           setFormData((current) => ({ ...current, request_profile_id: profileId }));
           loadProfiles();
         }}
+        onCancelCreate={() => setCreatingOnlinePortal(false)}
+        onSaved={() => loadProfiles()}
       />
 
       {formData.request_profile_id && (
@@ -1154,7 +1193,7 @@ function GoalForm({ county, entities, isAdmin = true, onSuccess }) {
       <button
         type="submit"
         className="rrg-btn rrg-btn--primary"
-        disabled={submitting || (!fillValid && Boolean(formData.request_profile_id)) || lockedReasonMissing}
+        disabled={submitting || (!fillValid && Boolean(formData.request_profile_id)) || lockedReasonMissing || creatingOnlinePortal}
       >
         {submitting ? "Creating..." : "Create Goal"}
       </button>
@@ -1177,6 +1216,8 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
   const [formData, setFormData] = useState(goal);
   const [profiles, setProfiles] = useState([]);
   const [selectedProfileRow, setSelectedProfileRow] = useState(null);
+  // See the identical flag/comment in GoalForm.
+  const [creatingOnlinePortal, setCreatingOnlinePortal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [fillRequest, setFillRequest] = useState(goal.fill_payload?.request ?? EMPTY_FILL_REQUEST);
@@ -1249,7 +1290,7 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
       // independently requires status = 'verified' downstream.
       const { data, error: profileError } = await supabase
         .from("request_profiles")
-        .select("id, version, status")
+        .select("id, version, status, template_family")
         .eq("government_entity_id", formData.government_entity_id)
         .order("version", { ascending: false });
       if (profileError) throw profileError;
@@ -1308,7 +1349,9 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
       ? "A locked goal needs a reason."
       : fillInvalid
         ? `Structured request data is invalid${fillIssueSummary ? ` — ${fillIssueSummary}` : "."}`
-        : null;
+        : creatingOnlinePortal
+          ? "Finish or cancel creating the new online portal profile first."
+          : null;
 
   async function handleSave() {
     if (lockedReasonMissing) {
@@ -1418,7 +1461,10 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
         <label>Government Entity</label>
         <select
           value={formData.government_entity_id ?? ""}
-          onChange={(e) => updateField({ government_entity_id: e.target.value ? parseInt(e.target.value) : null, request_profile_id: null })}
+          onChange={(e) => {
+            setCreatingOnlinePortal(false);
+            updateField({ government_entity_id: e.target.value ? parseInt(e.target.value) : null, request_profile_id: null });
+          }}
         >
           <option value="">-- No entity --</option>
           {entities.map((entity) => (
@@ -1430,13 +1476,27 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
       <div className="rrg-form-group">
         <label>Request Profile</label>
         <select
-          value={formData.request_profile_id ?? ""}
-          onChange={(e) => updateField({ request_profile_id: e.target.value || null })}
+          value={creatingOnlinePortal ? NEW_ONLINE_PORTAL_OPTION : formData.request_profile_id ?? ""}
+          onChange={(e) => {
+            if (e.target.value === NEW_ONLINE_PORTAL_OPTION) {
+              // See NEW_ONLINE_PORTAL_OPTION's own comment — this never
+              // touches request_profile_id, so the previously selected
+              // profile (PDF or portal) is preserved until creation
+              // actually succeeds.
+              setCreatingOnlinePortal(true);
+              return;
+            }
+            setCreatingOnlinePortal(false);
+            updateField({ request_profile_id: e.target.value || null });
+          }}
           disabled={!formData.government_entity_id}
         >
           <option value="">-- No profile --</option>
+          {formData.government_entity_id && (
+            <option value={NEW_ONLINE_PORTAL_OPTION}>+ New online request portal…</option>
+          )}
           {profiles.map((profile) => (
-            <option key={profile.id} value={profile.id}>Version {profile.version} ({profile.status})</option>
+            <option key={profile.id} value={profile.id}>{profileOptionLabel(profile)}</option>
           ))}
         </select>
         {formData.government_entity_id && profiles.length === 0 && (
@@ -1450,10 +1510,14 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
       <OnlinePortalProfileEditor
         governmentEntityId={formData.government_entity_id}
         selectedProfile={selectedProfileRow}
-        onProfileSaved={(profileId) => {
+        creating={creatingOnlinePortal}
+        onCreated={(profileId) => {
+          setCreatingOnlinePortal(false);
           updateField({ request_profile_id: profileId });
           loadProfiles();
         }}
+        onCancelCreate={() => setCreatingOnlinePortal(false)}
+        onSaved={() => loadProfiles()}
       />
 
       {formData.request_profile_id && (

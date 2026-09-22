@@ -32,20 +32,39 @@ export type OnlinePortalGoalReadinessReasonCode =
   | "INVALID_PROFILE"
   | "NOT_AN_ONLINE_PORTAL_PROFILE"
   | "PROFILE_NOT_VERIFIED"
-  | "PROFILE_NOT_EFFECTIVE";
+  | "PROFILE_NOT_EFFECTIVE"
+  | "MISSING_REQUEST_TEXT";
 
 export type OnlinePortalGoalReadinessResult =
   | Readonly<{ ready: true; profile: OnlinePortalRequestProfile }>
   | Readonly<{ ready: false; code: OnlinePortalGoalReadinessReasonCode; message: string }>;
 
 export type EvaluateOnlinePortalGoalReadinessInput = Readonly<{
-  goal: Readonly<{ locked: unknown; request_profile_id: unknown; government_entity_id: unknown }>;
+  goal: Readonly<{
+    locked: unknown;
+    request_profile_id: unknown;
+    government_entity_id: unknown;
+    fill_payload?: unknown;
+  }>;
   profileRow: RawRequestProfileRow | null;
   entityRow: RawGovernmentEntityRow | null;
   today?: string;
 }>;
 
 const NOT_AVAILABLE_MESSAGE = "This request form is being verified and is not available yet.";
+// Verbatim match of rrg_prepare_online_request's own raise-exception text
+// (supabase/migrations/20260922170741_online_portal_request_profiles.sql)
+// for the identical failure — same message whether this client-side check
+// or the RPC itself is what catches an empty result.
+const MISSING_REQUEST_TEXT_MESSAGE =
+  "Add records request language to the goal or the portal profile before preparing this request.";
+
+// Non-whitespace check, mirroring the RPC's own `v_text !~ '[^[:space:]]'`
+// test exactly — a records_description of only spaces/newlines counts as
+// absent, same as a genuinely empty string or null.
+function hasUsableText(value: unknown): value is string {
+  return typeof value === "string" && /\S/.test(value);
+}
 
 export function evaluateOnlinePortalGoalReadiness(
   input: EvaluateOnlinePortalGoalReadinessInput,
@@ -109,6 +128,18 @@ export function evaluateOnlinePortalGoalReadiness(
     (profile.effective_to !== null && today > profile.effective_to)
   ) {
     return { ready: false, code: "PROFILE_NOT_EFFECTIVE", message: NOT_AVAILABLE_MESSAGE };
+  }
+
+  // Same precedence rrg_prepare_online_request applies server-side: the
+  // goal's own saved records_description first, otherwise the profile's
+  // default request_text. Never public_summary. Checked here too (not
+  // only server-side) so the button itself can explain "missing request
+  // text" instead of only enabling and then failing on click.
+  const goalPayload = goal.fill_payload as { request?: { records_description?: unknown } } | null | undefined;
+  const goalText = goalPayload?.request?.records_description;
+  const usableText = hasUsableText(goalText) ? goalText : hasUsableText(profile.template_schema.request_text) ? profile.template_schema.request_text : null;
+  if (usableText === null) {
+    return { ready: false, code: "MISSING_REQUEST_TEXT", message: MISSING_REQUEST_TEXT_MESSAGE };
   }
 
   return { ready: true, profile };

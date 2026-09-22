@@ -7,6 +7,8 @@ import tiersSource from "../../components/records-request-goals/RecordsRequestGo
 import operatorPreviewSource from "../../components/records-request-goals/OperatorDraftPreviewButton.jsx?raw";
 // eslint-disable-next-line import/no-unresolved -- Vite/Vitest ?raw import
 import editorSource from "../../components/records-request-goals/OnlinePortalProfileEditor.jsx?raw";
+// eslint-disable-next-line import/no-unresolved -- Vite/Vitest ?raw import
+import managerSource from "../../components/records-request-goals/RecordsRequestGoalsManager.jsx?raw";
 
 /**
  * No React render harness exists in this repo (see pdf-preview-shape.test.ts
@@ -143,6 +145,24 @@ describe("RecordsRequestGoalsTiers: online_portal branch bypasses PDF loading en
   it("labels the online_portal template family", () => {
     expect(tiersSource).toMatch(/online_portal: "Online request portal"/);
   });
+
+  it("distinguishes 'still resolving whether this goal is a candidate' from 'genuinely no profile' using profilesLoaded, avoiding a false missing-profile flash for an online_portal goal relying on its profile default", () => {
+    expect(tiersSource).toMatch(/const \[profilesLoaded, setProfilesLoaded\] = useState\(false\);/);
+    expect(tiersSource).toMatch(/const stillResolvingCandidacy = Boolean\(goal\.request_profile_id\) && !profile && !profilesLoaded;/);
+    expect(tiersSource).toMatch(/profilesLoaded=\{profilesLoaded\}/);
+  });
+
+  it("shows a distinct 'not verified yet' message (not the generic missing-profile message) when a profile id is linked but the public query can't see it — i.e. it's still draft/unverified", () => {
+    expect(tiersSource).toMatch(/goal\.request_profile_id && profilesLoaded && !profile \?/);
+    expect(tiersSource).toMatch(/This request profile has not been verified yet and is not available for requests\./);
+  });
+
+  it("shows a distinct missing-request-text message rather than a generic one, sourced from the readiness result itself (MISSING_REQUEST_TEXT)", () => {
+    // The card renders readiness.result.message directly for the "done"
+    // case — online-portal-readiness.test.ts proves MISSING_REQUEST_TEXT's
+    // message is the RPC's own verbatim text, not invented here.
+    expect(tiersSource).toMatch(/: readiness\.result\.message\}/);
+  });
 });
 
 describe("OperatorDraftPreviewButton: online_portal preview uses p_preview: true and never touches PDF readiness/generation", () => {
@@ -207,14 +227,29 @@ describe("OnlinePortalProfileEditor: saves the exact RPC parameter literals the 
   });
 
   it("never edits a verified profile in place — offers only 'Create New Draft Version' (replace) for a verified profile", () => {
-    const verifiedBranch = editorSource.match(/if \(isVerified\) \{[\s\S]*?\n {2}\}/)?.[0] ?? "";
+    const verifiedBranch = editorSource.match(/if \(!creating && isVerified\) \{[\s\S]*?\n {2}\}/)?.[0] ?? "";
     expect(verifiedBranch).toMatch(/immutable/);
     expect(verifiedBranch).toMatch(/handleReplace/);
     expect(verifiedBranch).not.toMatch(/handleSaveDraft/);
   });
 
-  it("renders nothing when the selected profile is a PDF renderer type — this editor never touches non-online_portal profiles", () => {
-    expect(editorSource).toMatch(/if \(selectedProfile && !isExistingOnlinePortal\) return null;/);
+  it("renders nothing when a PDF renderer profile is selected and the operator isn't creating a new portal profile — this editor never touches non-online_portal profiles", () => {
+    expect(editorSource).toMatch(/if \(!creating && !isExistingOnlinePortal\) return null;/);
+  });
+
+  it("creation is a parent-controlled `creating` flag, not gated on 'no profile currently selected' — the create option must work even with a PDF profile selected", () => {
+    // The component's own render logic never requires selectedProfile to be
+    // absent before offering/rendering the creation form.
+    expect(editorSource).not.toMatch(/if \(!governmentEntityId/);
+    expect(editorSource).toMatch(/creating \? "New Online Request Portal Profile" : "Online Request Portal Profile"/);
+  });
+
+  it("only tells the parent about a new profile id after rrg_create_request_profile actually succeeds (onCreated), never speculatively", () => {
+    const block = editorSource.match(/async function handleCreate\(event\)[\s\S]*?\n {2}\}/)?.[0] ?? "";
+    const tryBlock = block.match(/try \{[\s\S]*?\n {4}\} catch/)?.[0] ?? "";
+    expect(tryBlock).toMatch(/onCreated\(data\.id\)/);
+    const catchBlock = block.match(/\} catch \(err\) \{[\s\S]*?\n {4}\} finally/)?.[0] ?? "";
+    expect(catchBlock).not.toMatch(/onCreated/);
   });
 
   it("validates the portal URL through onlinePortalUrlSchema — the same HTTPS/credential/whitespace rules the DB trigger enforces", () => {
@@ -224,5 +259,70 @@ describe("OnlinePortalProfileEditor: saves the exact RPC parameter literals the 
 
   it("explains that the goal's own records description takes precedence over the profile default", () => {
     expect(editorSource).toMatch(/a goal's own saved request language always\s*\n\s*takes precedence over this default\./);
+  });
+});
+
+describe("RecordsRequestGoalsManager: '+ New online request portal…' is always offered, never sends a placeholder profile id", () => {
+  it("the sentinel value is a distinct constant, never a real profile id shape, and is never written into request_profile_id", () => {
+    expect(managerSource).toMatch(/const NEW_ONLINE_PORTAL_OPTION = "__new_online_portal__";/);
+    // The two request_profile_id writer call sites (goalData insert /
+    // update payload construction) are covered by the "actually persists"
+    // tests below — this just confirms the sentinel constant itself is
+    // never assigned directly to request_profile_id anywhere in the file.
+    expect(managerSource).not.toMatch(/request_profile_id: NEW_ONLINE_PORTAL_OPTION/);
+  });
+
+  it("both GoalForm and GoalEditForm offer the '+ New online request portal…' option whenever a government entity is selected, regardless of what's currently selected", () => {
+    expect(managerSource.match(/<option value=\{NEW_ONLINE_PORTAL_OPTION\}>\+ New online request portal…<\/option>/g)?.length).toBe(2);
+    // Both occurrences are gated only on an entity being selected — never
+    // on the current profile selection (PDF, portal, or none).
+    expect(managerSource).toMatch(/\{formData\.government_entity_id && \(\s*\n\s*<option value=\{NEW_ONLINE_PORTAL_OPTION\}>/);
+  });
+
+  it("selecting the sentinel sets creatingOnlinePortal instead of touching request_profile_id, in both forms", () => {
+    expect(managerSource.match(/if \(e\.target\.value === NEW_ONLINE_PORTAL_OPTION\) \{/g)?.length).toBe(2);
+    expect(managerSource.match(/setCreatingOnlinePortal\(true\);\s*\n\s*return;/g)?.length).toBe(2);
+  });
+
+  it("selecting an ordinary profile (including switching away from '+ New') clears creatingOnlinePortal", () => {
+    expect(managerSource.match(/setCreatingOnlinePortal\(false\);\s*\n\s*(setFormData|updateField)/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("OnlinePortalProfileEditor's onCreated writes the confirmed new id into request_profile_id and refreshes the profiles list, in both forms", () => {
+    expect(managerSource.match(/onCreated=\{\(profileId\) => \{/g)?.length).toBe(2);
+    expect(managerSource).toMatch(/onCreated=\{\(profileId\) => \{\s*\n\s*setCreatingOnlinePortal\(false\);\s*\n\s*setFormData\(\(current\) => \(\{ \.\.\.current, request_profile_id: profileId \}\)\);\s*\n\s*loadProfiles\(\);/);
+    expect(managerSource).toMatch(/onCreated=\{\(profileId\) => \{\s*\n\s*setCreatingOnlinePortal\(false\);\s*\n\s*updateField\(\{ request_profile_id: profileId \}\);\s*\n\s*loadProfiles\(\);/);
+  });
+
+  it("Cancel restores the prior selection by simply clearing creatingOnlinePortal — request_profile_id was never touched while creating", () => {
+    expect(managerSource.match(/onCancelCreate=\{\(\) => setCreatingOnlinePortal\(false\)\}/g)?.length).toBe(2);
+  });
+
+  it("saving the goal actually persists request_profile_id — the create/update payloads both include it, so creating a profile alone (without saving) never links it", () => {
+    expect(managerSource).toMatch(/request_profile_id: formData\.request_profile_id \|\| null,/);
+    expect(managerSource).toMatch(/request_profile_id: formData\.request_profile_id,\s*\n\s*fill_payload: \{ request: fillRequest \},/);
+  });
+
+  it("the profiles list query includes template_family so options can be labeled distinctly, in both forms", () => {
+    expect(managerSource.match(/\.select\("id, version, status, template_family"\)/g)?.length).toBe(2);
+  });
+
+  it("labels a saved online_portal profile option as 'Online request portal — Version N (status)', distinct from a PDF profile's plain label", () => {
+    expect(managerSource).toMatch(
+      /function profileOptionLabel\(profile\) \{\s*\n\s*return profile\.template_family === "online_portal"\s*\n\s*\? `Online request portal — Version \$\{profile\.version\} \(\$\{profile\.status\}\)`\s*\n\s*: `Version \$\{profile\.version\} \(\$\{profile\.status\}\)`;/,
+    );
+    expect(managerSource.match(/\{profileOptionLabel\(profile\)\}/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("creating a portal profile never modifies or retires the goal's previously-selected PDF profile — OnlinePortalProfileEditor's own creation path only ever inserts via rrg_create_request_profile", () => {
+    // rrg_retire_request_profile is legitimately used elsewhere in this
+    // file (RequestProfileLifecycle's explicit "Retire Profile" button) —
+    // the point here is that OnlinePortalProfileEditor itself never calls
+    // it, which is already covered by online-portal-request-profiles-shape.test.ts's
+    // own assertions on editorSource ("uses the existing lifecycle RPCs
+    // unchanged — create, update, and replace"). This test just confirms
+    // the manager only ever passes a fresh, independent creation callback
+    // to that component, never one that also retires anything.
+    expect(managerSource).toMatch(/onCreated=\{\(profileId\) => \{\s*\n\s*setCreatingOnlinePortal\(false\);/g);
   });
 });

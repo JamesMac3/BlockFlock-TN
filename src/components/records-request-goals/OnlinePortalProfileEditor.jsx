@@ -83,52 +83,62 @@ function rpcParamsFor(form, governmentEntityId) {
 }
 
 /**
- * Create/edit UI for an "Online request portal" request profile — the only
- * profile type this codebase currently has any create/edit UI for at all
- * (see docs/online-portal-request-profiles.md: the PDF renderer types have
- * no equivalent frontend editor and are out of scope here). Reuses the
- * existing lifecycle RPCs unchanged: rrg_create_request_profile,
+ * Create/edit UI for an "Online request portal" request profile. An
+ * online_portal profile is a complete alternative to a PDF profile, not an
+ * addition to one — so this component's "create" mode is fully controlled
+ * by the parent (GoalForm/GoalEditForm) via `creating`, driven by a
+ * "+ New online request portal…" option in the Request Profile <select>
+ * that is always offered alongside every existing profile, PDF or portal,
+ * rather than being hidden behind "no profile currently selected." The
+ * parent never writes that sentinel option's value into
+ * formData.request_profile_id — `creating` is a separate flag, so a failed
+ * or cancelled creation can never leave a placeholder profile id behind.
+ *
+ * Reuses the existing lifecycle RPCs unchanged: rrg_create_request_profile,
  * rrg_update_request_profile (draft only — verified profiles are
  * immutable), and rrg_replace_request_profile (clones a verified profile
  * into a new draft version, the same "replace" workflow every other
  * profile type already uses). Activation/retirement remain
  * RequestProfileLifecycle's job, unchanged, and are not duplicated here.
+ * Creating a profile only ever inserts a new, independent request_profiles
+ * row — it never updates or retires whatever profile (PDF or portal) was
+ * previously selected.
  *
- * Rendered inline in GoalForm/GoalEditForm next to the existing "Request
- * Profile" <select> — offers "Create" when governmentEntityId is set and
- * no profile is selected yet, an editable form when the selected profile
- * is a draft online_portal profile, a "Create new draft version" action
- * when it's verified, and nothing at all when the selected profile is a
- * PDF renderer type (that combination is left to whatever process already
- * manages those profiles, unaffected by this component).
+ * When `creating` is true, this always renders the creation form,
+ * regardless of what's currently selected. Otherwise, it renders an
+ * edit/replace view only when the *currently selected* profile is itself
+ * an online_portal profile — nothing at all when a PDF profile is
+ * selected and the operator isn't in the middle of creating a new portal
+ * profile.
  */
-export default function OnlinePortalProfileEditor({ governmentEntityId, selectedProfile, onProfileSaved }) {
+export default function OnlinePortalProfileEditor({
+  governmentEntityId,
+  selectedProfile,
+  creating,
+  onCreated,
+  onCancelCreate,
+  onSaved,
+}) {
   const [form, setForm] = useState(emptyFormState);
-  const [mode, setMode] = useState("closed"); // closed | creating | editing
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const isExistingOnlinePortal = selectedProfile?.renderer_type === "online_portal";
-  const isDraft = selectedProfile?.status === "draft";
   const isVerified = selectedProfile?.status === "verified";
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (isExistingOnlinePortal) {
-        setForm(formStateFromProfile(selectedProfile));
-        setMode(isDraft ? "editing" : "closed");
-      } else {
-        setForm(emptyFormState());
-        setMode("closed");
-      }
       setError("");
+      if (creating) {
+        setForm(emptyFormState());
+      } else if (isExistingOnlinePortal) {
+        setForm(formStateFromProfile(selectedProfile));
+      }
     }, 0);
     return () => clearTimeout(timer);
-  }, [selectedProfile?.id, isExistingOnlinePortal, isDraft, selectedProfile]);
+  }, [creating, selectedProfile?.id, isExistingOnlinePortal, selectedProfile]);
 
-  if (!governmentEntityId && !isExistingOnlinePortal) return null;
-  // A PDF-renderer profile is selected — this editor has nothing to offer.
-  if (selectedProfile && !isExistingOnlinePortal) return null;
+  if (!creating && !isExistingOnlinePortal) return null;
 
   function updateField(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -149,8 +159,10 @@ export default function OnlinePortalProfileEditor({ governmentEntityId, selected
         rpcParamsFor(form, governmentEntityId),
       );
       if (rpcError) throw rpcError;
-      onProfileSaved(data.id);
-      setMode("editing");
+      // Only on confirmed success does the parent learn a profile id
+      // exists at all — a failed or cancelled attempt never touches the
+      // goal's request_profile_id.
+      onCreated(data.id);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -173,7 +185,7 @@ export default function OnlinePortalProfileEditor({ governmentEntityId, selected
         ...rpcParamsFor(form),
       });
       if (rpcError) throw rpcError;
-      onProfileSaved(selectedProfile.id);
+      onSaved(selectedProfile.id);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -189,7 +201,7 @@ export default function OnlinePortalProfileEditor({ governmentEntityId, selected
         p_profile_id: selectedProfile.id,
       });
       if (rpcError) throw rpcError;
-      onProfileSaved(data.id);
+      onSaved(data.id);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -197,17 +209,7 @@ export default function OnlinePortalProfileEditor({ governmentEntityId, selected
     }
   }
 
-  if (mode === "closed" && !isVerified) {
-    return (
-      <div className="rrg-form-group">
-        <button type="button" className="rrg-btn" onClick={() => { setForm(emptyFormState()); setMode("creating"); }}>
-          + Create Online Request Portal Profile
-        </button>
-      </div>
-    );
-  }
-
-  if (isVerified) {
+  if (!creating && isVerified) {
     return (
       <div className="rrg-form-group">
         <p className="rrg-fill-payload__hint">
@@ -223,8 +225,14 @@ export default function OnlinePortalProfileEditor({ governmentEntityId, selected
 
   return (
     <fieldset className="rrg-form-group" style={{ border: "1px solid #e5e7eb", borderRadius: "0.375rem", padding: "1rem" }}>
-      <legend>{mode === "creating" ? "New Online Request Portal Profile" : "Online Request Portal Profile"}</legend>
+      <legend>{creating ? "New Online Request Portal Profile" : "Online Request Portal Profile"}</legend>
       {error && <div className="rrg-error-message">{error}</div>}
+      {!creating && (
+        <p className="rrg-fill-payload__hint">
+          Changes here save this draft profile only. This does not by itself save the goal — use Save (or Create
+          Goal) below to actually link this profile to the goal.
+        </p>
+      )}
 
       <label htmlFor="portal-url">Official request website URL</label>
       <input
@@ -312,12 +320,12 @@ export default function OnlinePortalProfileEditor({ governmentEntityId, selected
           type="button"
           className="rrg-btn rrg-btn--primary"
           disabled={saving}
-          onClick={mode === "creating" ? handleCreate : handleSaveDraft}
+          onClick={creating ? handleCreate : handleSaveDraft}
         >
-          {saving ? "Saving…" : mode === "creating" ? "Create Profile" : "Save Changes"}
+          {saving ? "Saving…" : creating ? "Create Profile" : "Save Changes"}
         </button>
-        {mode === "creating" && (
-          <button type="button" className="rrg-btn" disabled={saving} onClick={() => { setMode("closed"); setError(""); }}>
+        {creating && (
+          <button type="button" className="rrg-btn" disabled={saving} onClick={onCancelCreate}>
             Cancel
           </button>
         )}

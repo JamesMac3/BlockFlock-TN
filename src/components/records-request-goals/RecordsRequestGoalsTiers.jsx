@@ -50,6 +50,13 @@ function isReadinessCandidate(goal, profilesById) {
 
 export default function RecordsRequestGoalsTiers({ goals, county }) {
   const [profilesById, setProfilesById] = useState({});
+  // Distinguishes "we haven't determined this goal's profile type yet"
+  // from "we checked, and it genuinely has no usable profile" — without
+  // this, a goal card could flash the hard "A request profile and records
+  // description are needed" message during the brief window before
+  // profilesById's own fetch resolves, instead of "Checking…". See
+  // GoalCard's isCandidate/profilesLoaded usage below.
+  const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [readinessByGoalId, setReadinessByGoalId] = useState({});
   const [delivery, setDelivery] = useState(null);
   const [portalDelivery, setPortalDelivery] = useState(null);
@@ -58,12 +65,15 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
     let active = true;
 
     async function loadProfileSummaries() {
+      setProfilesLoaded(false);
+
       const profileIds = [
         ...new Set(goals.map((goal) => goal.request_profile_id).filter(Boolean)),
       ];
 
       if (profileIds.length === 0) {
         setProfilesById({});
+        setProfilesLoaded(true);
         return;
       }
 
@@ -77,15 +87,22 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
       if (error) {
         console.error("Failed to load request profiles:", error);
         setProfilesById({});
+        setProfilesLoaded(true);
         return;
       }
 
       setProfilesById(Object.fromEntries((data ?? []).map((profile) => [profile.id, profile])));
+      setProfilesLoaded(true);
     }
 
-    loadProfileSummaries();
+    // Deferred past the effect's own synchronous body (same technique used
+    // elsewhere in this codebase, e.g. ChapterMasterManagementTable.jsx's
+    // loadCounties) so the initial setProfilesLoaded(false) above never
+    // runs as a same-tick cascading render.
+    const timer = setTimeout(loadProfileSummaries, 0);
     return () => {
       active = false;
+      clearTimeout(timer);
     };
   }, [goals]);
 
@@ -201,6 +218,7 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
                   goal={goal}
                   county={county}
                   profile={goal.request_profile_id ? profilesById[goal.request_profile_id] : null}
+                  profilesLoaded={profilesLoaded}
                   readiness={readinessByGoalId[goal.id]}
                   onPrepared={(generated, readyResult) =>
                     setDelivery({
@@ -238,7 +256,7 @@ export default function RecordsRequestGoalsTiers({ goals, county }) {
   );
 }
 
-function GoalCard({ goal, county, profile, readiness, onPrepared, onPortalPrepared }) {
+function GoalCard({ goal, county, profile, profilesLoaded, readiness, onPrepared, onPortalPrepared }) {
   const [generationState, setGenerationState] = useState({ status: "idle" });
 
   const links = [...(goal.records_request_goal_links || [])].sort(
@@ -246,10 +264,19 @@ function GoalCard({ goal, county, profile, readiness, onPrepared, onPortalPrepar
   );
 
   const isOnlinePortal = profile?.template_family === "online_portal";
+  // Still resolving whether this goal's linked profile is an online_portal
+  // profile (which would make it a candidate even with no goal-level
+  // records_description) — until profilesLoaded is true, a goal with a
+  // profile but no own records_description is neither confirmed a
+  // candidate nor confirmed not one. Treated as "still checking" rather
+  // than falling through to the hard "no profile" message, which would
+  // otherwise flash briefly and incorrectly for an online_portal goal that
+  // relies on its profile's default text.
+  const stillResolvingCandidacy = Boolean(goal.request_profile_id) && !profile && !profilesLoaded;
   const isCandidate =
     !goal.locked
     && Boolean(goal.request_profile_id)
-    && (isOnlinePortal || Boolean(goal.fill_payload?.request?.records_description));
+    && (isOnlinePortal || Boolean(goal.fill_payload?.request?.records_description) || stillResolvingCandidacy);
   const isReady = readiness?.status === "done" && readiness.result.ready === true;
 
   async function handlePrepareOnlinePortalRequest() {
@@ -365,6 +392,17 @@ function GoalCard({ goal, county, profile, readiness, onPrepared, onPortalPrepar
               {readiness?.status === "checking" || !readiness
                 ? "Checking request-form availability…"
                 : readiness.result.message}
+            </p>
+          ) : goal.request_profile_id && profilesLoaded && !profile ? (
+            // A profile id is present on the goal, but the public
+            // (anon-RLS) profile-summary query didn't return it — under
+            // request_profiles_read_current_verified, that only happens
+            // for a profile that isn't (yet) verified and currently
+            // effective. Distinct from "no profile linked at all" so an
+            // operator awaiting activation isn't told the profile is
+            // simply missing.
+            <p className="goal-card__notice">
+              This request profile has not been verified yet and is not available for requests.
             </p>
           ) : (
             <p className="goal-card__notice">
