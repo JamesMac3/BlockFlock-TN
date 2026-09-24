@@ -1458,8 +1458,9 @@ function GoalEditForm({ goal, entities, isAdmin, onSave, onCancel, onDirtyChange
       </div>
 
       <div className="rrg-form-group">
-        <label>Government Entity</label>
+        <label htmlFor={`goal-edit-entity-${goal.id}`}>Government Entity</label>
         <select
+          id={`goal-edit-entity-${goal.id}`}
           value={formData.government_entity_id ?? ""}
           onChange={(e) => {
             setCreatingOnlinePortal(false);
