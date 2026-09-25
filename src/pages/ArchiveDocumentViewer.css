@@ -114,6 +114,30 @@
   padding: 1rem;
 }
 
+.archive-document-viewer__actions--center {
+  justify-content: center;
+}
+
+.archive-document-viewer__back {
+  display: block;
+  width: fit-content;
+  margin-bottom: 0.75rem;
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.archive-document-viewer__back:hover {
+  text-decoration: underline;
+}
+
+button.archive-document-viewer__action {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .archive-document-viewer__unsupported {
   padding: 2rem;
   background: white;

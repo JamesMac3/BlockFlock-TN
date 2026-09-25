@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import { supabase } from "../lib/supabase";
-import { listDocumentsByCategory } from "../config/documentManifest";
 import { classifyRpcError, RPC_ERROR_MESSAGES } from "../features/portal-admin/rpcErrors";
+import { BLANK_FORMS_RPC, blankFormPath } from "../features/document-request/blankRequestForms";
 import "./ArchivePage.css";
 
 const PAGE_SIZE_CHOICES = [5, 10, 25];
@@ -15,15 +15,27 @@ const GOAL_SORT_OPTIONS = [
   ["county", "County"],
 ];
 
-const BLANK_REQUEST_TEMPLATES = listDocumentsByCategory("blank_request_template");
+const FORMS_TAB_PARAM = "forms";
 
 // The investigative goal is the primary public-archive row, never an
 // individual document — this table sources from get_public_archive_goals()
-// (one row per public goal, Partial/received and Complete/published alike),
-// completely separate from the static blank-template manifest below.
+// (one row per public goal, Partial/received and Complete/published alike).
+// Blank request forms come from get_public_blank_request_forms (see
+// TemplatesTable) — the database is the single source for that list, so
+// the two static Murfreesboro entries in documentManifest.js are no longer
+// listed here (they are the same stored files the RPC returns); their
+// legacy /documents/:slug URLs keep working through DocumentPage.
 export default function ArchivePage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("goals");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTabState] = useState(
+    searchParams.get("tab") === FORMS_TAB_PARAM ? "templates" : "goals"
+  );
+
+  function setActiveTab(tab) {
+    setActiveTabState(tab);
+    setSearchParams(tab === "templates" ? { tab: FORMS_TAB_PARAM } : {}, { replace: true });
+  }
   const [phase, setPhase] = useState("loading");
   const [errorKind, setErrorKind] = useState(null);
   const [goalRows, setGoalRows] = useState([]);
@@ -235,14 +247,57 @@ export default function ArchivePage() {
   );
 }
 
+// Lists every public blank request form get_public_blank_request_forms
+// returns — no hardcoded count. A form is listed regardless of whether its
+// automated filling profile is still a draft (the backend already decides
+// what is publishable; see docs/public-blank-request-forms.md).
 function TemplatesTable({ navigate }) {
-  if (BLANK_REQUEST_TEMPLATES.length === 0) {
+  const [state, setState] = useState({ phase: "loading", forms: [], errorKind: null });
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((value) => value + 1), []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadForms() {
+      setState({ phase: "loading", forms: [], errorKind: null });
+      const { data, error } = await supabase.rpc(BLANK_FORMS_RPC);
+      if (!active) return;
+      if (error) {
+        console.error("Blank request forms request failed:", error);
+        setState({ phase: "failed", forms: [], errorKind: classifyRpcError(error) });
+        return;
+      }
+      setState({ phase: "done", forms: Array.isArray(data) ? data : [], errorKind: null });
+    }
+
+    const timer = setTimeout(loadForms, 0);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [attempt]);
+
+  if (state.phase === "loading") {
+    return <p className="archive-message-inline" role="status">Loading blank request forms…</p>;
+  }
+
+  if (state.phase === "failed") {
+    return (
+      <div className="archive-message-inline" role="alert">
+        <p>{RPC_ERROR_MESSAGES[state.errorKind] ?? RPC_ERROR_MESSAGES.network}</p>
+        <button type="button" className="archive-retry" onClick={retry}>Try again</button>
+      </div>
+    );
+  }
+
+  if (state.forms.length === 0) {
     return <div className="archive-empty"><p>No blank request forms are available yet.</p></div>;
   }
 
   return (
     <div className="archive-table__scroll">
-      <table className="archive-table">
+      <table className="archive-table archive-table--forms">
         <thead>
           <tr>
             <th>Title</th>
@@ -251,24 +306,24 @@ function TemplatesTable({ navigate }) {
           </tr>
         </thead>
         <tbody>
-          {BLANK_REQUEST_TEMPLATES.map((template) => (
+          {state.forms.map((form) => (
             <tr
-              key={template.slug}
+              key={form.evidence_id}
               tabIndex={0}
               role="link"
-              aria-label={`Open ${template.title}`}
+              aria-label={`Open ${form.title}`}
               className="archive-table__row"
-              onClick={() => navigate(`/documents/${template.slug}`)}
+              onClick={() => navigate(blankFormPath(form.evidence_id))}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  navigate(`/documents/${template.slug}`);
+                  navigate(blankFormPath(form.evidence_id));
                 }
               }}
             >
-              <td>{template.title}</td>
-              <td>{template.county ?? "Not recorded"}</td>
-              <td>{template.governmentEntity ?? "Not recorded"}</td>
+              <td>{form.title}</td>
+              <td>{form.county ?? "Not recorded"}</td>
+              <td>{form.government_entity ?? "Not recorded"}</td>
             </tr>
           ))}
         </tbody>

@@ -13,6 +13,7 @@ import ArchivePage from "./pages/ArchivePage";
 import ArchiveGoalPage from "./pages/ArchiveGoalPage";
 import DocumentPage from "./pages/DocumentPage";
 import ArchiveDocumentViewer from "./pages/ArchiveDocumentViewer";
+import BlankRequestFormViewer from "./pages/BlankRequestFormViewer";
 import PortalDocumentViewer from "./pages/PortalDocumentViewer";
 import AdminPostPreview from "./pages/AdminPostPreview";
 import AccessRevokedPage from "./pages/AccessRevokedPage";
@@ -92,6 +93,11 @@ export default function App() {
         <Route
           path="/archive/documents/:evidenceId"
           element={<ArchiveDocumentViewer />}
+        />
+
+        <Route
+          path="/archive/forms/:evidenceId"
+          element={<BlankRequestFormViewer />}
         />
 
         <Route
