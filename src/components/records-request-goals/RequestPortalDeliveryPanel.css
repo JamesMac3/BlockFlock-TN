@@ -93,7 +93,12 @@
   line-height: 1.55;
 }
 
-.portal-delivery-panel__preview-banner {
+/* Ancestor-qualified (two classes) so this outranks .portal-delivery-panel
+   p (one class + one element = higher specificity than a single class,
+   regardless of source order) — without this, that generic paragraph rule
+   silently overrides this banner's own `color: white`, leaving dark gray
+   (#374151) text on the dark-red background, which is unreadable. */
+.portal-delivery-panel .portal-delivery-panel__preview-banner {
   margin: 0 2rem 1rem 0;
   padding: 0.75rem 1rem;
   background: #7f1d1d;
