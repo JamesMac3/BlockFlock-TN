@@ -740,6 +740,26 @@ img {
   transition: transform 160ms ease;
 }
 
+/* Two-class selectors so these beat the later, single-class .button rules
+   in this file regardless of source order. */
+.resource-card .resource-card__button--highlight {
+  background: #ffe600;
+  border-color: #ffe600;
+  color: #c8102e;
+  font-weight: 800;
+}
+
+.resource-card .resource-card__button--highlight:hover {
+  background: #fff176;
+  border-color: #fff176;
+  color: #a00d25;
+}
+
+.resource-card .resource-card__button--highlight:focus-visible {
+  outline: 3px solid #55e1ff;
+  outline-offset: 2px;
+}
+
 .resource-card__button:hover .resource-card__button-icon {
   transform: translate(2px, -2px);
 }

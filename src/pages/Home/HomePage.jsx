@@ -44,6 +44,11 @@ const externalResources = [
         logo: panopticonLogo,
         description: "Investigate the people and companies building America's surveillance.",
       },
+      {
+        label: "flocksurveillance.org",
+        url: "https://flocksurveillance.org/index.html",
+        variant: "highlight",
+      },
     ],
   },
   {
@@ -63,11 +68,14 @@ const externalResources = [
 // text-label button every non-logo link uses.
 function renderResourceLink(link, square = false) {
   if (!link.logo) {
+    // `variant: "highlight"` swaps the dark outline style for a bright
+    // yellow button with red text; every other text link keeps the default.
+    const variantClass = link.variant === "highlight" ? "resource-card__button--highlight" : "button--secondary-dark";
     return (
       <a
         key={link.url}
         href={link.url}
-        className="button button--secondary-dark resource-card__button"
+        className={`button ${variantClass} resource-card__button`}
         target="_blank"
         rel="noopener noreferrer"
       >
